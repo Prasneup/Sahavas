@@ -6,6 +6,7 @@ import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import RoomSearch from './pages/RoomSearch';
 import RoommateDiscovery from './pages/RoommateDiscovery';
+import ProfileEdit from './pages/ProfileEdit';
 
 // Protected Route Guard component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -52,6 +53,11 @@ function AppRoutes() {
       <Route path="/roommates" element={
         <ProtectedRoute>
           <RoommateDiscovery />
+        </ProtectedRoute>
+      } />
+      <Route path="/profile" element={
+        <ProtectedRoute>
+          <ProfileEdit />
         </ProtectedRoute>
       } />
 

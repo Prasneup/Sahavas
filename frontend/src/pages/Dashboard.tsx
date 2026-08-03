@@ -29,6 +29,10 @@ const Dashboard: React.FC = () => {
               <Users size={18} />
               Find Roommates
             </Link>
+            <Link to="/profile" className="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition">
+              <User size={18} />
+              My Profile
+            </Link>
           </nav>
         </div>
 
@@ -114,6 +118,10 @@ const Dashboard: React.FC = () => {
           <Link to="/roommates" className="flex flex-col items-center text-slate-500 text-xs font-semibold">
             <Users size={20} />
             <span>Roommates</span>
+          </Link>
+          <Link to="/profile" className="flex flex-col items-center text-slate-500 text-xs font-semibold">
+            <User size={20} />
+            <span>Profile</span>
           </Link>
         </nav>
       </main>

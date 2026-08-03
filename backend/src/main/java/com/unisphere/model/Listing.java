@@ -64,7 +64,18 @@ public class Listing {
     @Column(name = "gender_preference", nullable = false, length = 15)
     private String genderPreference; // BOYS_ONLY, GIRLS_ONLY, ANY
 
-    @ElementCollection
+    @Column(name = "distance_from_college_text", length = 100)
+    private String distanceFromCollegeText; // e.g. "200m from IOE Pulchowk Gate"
+
+    @Column(name = "rating")
+    @Builder.Default
+    private Double rating = 5.0;
+
+    @Column(name = "review_count")
+    @Builder.Default
+    private Integer reviewCount = 0;
+
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "listing_amenities", joinColumns = @JoinColumn(name = "listing_id"))
     @Column(name = "amenity")
     @Builder.Default
@@ -78,7 +89,7 @@ public class Listing {
     @Builder.Default
     private Boolean isVerified = false;
 
-    @OneToMany(mappedBy = "listing", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "listing", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @Builder.Default
     private List<ListingImage> images = new ArrayList<>();
 

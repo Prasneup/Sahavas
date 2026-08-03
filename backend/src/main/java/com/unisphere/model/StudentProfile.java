@@ -6,7 +6,10 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -34,6 +37,9 @@ public class StudentProfile {
     @Column(nullable = false, length = 10)
     private String gender; // MALE, FEMALE, OTHER
 
+    @Column(name = "age")
+    private Integer age;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "college_id")
     private College college;
@@ -43,6 +49,9 @@ public class StudentProfile {
 
     @Column(name = "academic_year")
     private Integer academicYear;
+
+    @Column(name = "current_semester")
+    private Integer currentSemester;
 
     @Column(name = "avatar_url")
     private String avatarUrl;
@@ -57,6 +66,37 @@ public class StudentProfile {
     @NotBlank(message = "Current target city is required")
     @Column(name = "current_city", nullable = false, length = 50)
     private String currentCity; // e.g. Kathmandu, Pokhara
+
+    @Column(name = "preferred_relocation_city", length = 50)
+    private String preferredRelocationCity;
+
+    @Column(name = "budget_min", precision = 10, scale = 2)
+    private BigDecimal budgetMin;
+
+    @Column(name = "budget_max", precision = 10, scale = 2)
+    private BigDecimal budgetMax;
+
+    @Column(name = "verification_status", length = 30)
+    @Builder.Default
+    private String verificationStatus = "UNVERIFIED"; // UNVERIFIED, PENDING_VERIFICATION, VERIFIED, REJECTED
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "student_interests", joinColumns = @JoinColumn(name = "profile_id"))
+    @Column(name = "interest")
+    @Builder.Default
+    private List<String> interests = new ArrayList<>();
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "student_skills", joinColumns = @JoinColumn(name = "profile_id"))
+    @Column(name = "skill")
+    @Builder.Default
+    private List<String> skills = new ArrayList<>();
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "student_languages", joinColumns = @JoinColumn(name = "profile_id"))
+    @Column(name = "language")
+    @Builder.Default
+    private List<String> languages = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
