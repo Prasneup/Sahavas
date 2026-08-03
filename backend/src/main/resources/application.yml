@@ -1,0 +1,48 @@
+spring:
+  application:
+    name: unisphere-nepal
+  
+  # Database Configuration (In-Memory H2 fallback to allow run without Docker daemon)
+  datasource:
+    url: jdbc:h2:mem:unisphere_db;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    username: sa
+    password: password
+    driver-class-name: org.h2.Driver
+
+  # Disable SQL script initialization for H2 in-memory runs
+  sql:
+    init:
+      mode: never
+  
+  # JPA & Hibernate Configurations
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  # Redis Configuration
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+# Logging Settings
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+
+# Custom Application Config Properties
+app:
+  jwt:
+    secret: 5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437
+    expiration-ms: 900000        # 15 minutes (900,000 ms)
+    refresh-expiration-ms: 604800000 # 7 days (604,800,000 ms)
+  cloudinary:
+    cloud-name: ${CLOUDINARY_CLOUD_NAME:unisphere_mock_cloud}
+    api-key: ${CLOUDINARY_API_KEY:123456789}
+    api-secret: ${CLOUDINARY_API_SECRET:mock_secret}

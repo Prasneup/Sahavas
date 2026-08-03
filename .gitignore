@@ -1,0 +1,21 @@
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.iml
+*.log
+
+# Backend (Gradle / Spring Boot)
+backend/.gradle/
+backend/build/
+backend/out/
+
+# Frontend (Node / React)
+frontend/node_modules/
+frontend/dist/
+frontend/.cache/
+frontend/npm-debug.log*
+
+# Local Configs
+.env
+.env.local
