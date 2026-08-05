@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
-import { Search, CheckCircle, Star, MapPin, Heart, Compass } from 'lucide-react';
+import { Search, CheckCircle, Star, MapPin, Heart, Compass, ArrowLeft } from 'lucide-react';
 
 interface Listing {
   id: string;
@@ -55,7 +55,7 @@ const RoomSearch: React.FC = () => {
           locationLat: 27.6812,
           locationLng: 85.3184,
           images: [
-            { id: "i1", imageUrl: "https://images.unsplash.com/photo-1522771739844-6a9f5d5f14af?auto=format&fit=crop&q=80&w=400" }
+            { id: "i1", imageUrl: "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=400" }
           ]
         },
         {
@@ -90,155 +90,167 @@ const RoomSearch: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      {/* Top sticky search navigation bar */}
-      <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-30 px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+    <div className="min-h-screen bg-[#FAF8F5] text-[#1E1E1E] flex flex-col font-sans">
+      
+      {/* Search Header panel aligned with mockup design */}
+      <header className="border-b border-[#EAE5D9] bg-[#FAF8F5]/85 backdrop-blur-md sticky top-0 z-30 px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-black text-brand-cyan tracking-tight font-display">UniSphere Rooms</h1>
-          <span className="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-medium">Airbnb Edition</span>
+          <button 
+            onClick={() => navigate('/dashboard')} 
+            className="w-9 h-9 rounded-full bg-white border border-[#EAE5D9] flex items-center justify-center shadow-sm"
+          >
+            <ArrowLeft size={18} className="text-[#8E8674]" />
+          </button>
+          
+          <div className="flex items-center gap-1.5">
+            {/* Sahavas Mandala Logo */}
+            <div className="w-7 h-7 rounded-full bg-[#FAF8F5] flex items-center justify-center border border-[#D9A25A]/40">
+              <svg className="w-4.5 h-4.5 text-[#D9A25A]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+              </svg>
+            </div>
+            <h1 className="text-xl font-black text-[#1A2540] tracking-tight font-display">सहवास Rooms</h1>
+          </div>
         </div>
 
-        {/* The Student Pill Search bar */}
-        <div className="flex-1 max-w-2xl bg-slate-950 border border-slate-800 rounded-full px-6 py-2.5 flex items-center gap-3 shadow-inner">
-          <Search className="text-brand-cyan" size={18} />
+        {/* Search Input bar */}
+        <div className="flex-1 max-w-xl bg-white border border-[#EAE5D9] rounded-full px-5 py-2.5 flex items-center gap-3 shadow-sm">
+          <Search className="text-[#D9A25A]" size={16} />
           <input
             type="text"
-            placeholder="Search rooms near your college (e.g. Pulchowk, Tinkune)..."
+            placeholder="Search rooms near your college..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-transparent text-white focus:outline-none w-full text-xs font-semibold"
+            className="bg-transparent text-[#1E1E1E] focus:outline-none w-full text-xs font-semibold placeholder-[#A39E93]"
           />
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button 
             onClick={() => setViewMode(viewMode === 'LIST' ? 'SPLIT' : 'LIST')}
-            className="bg-slate-800 hover:bg-slate-700 text-xs font-semibold px-4 py-2 rounded-lg transition"
+            className="bg-white hover:bg-[#FAF3E8] border border-[#EAE5D9] text-[#1E1E1E] text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition"
           >
             {viewMode === 'LIST' ? 'Show Split Map' : 'Show List Feed'}
-          </button>
-          <button 
-            onClick={() => navigate('/dashboard')} 
-            className="text-xs font-semibold text-slate-400 hover:text-white transition"
-          >
-            Close
           </button>
         </div>
       </header>
 
-      {/* Workspace Split Layout */}
+      {/* Split Listings/Map workspace */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left List Feed */}
-        <div className={`flex-1 overflow-y-auto p-6 md:p-8 ${viewMode === 'SPLIT' ? 'max-w-[55%]' : 'max-w-4xl mx-auto'}`}>
+        {/* Left Listings column */}
+        <div className={`flex-1 overflow-y-auto p-6 ${viewMode === 'SPLIT' ? 'max-w-full md:max-w-[55%]' : 'max-w-3xl mx-auto w-full'}`}>
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Available Verified Rooms</h2>
-            <span className="text-xs bg-brand-cyan/15 text-brand-cyan font-bold px-2.5 py-0.5 rounded-full">
+            <h2 className="text-xs font-bold text-[#8E8674] uppercase tracking-wider">Available Rooms</h2>
+            <span className="text-xs bg-[#FAF3E8] text-[#D9A25A] font-bold px-3 py-1 rounded-full border border-[#D9A25A]/20">
               {listings.length} places found
             </span>
           </div>
 
-          <div className="grid grid-cols-1 gap-8">
+          <div className="grid grid-cols-1 gap-6">
             {listings.map((room) => (
-              <div key={room.id} className="bg-slate-900 border border-slate-800/80 rounded-2xl overflow-hidden shadow-xl hover:border-slate-700/80 transition-all duration-300 group flex flex-col">
-                {/* Large Photo Section */}
-                <div className="h-64 w-full bg-slate-950 relative overflow-hidden">
+              <div key={room.id} className="bg-white border border-[#EAE5D9] rounded-3xl overflow-hidden shadow-md hover:border-[#D9A25A]/45 transition duration-300 group flex flex-col">
+                
+                {/* Photo section */}
+                <div className="h-60 w-full bg-[#EAE5D9] relative overflow-hidden">
                   <img 
                     src={room.images?.[0]?.imageUrl || 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=600'} 
                     alt="Listing Photo"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-500"
                   />
                   
-                  {/* Photo overlays */}
+                  {/* Overlays */}
                   <div className="absolute top-4 left-4 flex flex-col gap-2">
                     {room.isVerified && (
-                      <span className="text-[10px] bg-teal-950/90 border border-teal-800 text-teal-400 px-3 py-1 rounded-full font-bold uppercase tracking-wider backdrop-blur-sm flex items-center gap-1 shadow-md">
-                        <CheckCircle size={10} /> Verified Room
+                      <span className="text-[9px] bg-[#E6F4EA] border border-[#137333]/20 text-[#137333] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider backdrop-blur-sm flex items-center gap-1 shadow-sm">
+                        <CheckCircle size={10} /> Verified
                       </span>
                     )}
-                    <span className="text-[10px] bg-slate-900/90 text-slate-300 px-3 py-1 rounded-full font-bold uppercase tracking-wider backdrop-blur-sm shadow-md">
+                    <span className="text-[9px] bg-white/90 border border-[#EAE5D9] text-[#1E1E1E] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider backdrop-blur-sm shadow-sm">
                       {room.roomType.replace('_', ' ')}
                     </span>
                   </div>
 
                   <button 
                     onClick={() => toggleWishlist(room.id)}
-                    className="absolute top-4 right-4 bg-slate-900/80 hover:bg-slate-800 text-slate-300 p-2.5 rounded-full backdrop-blur-sm transition shadow-md"
+                    className="absolute top-4 right-4 bg-white/90 border border-[#EAE5D9] hover:bg-white text-slate-300 p-2.5 rounded-full backdrop-blur-sm transition shadow-sm"
                   >
-                    <Heart size={16} className={wishlist.includes(room.id) ? 'fill-rose-500 text-rose-500' : 'text-slate-400'} />
+                    <Heart size={14} className={wishlist.includes(room.id) ? 'fill-rose-500 text-rose-500' : 'text-[#8E8674]'} />
                   </button>
                 </div>
 
-                {/* Details Section */}
-                <div className="p-6 flex-1 flex flex-col justify-between">
+                {/* Listing Details */}
+                <div className="p-5 flex-1 flex flex-col justify-between">
                   <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-xs text-brand-cyan font-semibold flex items-center gap-1">
-                        <MapPin size={14} />
-                        {room.distanceFromCollegeText || 'Near target college'}
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-[#D9A25A] font-bold flex items-center gap-1">
+                        <MapPin size={13} className="stroke-[2.5]" />
+                        {room.distanceFromCollegeText}
                       </span>
-                      <div className="flex items-center gap-1.5 text-xs text-amber-400 font-bold">
-                        <Star size={14} className="fill-amber-400" />
-                        {room.rating} <span className="text-slate-500 font-normal">({room.reviewCount})</span>
+                      <div className="flex items-center gap-1 text-xs text-amber-500 font-bold">
+                        <Star size={13} className="fill-amber-500 stroke-none" />
+                        {room.rating} <span className="text-[#8E8674] font-semibold">({room.reviewCount})</span>
                       </div>
                     </div>
 
-                    <h3 className="text-xl font-bold font-display text-white mb-2 leading-tight group-hover:text-brand-cyan transition">
+                    <h3 className="text-lg font-black text-[#1E1E1E] mb-2 leading-tight group-hover:text-[#D9A25A] transition font-display">
                       {room.title}
                     </h3>
-                    <p className="text-slate-400 text-xs mb-4 line-clamp-2">{room.description}</p>
+                    <p className="text-[#8E8674] text-xs mb-4 line-clamp-2 leading-relaxed">{room.description}</p>
 
                     {/* Amenities tags */}
-                    <div className="flex flex-wrap gap-1.5 mb-6">
+                    <div className="flex flex-wrap gap-1.5 mb-4">
                       {room.amenities.map((amenity) => (
-                        <span key={amenity} className="text-[10px] bg-slate-950 text-slate-500 border border-slate-800/80 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
+                        <span key={amenity} className="text-[9px] bg-[#FAF8F5] border border-[#EAE5D9] text-[#8E8674] px-2 py-0.5 rounded font-bold uppercase tracking-wider">
                           {amenity}
                         </span>
                       ))}
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between border-t border-slate-800/50 pt-4">
+                  {/* Rent rates bottom footer */}
+                  <div className="flex items-center justify-between border-t border-[#EAE5D9]/70 pt-4 mt-2">
                     <div>
-                      <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider block">Rent rate</span>
-                      <div className="flex items-center text-white font-extrabold text-xl font-display">
+                      <span className="text-[9px] text-[#A39E93] font-bold uppercase tracking-wider block">Rent rate</span>
+                      <div className="flex items-center text-[#1E1E1E] font-black text-lg font-display">
                         <span>NPR {room.rentAmount}</span>
-                        <span className="text-xs text-slate-500 font-medium ml-1">/ month</span>
+                        <span className="text-xs text-[#8E8674] font-medium ml-1">/ month</span>
                       </div>
                     </div>
-                    <button className="bg-brand-cyan hover:bg-teal-700 text-white font-bold py-2.5 px-6 rounded-xl transition text-xs shadow-md">
-                      View Room Details
+                    <button className="bg-[#D9A25A] hover:bg-[#C9924A] text-white font-black py-2.5 px-5 rounded-xl transition text-xs shadow-sm">
+                      View Details
                     </button>
                   </div>
                 </div>
+
               </div>
             ))}
           </div>
         </div>
 
-        {/* Right Sticky Map view */}
+        {/* Right Map column */}
         {viewMode === 'SPLIT' && (
-          <div className="flex-1 bg-slate-900 border-l border-slate-800 relative hidden md:block">
-            {/* Mock map layout */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center text-slate-500">
-              <Compass className="animate-spin text-brand-cyan mb-4" size={48} />
-              <h4 className="text-lg font-bold text-white mb-1">OpenStreetMap Coordinates Matcher</h4>
-              <p className="text-xs max-w-sm">Mock coordinates markers display active rooms for Kathmandu and Lalitpur campuses.</p>
+          <div className="flex-1 bg-[#FAF8F5] border-l border-[#EAE5D9] relative hidden md:block">
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center text-[#8E8674]">
+              <Compass className="animate-spin text-[#D9A25A] mb-4" size={44} />
+              <h4 className="text-base font-black text-[#1E1E1E] mb-1 font-display">OpenStreetMap Coordinates</h4>
+              <p className="text-xs max-w-xs leading-relaxed">Interactive coordinates displaying nearest colleges in Kathmandu & Lalitpur.</p>
               
-              {/* Mock markers */}
-              <div className="w-full max-w-md bg-slate-950/80 border border-slate-800 rounded-xl p-4 mt-6 text-left space-y-3 font-mono text-[10px]">
-                <div className="flex justify-between border-b border-slate-900 pb-2">
-                  <span className="text-teal-400">Marker 1: Pulchowk Campuses</span>
-                  <span>[27.6812 N, 85.3184 E] - 7.5K/m</span>
+              <div className="w-full max-w-sm bg-white border border-[#EAE5D9] rounded-xl p-4 mt-6 text-left space-y-3 font-mono text-[10px]">
+                <div className="flex justify-between border-b border-[#FAF8F5] pb-2 text-[#1E1E1E] font-semibold">
+                  <span className="text-[#D9A25A]">Marker 1: Pulchowk Gate</span>
+                  <span>[27.6812 N, 85.3184 E]</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-teal-400">Marker 2: Tinkune Guesthouses</span>
-                  <span>[27.6854 N, 85.3441 E] - 5K/m</span>
+                <div className="flex justify-between text-[#1E1E1E] font-semibold">
+                  <span className="text-[#D9A25A]">Marker 2: Tinkune stop</span>
+                  <span>[27.6854 N, 85.3441 E]</span>
                 </div>
               </div>
             </div>
           </div>
         )}
       </div>
+
     </div>
   );
 };

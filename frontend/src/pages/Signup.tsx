@@ -42,41 +42,52 @@ const Signup: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-950 px-4 py-12">
-      <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-xl">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-extrabold text-brand-cyan tracking-tight font-display">Create Student Profile</h2>
-          <p className="text-slate-400 mt-2 text-sm">Join UniSphere Nepal to discover housing & roommates.</p>
+    <div className="flex items-center justify-center min-h-screen bg-[#FAF8F5] px-4 py-12 font-sans text-[#1E1E1E]">
+      <div className="w-full max-w-lg bg-white border border-[#EAE5D9] rounded-[32px] p-8 shadow-lg">
+        
+        {/* Header Bar */}
+        <div className="text-center mb-8 flex flex-col items-center">
+          {/* Sahavas Mandala/Sun Logo Icon */}
+          <div className="w-10 h-10 rounded-full bg-[#FAF8F5] flex items-center justify-center border border-[#D9A25A]/40 shadow-sm mb-3">
+            <svg className="w-6 h-6 text-[#D9A25A]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+            </svg>
+          </div>
+          <h2 className="text-3xl font-black text-[#1A2540] font-display">सहवास</h2>
+          <p className="text-xs text-[#8E8674] font-semibold mt-2">
+            Create Student Profile to discover housing & roommates.
+          </p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-rose-900/30 border border-rose-800 text-rose-400 rounded-lg text-sm">
+          <div className="mb-6 p-4 bg-rose-55 border border-rose-200 text-rose-600 rounded-xl text-sm font-semibold">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-slate-300 text-xs font-semibold uppercase mb-2">Full Name</label>
+              <label className="block text-[#8E8674] text-xs font-bold uppercase mb-2">Full Name</label>
               <input
                 type="text"
                 name="fullName"
                 required
                 value={formData.fullName}
                 onChange={handleChange}
-                placeholder="Aayush Adhikari"
-                className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-brand-cyan text-sm"
+                placeholder="Prasanna Neupane"
+                className="w-full bg-[#FAF8F5] border border-[#EAE5D9] text-[#1E1E1E] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#D9A25A] text-sm font-semibold"
               />
             </div>
 
             <div>
-              <label className="block text-slate-300 text-xs font-semibold uppercase mb-2">Gender</label>
+              <label className="block text-[#8E8674] text-xs font-bold uppercase mb-2">Gender</label>
               <select
                 name="gender"
                 value={formData.gender}
                 onChange={handleChange}
-                className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-brand-cyan text-sm"
+                className="w-full bg-[#FAF8F5] border border-[#EAE5D9] text-[#1E1E1E] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#D9A25A] text-sm font-semibold"
               >
                 <option value="MALE">Male</option>
                 <option value="FEMALE">Female</option>
@@ -85,9 +96,9 @@ const Signup: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-slate-300 text-xs font-semibold uppercase mb-2">Phone Number</label>
+              <label className="block text-[#8E8674] text-xs font-bold uppercase mb-2">Phone Number</label>
               <input
                 type="text"
                 name="phoneNumber"
@@ -95,26 +106,26 @@ const Signup: React.FC = () => {
                 value={formData.phoneNumber}
                 onChange={handleChange}
                 placeholder="e.g. 9841234567"
-                className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-brand-cyan text-sm"
+                className="w-full bg-[#FAF8F5] border border-[#EAE5D9] text-[#1E1E1E] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#D9A25A] text-sm font-semibold"
               />
             </div>
 
             <div>
-              <label className="block text-slate-300 text-xs font-semibold uppercase mb-2">Email Address</label>
+              <label className="block text-[#8E8674] text-xs font-bold uppercase mb-2">Email Address</label>
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="student@college.edu.np"
-                className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-brand-cyan text-sm"
+                className="w-full bg-[#FAF8F5] border border-[#EAE5D9] text-[#1E1E1E] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#D9A25A] text-sm font-semibold"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-slate-300 text-xs font-semibold uppercase mb-2">Origin District</label>
+              <label className="block text-[#8E8674] text-xs font-bold uppercase mb-2">Origin District</label>
               <input
                 type="text"
                 name="hometownDistrict"
@@ -122,17 +133,17 @@ const Signup: React.FC = () => {
                 value={formData.hometownDistrict}
                 onChange={handleChange}
                 placeholder="e.g. Biratnagar, Jhapa"
-                className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-brand-cyan text-sm"
+                className="w-full bg-[#FAF8F5] border border-[#EAE5D9] text-[#1E1E1E] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#D9A25A] text-sm font-semibold"
               />
             </div>
 
             <div>
-              <label className="block text-slate-300 text-xs font-semibold uppercase mb-2">Target City</label>
+              <label className="block text-[#8E8674] text-xs font-bold uppercase mb-2">Target City</label>
               <select
                 name="currentCity"
                 value={formData.currentCity}
                 onChange={handleChange}
-                className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-brand-cyan text-sm"
+                className="w-full bg-[#FAF8F5] border border-[#EAE5D9] text-[#1E1E1E] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#D9A25A] text-sm font-semibold"
               >
                 <option value="Kathmandu">Kathmandu</option>
                 <option value="Pokhara">Pokhara</option>
@@ -144,26 +155,26 @@ const Signup: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-slate-300 text-xs font-semibold uppercase mb-2">Major Course</label>
+              <label className="block text-[#8E8674] text-xs font-bold uppercase mb-2">Major Course</label>
               <input
                 type="text"
                 name="majorCourse"
                 value={formData.majorCourse}
                 onChange={handleChange}
                 placeholder="e.g. BBA, BIM, CSIT"
-                className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-brand-cyan text-sm"
+                className="w-full bg-[#FAF8F5] border border-[#EAE5D9] text-[#1E1E1E] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#D9A25A] text-sm font-semibold"
               />
             </div>
 
             <div>
-              <label className="block text-slate-300 text-xs font-semibold uppercase mb-2">Academic Year</label>
+              <label className="block text-[#8E8674] text-xs font-bold uppercase mb-2">Academic Year</label>
               <select
                 name="academicYear"
                 value={formData.academicYear}
                 onChange={handleChange}
-                className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-brand-cyan text-sm"
+                className="w-full bg-[#FAF8F5] border border-[#EAE5D9] text-[#1E1E1E] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#D9A25A] text-sm font-semibold"
               >
                 <option value={1}>First Year</option>
                 <option value={2}>Second Year</option>
@@ -174,7 +185,7 @@ const Signup: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-slate-300 text-xs font-semibold uppercase mb-2">Password</label>
+            <label className="block text-[#8E8674] text-xs font-bold uppercase mb-2">Password</label>
             <input
               type="password"
               name="password"
@@ -182,22 +193,22 @@ const Signup: React.FC = () => {
               value={formData.password}
               onChange={handleChange}
               placeholder="Min 8 characters"
-              className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-brand-cyan text-sm"
+              className="w-full bg-[#FAF8F5] border border-[#EAE5D9] text-[#1E1E1E] rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#D9A25A] text-sm font-semibold"
             />
           </div>
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-brand-cyan hover:bg-teal-700 text-white font-bold py-3 rounded-lg transition disabled:opacity-50 text-sm mt-2"
+            className="w-full bg-[#D9A25A] hover:bg-[#C9924A] text-white font-black py-4 rounded-xl shadow-md transition disabled:opacity-50 text-sm uppercase tracking-wider mt-4"
           >
             {isSubmitting ? 'Registering User...' : 'Create Account'}
           </button>
         </form>
 
-        <p className="text-slate-400 text-center text-xs mt-6">
+        <p className="text-[#8E8674] text-center text-xs mt-6 font-semibold">
           Already registered?{' '}
-          <Link to="/login" className="text-brand-cyan hover:underline font-semibold">
+          <Link to="/login" className="text-[#D9A25A] hover:underline font-bold">
             Sign in here
           </Link>
         </p>
