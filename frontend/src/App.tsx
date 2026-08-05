@@ -9,6 +9,7 @@ import RoommateDiscovery from './pages/RoommateDiscovery';
 import ProfileEdit from './pages/ProfileEdit';
 import Chat from './pages/Chat';
 import Communities from './pages/Communities';
+import RelocationDashboard from './pages/RelocationDashboard';
 
 // Protected Route Guard component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -70,6 +71,11 @@ function AppRoutes() {
       <Route path="/communities" element={
         <ProtectedRoute>
           <Communities />
+        </ProtectedRoute>
+      } />
+      <Route path="/relocation" element={
+        <ProtectedRoute>
+          <RelocationDashboard />
         </ProtectedRoute>
       } />
 

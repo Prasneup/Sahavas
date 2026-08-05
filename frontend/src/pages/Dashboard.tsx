@@ -109,7 +109,27 @@ const Dashboard: React.FC = () => {
               <p className="text-[11px] text-[#8E8674] font-medium mt-0.5">Network with students from your campus and district.</p>
             </div>
           </div>
-          <span className="text-[#D9A25A] text-xs font-black">Join →</span>
+        </Link>
+
+        {/* Relocation Assistant Card */}
+        <Link 
+          to="/relocation" 
+          className="bg-white border border-[#EAE5D9] hover:border-orange-500/40 rounded-2xl p-5 shadow-sm flex items-center justify-between transition duration-300 hover:scale-[1.01] mb-6 cursor-pointer"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 shadow-sm flex-shrink-0">
+              <svg className="w-5 h-5 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                <path d="M2 17l10 5 10-5" />
+                <path d="M2 12l10 5 10-5" />
+              </svg>
+            </div>
+            <div>
+              <h4 className="text-sm font-black text-[#1E1E1E] font-display">Student Relocation Road</h4>
+              <p className="text-[11px] text-[#8E8674] font-medium mt-0.5">Earn XP and track flat hunt checklists (Duolingo style).</p>
+            </div>
+          </div>
+          <span className="text-orange-500 text-xs font-black">Play →</span>
         </Link>
 
         {/* Profile Status Completeness Card */}
