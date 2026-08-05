@@ -54,13 +54,7 @@ const RoommateDiscovery: React.FC = () => {
       // Save preferences
       await api.post('/matching/preferences', payload);
       
-      // Load suggestions
-      const res = await api.get('/matching/suggestions');
-      setMatches(res.data);
-      setStep('MATCHES');
-    } catch (err: any) {
-      console.warn("API matching failed, using mock matches based on design screenshot", err);
-      setMatches([
+      const MOCK_MATCHES: Match[] = [
         {
           studentId: "1",
           fullName: "Suman Thapa",
@@ -102,6 +96,42 @@ const RoommateDiscovery: React.FC = () => {
           },
           mismatchedPreferences: {
             "sleepSchedule": "Opposite schedules (Early Bird vs Night Owl)"
+          }
+        }
+      ];
+
+      // Load suggestions
+      const res = await api.get('/matching/suggestions');
+      if (res.data && res.data.length > 0) {
+        setMatches(res.data);
+      } else {
+        setMatches(MOCK_MATCHES);
+      }
+      setStep('MATCHES');
+    } catch (err: any) {
+      console.warn("API matching failed, using mock matches based on design screenshot", err);
+      // Fallback matching mock
+      setMatches([
+        {
+          studentId: "1",
+          fullName: "Suman Thapa",
+          collegeName: "Pulchowk Campus",
+          gender: "MALE",
+          age: 23,
+          course: "Mechanical Engineering",
+          semester: 5,
+          hometownDistrict: "Kaski",
+          avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=350",
+          matchScorePercentage: 81,
+          interests: ["Football", "Guitar", "Gaming"],
+          skills: ["SolidWorks", "Excel", "CAD"],
+          languages: ["Nepali", "English"],
+          matchingPreferences: {
+            "smoking": "Non-smoker",
+            "sleepSchedule": "Early Bird"
+          },
+          mismatchedPreferences: {
+            "socialLevel": "User is Introverted; Match is Extroverted"
           }
         }
       ]);

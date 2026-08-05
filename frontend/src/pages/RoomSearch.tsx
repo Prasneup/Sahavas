@@ -32,52 +32,58 @@ const RoomSearch: React.FC = () => {
     loadListings();
   }, []);
 
+  const MOCK_LISTINGS: Listing[] = [
+    {
+      id: "1",
+      title: "Premium Sunlit Single Room near IOE Pulchowk gate",
+      description: "Fully furnished single room available for engineering student. Shared kitchen and clean toilet. 24 hour water supply with high speed WiFi.",
+      rentAmount: 7500,
+      depositAmount: 7500,
+      roomType: "SINGLE_ROOM",
+      genderPreference: "ANY",
+      isVerified: true,
+      amenities: ["WIFI", "WATER_24_7", "FURNISHED", "PARKING"],
+      distanceFromCollegeText: "200m from IOE Pulchowk Main Gate",
+      rating: 4.8,
+      reviewCount: 12,
+      locationLat: 27.6812,
+      locationLng: 85.3184,
+      images: [
+        { id: "i1", imageUrl: "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=400" }
+      ]
+    },
+    {
+      id: "2",
+      title: "Spacious Flatlet for Girls in Tinkune, Koteshwor",
+      description: "Two-sharing room available in a safe family home. Near college bus stops. Vegetarian kitchen preferred.",
+      rentAmount: 5000,
+      depositAmount: 5000,
+      roomType: "SHARED_ROOM",
+      genderPreference: "GIRLS_ONLY",
+      isVerified: true,
+      amenities: ["WIFI", "WATER_24_7", "BALCONY"],
+      distanceFromCollegeText: "1.2km from K&K College Campus",
+      rating: 4.5,
+      reviewCount: 8,
+      locationLat: 27.6854,
+      locationLng: 85.3441,
+      images: [
+        { id: "i2", imageUrl: "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&q=80&w=400" }
+      ]
+    }
+  ];
+
   const loadListings = async () => {
     try {
       const res = await api.get('/listings');
-      setListings(res.data);
+      if (res.data && res.data.length > 0) {
+        setListings(res.data);
+      } else {
+        setListings(MOCK_LISTINGS);
+      }
     } catch (err) {
       console.warn("API listing fetch failed, using mock listings data", err);
-      setListings([
-        {
-          id: "1",
-          title: "Premium Sunlit Single Room near IOE Pulchowk gate",
-          description: "Fully furnished single room available for engineering student. Shared kitchen and clean toilet. 24 hour water supply with high speed WiFi.",
-          rentAmount: 7500,
-          depositAmount: 7500,
-          roomType: "SINGLE_ROOM",
-          genderPreference: "ANY",
-          isVerified: true,
-          amenities: ["WIFI", "WATER_24_7", "FURNISHED", "PARKING"],
-          distanceFromCollegeText: "200m from IOE Pulchowk Main Gate",
-          rating: 4.8,
-          reviewCount: 12,
-          locationLat: 27.6812,
-          locationLng: 85.3184,
-          images: [
-            { id: "i1", imageUrl: "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=400" }
-          ]
-        },
-        {
-          id: "2",
-          title: "Spacious Flatlet for Girls in Tinkune, Koteshwor",
-          description: "Two-sharing room available in a safe family home. Near college bus stops. Vegetarian kitchen preferred.",
-          rentAmount: 5000,
-          depositAmount: 5000,
-          roomType: "SHARED_ROOM",
-          genderPreference: "GIRLS_ONLY",
-          isVerified: true,
-          amenities: ["WIFI", "WATER_24_7", "BALCONY"],
-          distanceFromCollegeText: "1.2km from K&K College Campus",
-          rating: 4.5,
-          reviewCount: 8,
-          locationLat: 27.6854,
-          locationLng: 85.3441,
-          images: [
-            { id: "i2", imageUrl: "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?auto=format&fit=crop&q=80&w=400" }
-          ]
-        }
-      ]);
+      setListings(MOCK_LISTINGS);
     }
   };
 
