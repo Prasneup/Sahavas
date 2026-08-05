@@ -90,6 +90,28 @@ const Dashboard: React.FC = () => {
           </Link>
         </div>
 
+        {/* Student Communities Card */}
+        <Link 
+          to="/communities" 
+          className="bg-white border border-[#EAE5D9] hover:border-[#D9A25A]/40 rounded-2xl p-5 shadow-sm flex items-center justify-between transition duration-300 hover:scale-[1.01] mb-6 cursor-pointer"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-[#FAF3E8] flex items-center justify-center text-[#D9A25A] shadow-sm flex-shrink-0">
+              <svg className="w-5 h-5 text-[#D9A25A]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            </div>
+            <div>
+              <h4 className="text-sm font-black text-[#1E1E1E] font-display">Student Communities Hub</h4>
+              <p className="text-[11px] text-[#8E8674] font-medium mt-0.5">Network with students from your campus and district.</p>
+            </div>
+          </div>
+          <span className="text-[#D9A25A] text-xs font-black">Join →</span>
+        </Link>
+
         {/* Profile Status Completeness Card */}
         <div className="bg-white border border-[#EAE5D9] rounded-2xl p-5 shadow-sm">
           <span className="text-xs font-bold text-[#A39E93] uppercase tracking-wider block mb-1">
