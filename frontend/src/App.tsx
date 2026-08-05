@@ -10,6 +10,7 @@ import ProfileEdit from './pages/ProfileEdit';
 import Chat from './pages/Chat';
 import Communities from './pages/Communities';
 import RelocationDashboard from './pages/RelocationDashboard';
+import Verification from './pages/Verification';
 
 // Protected Route Guard component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -76,6 +77,11 @@ function AppRoutes() {
       <Route path="/relocation" element={
         <ProtectedRoute>
           <RelocationDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/verify" element={
+        <ProtectedRoute>
+          <Verification />
         </ProtectedRoute>
       } />
 

@@ -38,8 +38,11 @@ const Dashboard: React.FC = () => {
               </svg>
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-[#1A2540] flex items-center gap-1 font-display">
+              <h1 className="text-xl font-bold tracking-tight text-[#1A2540] flex items-center gap-2.5 font-display">
                 सहवास
+                <Link to="/verify" className="inline-flex items-center gap-0.5 bg-[#FAF3E8] hover:bg-[#FAF3E8]/80 text-[#D9A25A] text-[9px] font-black px-2 py-0.5 rounded-full border border-[#D9A25A]/15 cursor-pointer shadow-sm">
+                  🛡️ Vetting Status
+                </Link>
               </h1>
               <span className="text-[10px] text-[#A39E93] font-semibold tracking-wider block -mt-1 uppercase">
                 Namaste, {user?.fullName?.split(' ')[0] || 'Prasanna'}

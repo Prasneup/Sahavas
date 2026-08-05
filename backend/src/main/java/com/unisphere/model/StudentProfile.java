@@ -80,6 +80,21 @@ public class StudentProfile {
     @Builder.Default
     private String verificationStatus = "UNVERIFIED"; // UNVERIFIED, PENDING_VERIFICATION, VERIFIED, REJECTED
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "verification_level", length = 30)
+    @Builder.Default
+    private VerificationLevel verificationLevel = VerificationLevel.UNVERIFIED;
+
+    @Column(name = "college_registration_number", length = 50)
+    private String collegeRegistrationNumber;
+
+    @Column(name = "document_image_url", length = 250)
+    private String documentImageUrl;
+
+    @Column(name = "trust_score")
+    @Builder.Default
+    private int trustScore = 10; // Default base trust score for unverified accounts
+
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "student_interests", joinColumns = @JoinColumn(name = "profile_id"))
     @Column(name = "interest")
