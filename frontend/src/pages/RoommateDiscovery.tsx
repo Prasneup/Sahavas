@@ -25,11 +25,15 @@ interface Match {
 
 const RoommateDiscovery: React.FC = () => {
   const [step, setStep] = useState<'QUIZ' | 'MATCHES'>('QUIZ');
+  const [quizStep, setQuizStep] = useState<number>(1);
   
   // Quiz values
   const [smoking, setSmoking] = useState<boolean>(false);
   const [budget, setBudget] = useState<number>(8000);
   const [sleepSchedule, setSleepSchedule] = useState<'EARLY' | 'OWL'>('EARLY');
+  const [drinking, setDrinking] = useState<'NEVER' | 'SOCIALLY' | 'REGULAR'>('NEVER');
+  const [foodPreference, setFoodPreference] = useState<'VEG' | 'NON_VEG' | 'ANYTHING'>('ANYTHING');
+  const [cleanliness, setCleanliness] = useState<'HIGH' | 'MODERATE' | 'LOW'>('MODERATE');
 
   const [matches, setMatches] = useState<Match[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
@@ -51,13 +55,13 @@ const RoommateDiscovery: React.FC = () => {
     
     const payload = {
       smoking: smoking ? 2 : 0,
-      drinking: 0,
+      drinking: drinking === 'NEVER' ? 0 : drinking === 'SOCIALLY' ? 1 : 2,
       sleepSchedule: sleepSchedule === 'EARLY' ? 0 : 1,
-      cleanliness: 1,
+      cleanliness: cleanliness === 'HIGH' ? 2 : cleanliness === 'MODERATE' ? 1 : 0,
       budgetMin: budget - 2000,
       budgetMax: budget + 2000,
-      studyHabits: 0,
-      foodPreference: 2,
+      studyHabits: 1,
+      foodPreference: foodPreference === 'VEG' ? 0 : foodPreference === 'NON_VEG' ? 1 : 2,
       socialLevel: 1,
       noiseTolerance: 1
     };
@@ -263,6 +267,7 @@ const RoommateDiscovery: React.FC = () => {
 
   // Reset quiz state to discovery
   const resetQuiz = () => {
+    setQuizStep(1);
     setStep('QUIZ');
   };
 
@@ -292,109 +297,226 @@ const RoommateDiscovery: React.FC = () => {
             {/* Progress indicator */}
             <div className="flex items-center justify-between text-xs text-[#A39E93] font-bold mb-6">
               <div className="w-2/3 bg-[#EAE5D9]/40 h-1 rounded-full overflow-hidden">
-                <div className="bg-[#D9A25A] h-full w-1/6 rounded-full" />
+                <div 
+                  className="bg-[#D9A25A] h-full rounded-full transition-all duration-300" 
+                  style={{ width: `${(quizStep / 6) * 100}%` }}
+                />
               </div>
-              <span>1 of 6</span>
+              <span>{quizStep} of 6</span>
             </div>
 
             <form onSubmit={handleQuizSubmit} className="space-y-6">
               {/* Question 1: Smoking */}
-              <div className="space-y-3">
-                <label className="block text-sm font-bold text-[#1E1E1E]">Smoking</label>
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setSmoking(true)}
-                    className={`py-3.5 rounded-xl border text-sm font-bold transition flex items-center justify-center ${
-                      smoking 
-                        ? 'border-[#D9A25A] bg-[#FAF3E8] text-[#D9A25A]' 
-                        : 'border-[#EAE5D9] bg-white text-[#8E8674]'
-                    }`}
-                  >
-                    Yes
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSmoking(false)}
-                    className={`py-3.5 rounded-xl border text-sm font-bold transition flex items-center justify-center ${
-                      !smoking 
-                        ? 'border-[#D9A25A] bg-[#FAF3E8] text-[#D9A25A]' 
-                        : 'border-[#EAE5D9] bg-white text-[#8E8674]'
-                    }`}
-                  >
-                    No
-                  </button>
+              {quizStep === 1 && (
+                <div className="space-y-3">
+                  <label className="block text-sm font-bold text-[#1E1E1E]">Smoking Habit</label>
+                  <p className="text-[11px] text-[#8E8674] font-semibold -mt-1 leading-snug">Do you smoke, or prefer roommates who smoke?</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setSmoking(true)}
+                      className={`py-3.5 rounded-xl border text-sm font-bold transition flex items-center justify-center ${
+                        smoking 
+                          ? 'border-[#D9A25A] bg-[#FAF3E8] text-[#D9A25A]' 
+                          : 'border-[#EAE5D9] bg-white text-[#8E8674]'
+                      }`}
+                    >
+                      Yes
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSmoking(false)}
+                      className={`py-3.5 rounded-xl border text-sm font-bold transition flex items-center justify-center ${
+                        !smoking 
+                          ? 'border-[#D9A25A] bg-[#FAF3E8] text-[#D9A25A]' 
+                          : 'border-[#EAE5D9] bg-white text-[#8E8674]'
+                      }`}
+                    >
+                      No
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Question 2: Budget */}
-              <div className="space-y-3">
-                <div className="flex justify-between items-baseline">
-                  <label className="block text-sm font-bold text-[#1E1E1E]">Budget (NPR)</label>
-                  <span className="text-sm font-bold text-[#1E1E1E]">{budget}</span>
-                </div>
-                
-                <div className="relative pt-4">
-                  <div 
-                    className="absolute -top-1 bg-[#D9A25A] text-white text-[10px] font-black px-2 py-0.5 rounded shadow-sm transition"
-                    style={{ left: `calc(${(budget - 3000) / 12000 * 85}% + 10px)` }}
-                  >
-                    {budget}
+              {quizStep === 2 && (
+                <div className="space-y-3">
+                  <div className="flex justify-between items-baseline">
+                    <label className="block text-sm font-bold text-[#1E1E1E]">Target Monthly Budget (NPR)</label>
+                    <span className="text-sm font-bold text-[#D9A25A]">Rs. {budget}</span>
                   </div>
-                  <input
-                    type="range"
-                    min={3000}
-                    max={15000}
-                    step={500}
-                    value={budget}
-                    onChange={(e) => setBudget(parseInt(e.target.value))}
-                    className="w-full h-1.5 bg-[#EAE5D9] rounded-lg appearance-none cursor-pointer accent-[#D9A25A]"
-                  />
+                  <p className="text-[11px] text-[#8E8674] font-semibold -mt-1 leading-snug">Select your maximum budget capacity for flat rent.</p>
+                  
+                  <div className="relative pt-6">
+                    <div 
+                      className="absolute -top-1 bg-[#D9A25A] text-white text-[10px] font-black px-2 py-0.5 rounded shadow-sm transition"
+                      style={{ left: `calc(${(budget - 3000) / 12000 * 85}% + 10px)` }}
+                    >
+                      NPR {budget}
+                    </div>
+                    <input
+                      type="range"
+                      min={3000}
+                      max={15000}
+                      step={500}
+                      value={budget}
+                      onChange={(e) => setBudget(parseInt(e.target.value))}
+                      className="w-full h-1.5 bg-[#EAE5D9] rounded-lg appearance-none cursor-pointer accent-[#D9A25A]"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Question 3: Sleep Schedule */}
-              <div className="space-y-3">
-                <label className="block text-sm font-bold text-[#1E1E1E]">Sleep Schedule</label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div
-                    onClick={() => setSleepSchedule('EARLY')}
-                    className={`cursor-pointer rounded-2xl p-5 border shadow-sm transition flex flex-col items-center gap-3 ${
-                      sleepSchedule === 'EARLY' 
-                        ? 'border-[#D9A25A] bg-white text-[#1E1E1E]' 
-                        : 'border-[#EAE5D9] bg-white/70 text-[#8E8674]'
-                    }`}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-[#FAF3E8] flex items-center justify-center text-[#D9A25A]">
-                      <Sun size={18} className="stroke-[2.5]" />
+              {quizStep === 3 && (
+                <div className="space-y-3">
+                  <label className="block text-sm font-bold text-[#1E1E1E]">Sleep Schedule & Timing</label>
+                  <p className="text-[11px] text-[#8E8674] font-semibold -mt-1 leading-snug">Are you an early riser or a night owl?</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div
+                      onClick={() => setSleepSchedule('EARLY')}
+                      className={`cursor-pointer rounded-2xl p-5 border shadow-sm transition flex flex-col items-center gap-3 ${
+                        sleepSchedule === 'EARLY' 
+                          ? 'border-[#D9A25A] bg-[#FAF3E8] text-[#D9A25A]' 
+                          : 'border-[#EAE5D9] bg-white text-[#8E8674]'
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#D9A25A] shadow-sm">
+                        <Sun size={18} className="stroke-[2.5]" />
+                      </div>
+                      <span className="text-xs font-black">Early Bird</span>
                     </div>
-                    <span className="text-xs font-black">Early Bird</span>
-                  </div>
 
-                  <div
-                    onClick={() => setSleepSchedule('OWL')}
-                    className={`cursor-pointer rounded-2xl p-5 border shadow-sm transition flex flex-col items-center gap-3 ${
-                      sleepSchedule === 'OWL' 
-                        ? 'border-[#D9A25A] bg-white text-[#1E1E1E]' 
-                        : 'border-[#EAE5D9] bg-white/70 text-[#8E8674]'
-                    }`}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-[#FAF3E8] flex items-center justify-center text-[#D9A25A]">
-                      <Moon size={18} className="stroke-[2.5]" />
+                    <div
+                      onClick={() => setSleepSchedule('OWL')}
+                      className={`cursor-pointer rounded-2xl p-5 border shadow-sm transition flex flex-col items-center gap-3 ${
+                        sleepSchedule === 'OWL' 
+                          ? 'border-[#D9A25A] bg-[#FAF3E8] text-[#D9A25A]' 
+                          : 'border-[#EAE5D9] bg-white text-[#8E8674]'
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#D9A25A] shadow-sm">
+                        <Moon size={18} className="stroke-[2.5]" />
+                      </div>
+                      <span className="text-xs font-black">Night Owl</span>
                     </div>
-                    <span className="text-xs font-black">Night Owl</span>
                   </div>
                 </div>
+              )}
+
+              {/* Question 4: Drinking Habit */}
+              {quizStep === 4 && (
+                <div className="space-y-3">
+                  <label className="block text-sm font-bold text-[#1E1E1E]">Drinking Socially</label>
+                  <p className="text-[11px] text-[#8E8674] font-semibold -mt-1 leading-snug">How often do you drink alcohol?</p>
+                  <div className="flex flex-col gap-3">
+                    {['NEVER', 'SOCIALLY', 'REGULAR'].map((choice) => (
+                      <button
+                        key={choice}
+                        type="button"
+                        onClick={() => setDrinking(choice as any)}
+                        className={`w-full py-4 rounded-xl border text-xs font-black uppercase tracking-wider transition ${
+                          drinking === choice 
+                            ? 'border-[#D9A25A] bg-[#FAF3E8] text-[#D9A25A]' 
+                            : 'border-[#EAE5D9] bg-white text-[#8E8674]'
+                        }`}
+                      >
+                        {choice}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Question 5: Food Preference */}
+              {quizStep === 5 && (
+                <div className="space-y-3">
+                  <label className="block text-sm font-bold text-[#1E1E1E]">Diet / Food Preference</label>
+                  <p className="text-[11px] text-[#8E8674] font-semibold -mt-1 leading-snug">What are your dietary preferences for shared kitchens?</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { key: 'VEG', label: 'Vegetarian' },
+                      { key: 'NON_VEG', label: 'Non-Veg' },
+                      { key: 'ANYTHING', label: 'Anything' }
+                    ].map((item) => (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={() => setFoodPreference(item.key as any)}
+                        className={`py-4 rounded-xl border text-[10px] font-black uppercase tracking-wider transition ${
+                          foodPreference === item.key 
+                            ? 'border-[#D9A25A] bg-[#FAF3E8] text-[#D9A25A]' 
+                            : 'border-[#EAE5D9] bg-white text-[#8E8674]'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Question 6: Cleanliness Level */}
+              {quizStep === 6 && (
+                <div className="space-y-3">
+                  <label className="block text-sm font-bold text-[#1E1E1E]">Cleanliness Level</label>
+                  <p className="text-[11px] text-[#8E8674] font-semibold -mt-1 leading-snug">Describe your ideal cleaning routines for common areas.</p>
+                  <div className="flex flex-col gap-3">
+                    {[
+                      { key: 'HIGH', label: 'Very Clean (Organized daily)' },
+                      { key: 'MODERATE', label: 'Moderate (Clean weekly)' },
+                      { key: 'LOW', label: 'Relaxed (Clean occasionally)' }
+                    ].map((item) => (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={() => setCleanliness(item.key as any)}
+                        className={`w-full py-4 rounded-xl border text-xs font-black transition ${
+                          cleanliness === item.key 
+                            ? 'border-[#D9A25A] bg-[#FAF3E8] text-[#D9A25A]' 
+                            : 'border-[#EAE5D9] bg-white text-[#8E8674]'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Navigation Action Buttons footer */}
+              <div className="flex gap-4 mt-8 pt-4">
+                {quizStep > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setQuizStep(quizStep - 1)}
+                    className="w-1/3 bg-white border border-[#EAE5D9] hover:bg-[#FAF8F5] text-[#8E8674] font-bold py-4 rounded-xl shadow-sm transition text-xs uppercase tracking-wider"
+                  >
+                    Back
+                  </button>
+                )}
+                
+                {quizStep < 6 ? (
+                  <button
+                    type="button"
+                    onClick={() => setQuizStep(quizStep + 1)}
+                    className={`bg-[#D9A25A] hover:bg-[#C9924A] text-white font-bold py-4 rounded-xl shadow-md transition text-xs uppercase tracking-wider ${
+                      quizStep > 1 ? 'w-2/3' : 'w-full'
+                    }`}
+                  >
+                    Next
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-2/3 bg-[#D9A25A] hover:bg-[#C9924A] text-white font-black py-4 rounded-xl shadow-md transition disabled:opacity-50 text-xs uppercase tracking-wider"
+                  >
+                    {loading ? 'Submitting...' : 'Finish & Match'}
+                  </button>
+                )}
               </div>
 
-              {/* Full Width Next Submit Button */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-[#D9A25A] hover:bg-[#C9924A] text-white font-bold py-4 rounded-xl shadow-md transition disabled:opacity-50 text-sm mt-8"
-              >
-                {loading ? 'Evaluating Compatibility Matrix...' : 'Next'}
-              </button>
             </form>
           </div>
         ) : (
