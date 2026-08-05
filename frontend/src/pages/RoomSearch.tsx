@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
-import { Search, DollarSign, Filter, CheckCircle, Home, Star, MapPin, Heart, Compass } from 'lucide-react';
+import { Search, CheckCircle, Star, MapPin, Heart, Compass } from 'lucide-react';
 
 interface Listing {
   id: string;
@@ -24,7 +24,6 @@ interface Listing {
 const RoomSearch: React.FC = () => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'LIST' | 'SPLIT'>('SPLIT');
   const [wishlist, setWishlist] = useState<string[]>([]);
   const navigate = useNavigate();
@@ -34,7 +33,6 @@ const RoomSearch: React.FC = () => {
   }, []);
 
   const loadListings = async () => {
-    setLoading(true);
     try {
       const res = await api.get('/listings');
       setListings(res.data);
@@ -57,7 +55,7 @@ const RoomSearch: React.FC = () => {
           locationLat: 27.6812,
           locationLng: 85.3184,
           images: [
-            { id: "i1", imageUrl: "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=400" }
+            { id: "i1", imageUrl: "https://images.unsplash.com/photo-1522771739844-6a9f5d5f14af?auto=format&fit=crop&q=80&w=400" }
           ]
         },
         {
@@ -80,8 +78,6 @@ const RoomSearch: React.FC = () => {
           ]
         }
       ]);
-    } finally {
-      setLoading(false);
     }
   };
 

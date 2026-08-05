@@ -1,130 +1,133 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Link } from 'react-router-dom';
-import { Home, User, Search, Users, LogOut } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Home, MessageSquare, User, Home as HomeIcon, Users } from 'lucide-react';
+import api from '../services/api';
 
 const Dashboard: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [profileCompleteness, setProfileCompleteness] = useState(60);
+
+  useEffect(() => {
+    // Attempt to load current completeness dynamically from profile endpoint
+    api.get('/profiles/me')
+      .then(res => {
+        if (res.data && res.data.completenessPercentage !== undefined) {
+          setProfileCompleteness(res.data.completenessPercentage);
+        }
+      })
+      .catch(() => {
+        // Fallback to default 60% as shown in UI design mocks
+        setProfileCompleteness(60);
+      });
+  }, []);
 
   return (
-    <div className="flex min-h-screen bg-slate-950 text-slate-100">
-      {/* Sidebar Nav */}
-      <aside className="w-64 bg-slate-900 border-r border-slate-800 p-6 flex flex-col justify-between hidden md:flex">
-        <div className="space-y-8">
-          <div>
-            <h1 className="text-2xl font-black text-brand-cyan tracking-tight font-display">UniSphere</h1>
-            <span className="text-xs text-slate-500 font-medium">Student Relocation Hub</span>
-          </div>
-
-          <nav className="space-y-2">
-            <Link to="/dashboard" className="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-lg bg-slate-800 text-brand-cyan transition">
-              <Home size={18} />
-              Home Feed
-            </Link>
-            <Link to="/rooms" className="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition">
-              <Search size={18} />
-              Search Rooms
-            </Link>
-            <Link to="/roommates" className="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition">
-              <Users size={18} />
-              Find Roommates
-            </Link>
-            <Link to="/profile" className="flex items-center gap-3 px-4 py-3 text-sm font-semibold rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition">
-              <User size={18} />
-              My Profile
-            </Link>
-          </nav>
-        </div>
-
-        <div className="border-t border-slate-800 pt-6 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center font-bold text-brand-cyan">
-              {user?.fullName?.charAt(0) || 'S'}
+    <div className="min-h-screen bg-[#FAF8F5] text-[#1E1E1E] flex flex-col items-center justify-start pb-24 font-sans">
+      <div className="w-full max-w-md px-6 pt-6">
+        
+        {/* Header Bar */}
+        <header className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-2">
+            {/* Sahavas Mandala/Sun Logo Icon */}
+            <div className="w-8 h-8 rounded-full bg-[#FAF8F5] flex items-center justify-center border border-[#D9A25A]/40 shadow-sm">
+              <svg className="w-5 h-5 text-[#D9A25A]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+              </svg>
             </div>
             <div>
-              <p className="text-sm font-bold truncate max-w-[150px]">{user?.fullName}</p>
-              <span className="text-xs text-slate-500 capitalize">{user?.role?.replace('ROLE_', '').toLowerCase()}</span>
+              <h1 className="text-xl font-bold tracking-tight text-[#1A2540] flex items-center gap-1 font-display">
+                सहवास
+              </h1>
+              <span className="text-[10px] text-[#A39E93] font-semibold tracking-wider block -mt-1 uppercase">
+                Namaste, {user?.fullName?.split(' ')[0] || 'Prasanna'}
+              </span>
             </div>
           </div>
-
+          
           <button 
-            onClick={logout}
-            className="flex items-center gap-3 w-full px-4 py-3 text-sm font-semibold text-rose-400 hover:bg-rose-950/20 rounded-lg transition"
+            onClick={() => navigate('/profile')}
+            className="w-9 h-9 rounded-full bg-[#EAE5D9] flex items-center justify-center border border-[#D9A25A]/30 overflow-hidden shadow-sm hover:scale-105 transition"
           >
-            <LogOut size={18} />
-            Sign Out
+            <User size={18} className="text-[#8E8674]" />
           </button>
-        </div>
-      </aside>
-
-      {/* Main Content Area */}
-      <main className="flex-1 p-6 md:p-10 overflow-y-auto">
-        <header className="flex justify-between items-center mb-8 md:hidden">
-          <h1 className="text-xl font-bold text-brand-cyan font-display">UniSphere</h1>
-          <button onClick={logout} className="p-2 text-slate-400"><LogOut size={20} /></button>
         </header>
 
-        {/* Verification Alert Banner */}
-        {user?.status === 'PENDING_VERIFICATION' && (
-          <div className="mb-8 p-4 bg-amber-950/30 border border-amber-800 text-amber-300 rounded-xl flex items-center gap-3 text-sm">
-            <User className="flex-shrink-0" />
-            <div>
-              <span className="font-bold">Verification Pending:</span> Please upload your college ID to verify your student status and access roommate quizzes.
-            </div>
-          </div>
-        )}
-
-        {/* Welcome Section */}
-        <section className="mb-10">
-          <h2 className="text-3xl font-extrabold tracking-tight font-display mb-2">Hello, {user?.fullName}!</h2>
-          <p className="text-slate-400">Manage your relocating plans and roommate suggestions in Kathmandu.</p>
+        {/* Dashboard Title */}
+        <section className="mb-6">
+          <h2 className="text-2xl font-black text-[#1E1E1E] font-display">Dashboard</h2>
+          <p className="text-xs text-[#6E685A] mt-1.5 leading-relaxed">
+            Welcome to Sahavas, Refore; UI/Utinate you wire refer for and Sahavas!
+          </p>
         </section>
 
-        {/* Action Widgets */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-brand-cyan transition flex flex-col justify-between">
-            <div>
-              <Search className="text-brand-cyan mb-4" size={32} />
-              <h3 className="text-xl font-bold font-display mb-2">Housing listings</h3>
-              <p className="text-slate-400 text-sm mb-6">Explore trusted rooms and student flats near your university with PostGIS coordinates maps.</p>
+        {/* Two Large Call to Action Cards (Housing vs Roommates) */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <Link 
+            to="/rooms" 
+            className="bg-[#D9A25A] hover:bg-[#C9924A] text-white rounded-2xl p-5 shadow flex flex-col justify-between h-44 transition duration-300 hover:scale-102"
+          >
+            <div className="w-10 h-10 rounded-full bg-[#FAF8F5] flex items-center justify-center shadow-sm">
+              <HomeIcon size={18} className="text-[#D9A25A]" />
             </div>
-            <Link to="/rooms" className="inline-flex items-center justify-center bg-brand-cyan hover:bg-teal-700 text-white font-semibold py-2.5 px-4 rounded-lg transition text-sm">
-              Explore Rooms
-            </Link>
+            <h3 className="text-base font-black leading-snug font-display">
+              Looking for<br />Housing?
+            </h3>
+          </Link>
+
+          <Link 
+            to="/roommates" 
+            className="bg-[#D9A25A] hover:bg-[#C9924A] text-white rounded-2xl p-5 shadow flex flex-col justify-between h-44 transition duration-300 hover:scale-102"
+          >
+            <div className="w-10 h-10 rounded-full bg-[#FAF8F5] flex items-center justify-center shadow-sm">
+              <Users size={18} className="text-[#D9A25A]" />
+            </div>
+            <h3 className="text-base font-black leading-snug font-display">
+              Looking for a<br />Roommate?
+            </h3>
+          </Link>
+        </div>
+
+        {/* Profile Status Completeness Card */}
+        <div className="bg-white border border-[#EAE5D9] rounded-2xl p-5 shadow-sm">
+          <span className="text-xs font-bold text-[#A39E93] uppercase tracking-wider block mb-1">
+            Your Profile Status
+          </span>
+          <div className="flex justify-between items-baseline mb-3">
+            <h3 className="text-3xl font-black text-[#1E1E1E] tracking-tight font-display">
+              {profileCompleteness}%
+            </h3>
+            <span className="text-xs font-semibold text-[#8E8674]">Completed</span>
           </div>
 
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-brand-crimson transition flex flex-col justify-between">
-            <div>
-              <Users className="text-brand-crimson mb-4" size={32} />
-              <h3 className="text-xl font-bold font-display mb-2">Find Roommates</h3>
-              <p className="text-slate-400 text-sm mb-6">Answer our 9-factor questionnaire to evaluate compatibility match indices.</p>
-            </div>
-            <Link to="/roommates" className="inline-flex items-center justify-center bg-brand-crimson hover:bg-rose-700 text-white font-semibold py-2.5 px-4 rounded-lg transition text-sm">
-              Start Matching Quiz
-            </Link>
+          {/* Completeness slider progress line */}
+          <div className="w-full bg-[#FAF8F5] h-3 rounded-full overflow-hidden border border-[#EAE5D9]/60">
+            <div 
+              className="bg-[#D9A25A] h-full rounded-full transition-all duration-750"
+              style={{ width: `${profileCompleteness}%` }}
+            />
           </div>
         </div>
 
-        {/* Mobile Navigation Footer */}
-        <nav className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 p-4 flex justify-around md:hidden">
-          <Link to="/dashboard" className="flex flex-col items-center text-brand-cyan text-xs font-semibold">
-            <Home size={20} />
-            <span>Home</span>
-          </Link>
-          <Link to="/rooms" className="flex flex-col items-center text-slate-500 text-xs font-semibold">
-            <Search size={20} />
-            <span>Rooms</span>
-          </Link>
-          <Link to="/roommates" className="flex flex-col items-center text-slate-500 text-xs font-semibold">
-            <Users size={20} />
-            <span>Roommates</span>
-          </Link>
-          <Link to="/profile" className="flex flex-col items-center text-slate-500 text-xs font-semibold">
-            <User size={20} />
-            <span>Profile</span>
-          </Link>
-        </nav>
-      </main>
+      </div>
+
+      {/* Bottom Sticky Mobile Navigation Dock */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#FAF8F5] border-t border-[#EAE5D9] py-3.5 px-8 flex justify-between items-center shadow-lg z-30 w-full max-w-md mx-auto">
+        <Link to="/dashboard" className="flex flex-col items-center gap-1 text-[#D9A25A] transition">
+          <Home size={22} className="stroke-[2.5]" />
+          <span className="text-[10px] font-bold tracking-wide">Home</span>
+        </Link>
+        <Link to="/rooms" className="flex flex-col items-center gap-1 text-[#A39E93] hover:text-[#1E1E1E] transition">
+          <MessageSquare size={22} className="stroke-[2]" />
+          <span className="text-[10px] font-semibold">Messages</span>
+        </Link>
+        <Link to="/profile" className="flex flex-col items-center gap-1 text-[#A39E93] hover:text-[#1E1E1E] transition">
+          <User size={22} className="stroke-[2]" />
+          <span className="text-[10px] font-semibold">Profile</span>
+        </Link>
+      </nav>
     </div>
   );
 };

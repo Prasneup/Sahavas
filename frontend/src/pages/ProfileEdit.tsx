@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { User, Award, CheckCircle, Save, Sparkles, BookOpen } from 'lucide-react';
 
@@ -54,7 +53,6 @@ const ProfileEdit: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -97,7 +95,6 @@ const ProfileEdit: React.FC = () => {
     e.preventDefault();
     setSaving(true);
     setMessage('');
-    setError('');
     try {
       const res = await api.put('/profiles/me', profile);
       setProfile(res.data);

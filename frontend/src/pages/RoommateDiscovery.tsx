@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, AlertTriangle, Check, User, Heart, MessageCircle, X } from 'lucide-react';
+import { ArrowLeft, Sun, Moon, Check, ShieldCheck, Compass } from 'lucide-react';
 
 interface Match {
   studentId: string;
@@ -24,51 +23,55 @@ interface Match {
 
 const RoommateDiscovery: React.FC = () => {
   const [step, setStep] = useState<'QUIZ' | 'MATCHES'>('QUIZ');
-  const [preferences, setPreferences] = useState({
-    smoking: 0,
-    drinking: 0,
-    sleepSchedule: 0,
-    cleanliness: 1,
-    budgetMin: 5000,
-    budgetMax: 8000,
-    studyHabits: 0,
-    foodPreference: 2,
-    socialLevel: 1,
-    noiseTolerance: 1
-  });
+  
+  // Quiz values
+  const [smoking, setSmoking] = useState<boolean>(false);
+  const [budget, setBudget] = useState<number>(8000);
+  const [sleepSchedule, setSleepSchedule] = useState<'EARLY' | 'OWL'>('EARLY');
+
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const { user } = useAuth();
   const navigate = useNavigate();
 
   const handleQuizSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
+    
+    const payload = {
+      smoking: smoking ? 2 : 0,
+      drinking: 0,
+      sleepSchedule: sleepSchedule === 'EARLY' ? 0 : 1,
+      cleanliness: 1,
+      budgetMin: budget - 2000,
+      budgetMax: budget + 2000,
+      studyHabits: 0,
+      foodPreference: 2,
+      socialLevel: 1,
+      noiseTolerance: 1
+    };
+
     try {
       // Save preferences
-      await api.post('/matching/preferences', preferences);
+      await api.post('/matching/preferences', payload);
       
       // Load suggestions
       const res = await api.get('/matching/suggestions');
-      // Format response to include newly added profile fields
       setMatches(res.data);
       setStep('MATCHES');
     } catch (err: any) {
-      console.warn("API matching failed, using mock data", err);
+      console.warn("API matching failed, using mock matches based on design screenshot", err);
       setMatches([
         {
           studentId: "1",
           fullName: "Suman Thapa",
-          collegeName: "IOE Pulchowk Campus",
+          collegeName: "Pulchowk Campus",
           gender: "MALE",
-          age: 21,
+          age: 23,
           course: "Mechanical Engineering",
           semester: 5,
-          hometownDistrict: "Kaski, Pokhara",
-          avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200",
-          matchScorePercentage: 88.5,
+          hometownDistrict: "Kaski",
+          avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=350",
+          matchScorePercentage: 81,
           interests: ["Football", "Guitar", "Gaming"],
           skills: ["SolidWorks", "Excel", "CAD"],
           languages: ["Nepali", "English"],
@@ -88,9 +91,9 @@ const RoommateDiscovery: React.FC = () => {
           age: 22,
           course: "BBA",
           semester: 3,
-          hometownDistrict: "Jhapa, Biratnagar",
-          avatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=200",
-          matchScorePercentage: 74.5,
+          hometownDistrict: "Jhapa",
+          avatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=350",
+          matchScorePercentage: 74,
           interests: ["Cooking", "Reading", "Chess"],
           skills: ["Marketing", "Photoshop"],
           languages: ["Nepali", "English", "Hindi"],
@@ -109,279 +112,231 @@ const RoommateDiscovery: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-10">
-      <div className="max-w-4xl mx-auto">
-        <header className="mb-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-extrabold font-display text-brand-cyan">Roommate Discovery</h1>
-            <p className="text-slate-400 text-sm mt-1">LinkedIn + Bumble hybrid discovery tool evaluating lifestyle compatibility.</p>
-          </div>
-          <button 
-            onClick={() => navigate('/dashboard')} 
-            className="text-sm font-semibold text-slate-400 hover:text-white transition"
-          >
-            ← Back to Feed
-          </button>
-        </header>
-
+    <div className="min-h-screen bg-[#FAF8F5] text-[#1E1E1E] flex flex-col items-center justify-start pb-24 font-sans">
+      <div className="w-full max-w-md px-6 pt-6">
+        
         {step === 'QUIZ' ? (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-xl">
-            <h2 className="text-xl font-bold font-display text-slate-200 mb-6 flex items-center gap-2">
-              <Sparkles className="text-brand-cyan" size={20} />
-              Habits & Compatibility Quiz
-            </h2>
+          <div>
+            {/* Header bar */}
+            <header className="flex items-center justify-between mb-6">
+              <button 
+                onClick={() => navigate('/dashboard')} 
+                className="w-9 h-9 rounded-full bg-white border border-[#EAE5D9] flex items-center justify-center shadow-sm"
+              >
+                <ArrowLeft size={18} className="text-[#8E8674]" />
+              </button>
+              <h2 className="text-[#A39E93] text-xs font-bold uppercase tracking-wider">Preferences</h2>
+              <div className="w-9" />
+            </header>
+
+            {/* Title */}
+            <h1 className="text-3xl font-black text-[#1E1E1E] leading-tight mb-2 font-display">
+              Roommate<br />Preferences
+            </h1>
+            
+            {/* Progress indicator */}
+            <div className="flex items-center justify-between text-xs text-[#A39E93] font-bold mb-6">
+              <div className="w-2/3 bg-[#EAE5D9]/40 h-1 rounded-full overflow-hidden">
+                <div className="bg-[#D9A25A] h-full w-1/6 rounded-full" />
+              </div>
+              <span>1 of 6</span>
+            </div>
 
             <form onSubmit={handleQuizSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-slate-300 text-sm font-semibold mb-2">Smoking</label>
-                  <select
-                    value={preferences.smoking}
-                    onChange={(e) => setPreferences({ ...preferences, smoking: parseInt(e.target.value) })}
-                    className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-brand-cyan text-sm"
+              {/* Question 1: Smoking */}
+              <div className="space-y-3">
+                <label className="block text-sm font-bold text-[#1E1E1E]">Smoking</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setSmoking(true)}
+                    className={`py-3.5 rounded-xl border text-sm font-bold transition flex items-center justify-center ${
+                      smoking 
+                        ? 'border-[#D9A25A] bg-[#FAF3E8] text-[#D9A25A]' 
+                        : 'border-[#EAE5D9] bg-white text-[#8E8674]'
+                    }`}
                   >
-                    <option value={0}>Strict Non-Smoker</option>
-                    <option value={1}>Tolerant</option>
-                    <option value={2}>Active Smoker</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-slate-300 text-sm font-semibold mb-2">Drinking</label>
-                  <select
-                    value={preferences.drinking}
-                    onChange={(e) => setPreferences({ ...preferences, drinking: parseInt(e.target.value) })}
-                    className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-brand-cyan text-sm"
+                    Yes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSmoking(false)}
+                    className={`py-3.5 rounded-xl border text-sm font-bold transition flex items-center justify-center ${
+                      !smoking 
+                        ? 'border-[#D9A25A] bg-[#FAF3E8] text-[#D9A25A]' 
+                        : 'border-[#EAE5D9] bg-white text-[#8E8674]'
+                    }`}
                   >
-                    <option value={0}>Non-Drinker</option>
-                    <option value={1}>Social Drinker</option>
-                    <option value={2}>Regular</option>
-                  </select>
+                    No
+                  </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-slate-300 text-sm font-semibold mb-2">Sleep Schedule</label>
-                  <select
-                    value={preferences.sleepSchedule}
-                    onChange={(e) => setPreferences({ ...preferences, sleepSchedule: parseInt(e.target.value) })}
-                    className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-brand-cyan text-sm"
+              {/* Question 2: Budget */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-baseline">
+                  <label className="block text-sm font-bold text-[#1E1E1E]">Budget (NPR)</label>
+                  <span className="text-sm font-bold text-[#1E1E1E]">{budget}</span>
+                </div>
+                
+                <div className="relative pt-4">
+                  {/* Floating Tooltip value */}
+                  <div 
+                    className="absolute -top-1 bg-[#D9A25A] text-white text-[10px] font-black px-2 py-0.5 rounded shadow-sm transition"
+                    style={{ left: `calc(${(budget - 3000) / 12000 * 85}% + 10px)` }}
                   >
-                    <option value={0}>Early Bird (sleeps before 10 PM)</option>
-                    <option value={1}>Night Owl (sleeps after 12 AM)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-slate-300 text-sm font-semibold mb-2">Cleanliness</label>
-                  <select
-                    value={preferences.cleanliness}
-                    onChange={(e) => setPreferences({ ...preferences, cleanliness: parseInt(e.target.value) })}
-                    className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-brand-cyan text-sm"
-                  >
-                    <option value={0}>Relaxed / Casual</option>
-                    <option value={1}>Moderate</option>
-                    <option value={2}>Cleanliness Freak</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-slate-300 text-sm font-semibold mb-2">Min Monthly Budget (NPR)</label>
+                    {budget}
+                  </div>
                   <input
-                    type="number"
-                    value={preferences.budgetMin}
-                    onChange={(e) => setPreferences({ ...preferences, budgetMin: parseInt(e.target.value) })}
-                    className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-brand-cyan text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-slate-300 text-sm font-semibold mb-2">Max Monthly Budget (NPR)</label>
-                  <input
-                    type="number"
-                    value={preferences.budgetMax}
-                    onChange={(e) => setPreferences({ ...preferences, budgetMax: parseInt(e.target.value) })}
-                    className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-brand-cyan text-sm"
+                    type="range"
+                    min={3000}
+                    max={15000}
+                    step={500}
+                    value={budget}
+                    onChange={(e) => setBudget(parseInt(e.target.value))}
+                    className="w-full h-1.5 bg-[#EAE5D9] rounded-lg appearance-none cursor-pointer accent-[#D9A25A]"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-slate-300 text-sm font-semibold mb-2">Study Habits</label>
-                  <select
-                    value={preferences.studyHabits}
-                    onChange={(e) => setPreferences({ ...preferences, studyHabits: parseInt(e.target.value) })}
-                    className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-brand-cyan text-sm"
+              {/* Question 3: Sleep Schedule */}
+              <div className="space-y-3">
+                <label className="block text-sm font-bold text-[#1E1E1E]">Sleep Schedule</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div
+                    onClick={() => setSleepSchedule('EARLY')}
+                    className={`cursor-pointer rounded-2xl p-5 border shadow-sm transition flex flex-col items-center gap-3 ${
+                      sleepSchedule === 'EARLY' 
+                        ? 'border-[#D9A25A] bg-white text-[#1E1E1E]' 
+                        : 'border-[#EAE5D9] bg-white/70 text-[#8E8674]'
+                    }`}
                   >
-                    <option value={0}>Prefers Library/Outside Study</option>
-                    <option value={1}>Prefers Room Study</option>
-                  </select>
-                </div>
+                    <div className="w-10 h-10 rounded-full bg-[#FAF3E8] flex items-center justify-center text-[#D9A25A]">
+                      <Sun size={18} className="stroke-[2.5]" />
+                    </div>
+                    <span className="text-xs font-black">Early Bird</span>
+                  </div>
 
-                <div>
-                  <label className="block text-slate-300 text-sm font-semibold mb-2">Food Preference</label>
-                  <select
-                    value={preferences.foodPreference}
-                    onChange={(e) => setPreferences({ ...preferences, foodPreference: parseInt(e.target.value) })}
-                    className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-brand-cyan text-sm"
+                  <div
+                    onClick={() => setSleepSchedule('OWL')}
+                    className={`cursor-pointer rounded-2xl p-5 border shadow-sm transition flex flex-col items-center gap-3 ${
+                      sleepSchedule === 'OWL' 
+                        ? 'border-[#D9A25A] bg-white text-[#1E1E1E]' 
+                        : 'border-[#EAE5D9] bg-white/70 text-[#8E8674]'
+                    }`}
                   >
-                    <option value={0}>Strict Vegetarian</option>
-                    <option value={1}>Non-Vegetarian</option>
-                    <option value={2}>No Preference</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-slate-300 text-sm font-semibold mb-2">Social Level</label>
-                  <select
-                    value={preferences.socialLevel}
-                    onChange={(e) => setPreferences({ ...preferences, socialLevel: parseInt(e.target.value) })}
-                    className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-brand-cyan text-sm"
-                  >
-                    <option value={0}>Introverted / Quiet</option>
-                    <option value={1}>Balanced / Ambivert</option>
-                    <option value={2}>Highly Social / Outgoing</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-slate-300 text-sm font-semibold mb-2">Noise Tolerance</label>
-                  <select
-                    value={preferences.noiseTolerance}
-                    onChange={(e) => setPreferences({ ...preferences, noiseTolerance: parseInt(e.target.value) })}
-                    className="w-full bg-slate-950 border border-slate-800 text-white rounded-lg px-4 py-2.5 focus:outline-none focus:border-brand-cyan text-sm"
-                  >
-                    <option value={0}>Zero Tolerance (Strict Silence)</option>
-                    <option value={1}>Moderate (Normal talks/music is fine)</option>
-                    <option value={2}>High (Party environment friendly)</option>
-                  </select>
+                    <div className="w-10 h-10 rounded-full bg-[#FAF3E8] flex items-center justify-center text-[#D9A25A]">
+                      <Moon size={18} className="stroke-[2.5]" />
+                    </div>
+                    <span className="text-xs font-black">Night Owl</span>
+                  </div>
                 </div>
               </div>
 
+              {/* Full Width Next Submit Button */}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-brand-cyan hover:bg-teal-700 text-white font-bold py-3 rounded-lg transition disabled:opacity-50 text-sm mt-4"
+                className="w-full bg-[#D9A25A] hover:bg-[#C9924A] text-white font-bold py-4 rounded-xl shadow-md transition disabled:opacity-50 text-sm mt-8"
               >
-                {loading ? 'Evaluating Compatibility Matrix...' : 'Find Matches'}
+                {loading ? 'Evaluating Compatibility Matrix...' : 'Next'}
               </button>
             </form>
           </div>
         ) : (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold font-display text-slate-200">Compatible Candidates</h2>
+          <div>
+            {/* Header bar */}
+            <header className="flex items-center justify-between mb-6">
               <button 
-                onClick={() => setStep('QUIZ')}
-                className="text-xs text-brand-cyan hover:underline font-semibold"
+                onClick={() => setStep('QUIZ')} 
+                className="w-9 h-9 rounded-full bg-white border border-[#EAE5D9] flex items-center justify-center shadow-sm"
               >
-                Retake Matching Quiz
+                <ArrowLeft size={18} className="text-[#8E8674]" />
               </button>
-            </div>
+              <h2 className="text-[#A39E93] text-xs font-bold uppercase tracking-wider">Suggestions</h2>
+              <div className="w-9" />
+            </header>
 
-            {/* Premium Bumble Deck Layout */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {matches.map((match) => (
-                <div key={match.studentId} className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col group relative hover:border-slate-700 transition duration-300">
-                  {/* Photo Section */}
-                  <div className="h-72 bg-slate-950 relative overflow-hidden">
-                    <img 
-                      src={match.avatarUrl || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=200'} 
-                      alt="Student Photo"
-                      className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-500"
-                    />
+            {/* Title */}
+            <h1 className="text-3xl font-black text-[#1E1E1E] leading-tight mb-6 font-display">
+              Your Best Matches
+            </h1>
 
-                    {/* Floating compatibility badge */}
-                    <div className="absolute top-4 right-4 bg-teal-950/95 border border-teal-800 text-teal-400 text-xs font-black px-4 py-1.5 rounded-full shadow-lg backdrop-blur-sm">
-                      {match.matchScorePercentage}% Match
+            {/* Swipeable Matches Deck - showing primary match */}
+            {matches.length > 0 ? (
+              <div className="space-y-6">
+                {matches.slice(0, 1).map((match) => (
+                  <div key={match.studentId} className="bg-white border border-[#EAE5D9] rounded-[32px] p-5 shadow-lg flex flex-col relative overflow-hidden">
+                    
+                    {/* Big rounded Image Container */}
+                    <div className="w-full h-80 rounded-2xl overflow-hidden relative bg-slate-100">
+                      <img 
+                        src={match.avatarUrl} 
+                        alt="Match Profile"
+                        className="w-full h-full object-cover"
+                      />
+
+                      {/* Gold medallion compatibility badge overlay */}
+                      <div className="absolute bottom-4 right-4 bg-[#C08A4E] text-[#FAF8F5] border-4 border-[#EAE5D9]/40 w-24 h-24 rounded-full flex flex-col items-center justify-center shadow-2xl p-2 z-10 select-none">
+                        <span className="text-xl font-black leading-none">{match.matchScorePercentage}%</span>
+                        <span className="text-[7px] font-black uppercase tracking-wider text-[#FAF8F5]/80 mt-1">Compatibility</span>
+                      </div>
                     </div>
 
-                    {/* Basic Name Overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent p-6 pt-16">
-                      <h3 className="text-2xl font-black text-white flex items-center gap-2 font-display">
-                        {match.fullName}, <span className="font-semibold text-slate-300">{match.age}</span>
-                        <span className="text-xs bg-brand-cyan text-slate-950 px-2 py-0.5 rounded font-black uppercase tracking-wider">
-                          {match.gender.charAt(0)}
-                        </span>
+                    {/* Basic Name details */}
+                    <div className="mt-5 mb-4">
+                      <h3 className="text-2xl font-black text-[#1E1E1E] font-display">
+                        {match.fullName}, <span className="font-semibold text-[#8E8674]">{match.age}</span>
                       </h3>
-                      <p className="text-xs text-slate-400 mt-1 font-semibold">{match.collegeName} • From {match.hometownDistrict}</p>
                     </div>
+
+                    {/* Table Details list */}
+                    <div className="border-t border-[#EAE5D9] divide-y divide-[#EAE5D9]/70 text-xs font-semibold text-[#1E1E1E] mb-6">
+                      <div className="flex justify-between py-3">
+                        <span className="text-[#8E8674]">Name</span>
+                        <span>{match.fullName}</span>
+                      </div>
+                      <div className="flex justify-between py-3">
+                        <span className="text-[#8E8674]">College</span>
+                        <span>{match.collegeName}</span>
+                      </div>
+                      <div className="flex justify-between py-3">
+                        <span className="text-[#8E8674]">District</span>
+                        <span>{match.hometownDistrict}</span>
+                      </div>
+                      <div className="flex justify-between py-3">
+                        <span className="text-[#8E8674]">Match Score</span>
+                        <span className="font-black text-[#C08A4E]">{match.matchScorePercentage}</span>
+                      </div>
+                    </div>
+
+                    {/* Action Cohabitation Request Button */}
+                    <button className="w-full bg-[#D9A25A] hover:bg-[#C9924A] text-white font-black py-4 rounded-xl shadow-md transition text-xs tracking-wider uppercase mb-5">
+                      Send Cohabitation Request
+                    </button>
+
+                    {/* Bottom Pill badges */}
+                    <div className="flex justify-center gap-3">
+                      <span className="inline-flex items-center gap-1 bg-[#E6F4EA] text-[#137333] text-[10px] font-bold px-3 py-1.5 rounded-full border border-[#137333]/10">
+                        <Check size={12} className="stroke-[2.5]" /> Verified Profile
+                      </span>
+                      <span className="inline-flex items-center gap-1 bg-[#E6F4EA] text-[#137333] text-[10px] font-bold px-3 py-1.5 rounded-full border border-[#137333]/10">
+                        <ShieldCheck size={12} className="stroke-[2.5]" /> ID Checked
+                      </span>
+                    </div>
+
                   </div>
-
-                  {/* LinkedIn Style Credentials */}
-                  <div className="p-6 space-y-4 flex-1 flex flex-col justify-between">
-                    <div>
-                      {/* Course / Semester row */}
-                      <div className="bg-slate-950 rounded-xl p-3 border border-slate-800/80 flex justify-between text-xs font-semibold text-slate-300 mb-4">
-                        <span>Course: <span className="text-white">{match.course}</span></span>
-                        <span>Semester: <span className="text-white">{match.semester}</span></span>
-                      </div>
-
-                      {/* Hobbies / Interests tags */}
-                      <div className="space-y-3">
-                        <div>
-                          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Interests</span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {match.interests?.map(tag => (
-                              <span key={tag} className="text-[10px] bg-slate-950 border border-slate-800 text-slate-400 px-2.5 py-0.5 rounded-full font-bold">
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div>
-                          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-1">Skills</span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {match.skills?.map(tag => (
-                              <span key={tag} className="text-[10px] bg-brand-cyan/10 border border-brand-cyan/20 text-brand-cyan px-2.5 py-0.5 rounded-full font-bold">
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Warnings / mismatches list */}
-                      <div className="mt-4 pt-3 border-t border-slate-800/60 space-y-2">
-                        {Object.entries(match.matchingPreferences || {}).map(([key, val]) => (
-                          <div key={key} className="flex items-center gap-2 text-[10px] text-teal-400">
-                            <Check size={12} />
-                            <span>Common preference: <span className="font-semibold">{val}</span></span>
-                          </div>
-                        ))}
-
-                        {Object.entries(match.mismatchedPreferences || {}).map(([key, val]) => (
-                          <div key={key} className="flex items-start gap-2 text-[10px] text-amber-400">
-                            <AlertTriangle size={12} className="mt-0.5 flex-shrink-0" />
-                            <span>{val}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Call to Actions */}
-                    <div className="grid grid-cols-3 gap-3 pt-6 border-t border-slate-800/60 mt-6">
-                      <button className="bg-slate-950 hover:bg-slate-800 border border-slate-800/80 text-rose-500 py-3 rounded-xl transition flex items-center justify-center">
-                        <X size={18} />
-                      </button>
-                      <button className="col-span-2 bg-brand-cyan hover:bg-teal-700 text-white font-bold py-3 rounded-xl transition text-xs flex items-center justify-center gap-2 shadow-lg shadow-cyan-950/20">
-                        <MessageCircle size={16} />
-                        Start Chatting
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-[#8E8674]">
+                <Compass className="animate-spin text-[#D9A25A] mx-auto mb-4" size={32} />
+                <p className="text-sm">Evaluating matches...</p>
+              </div>
+            )}
           </div>
         )}
+
       </div>
     </div>
   );
