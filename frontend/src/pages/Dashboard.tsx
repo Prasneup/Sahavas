@@ -114,18 +114,26 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Bottom Sticky Mobile Navigation Dock */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#FAF8F5] border-t border-[#EAE5D9] py-3.5 px-8 flex justify-between items-center shadow-lg z-30 w-full max-w-md mx-auto">
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#FAF8F5] border-t border-[#EAE5D9] py-3.5 px-6 flex justify-between items-center shadow-lg z-30 w-full max-w-md mx-auto">
         <Link to="/dashboard" className="flex flex-col items-center gap-1 text-[#D9A25A] transition">
-          <Home size={22} className="stroke-[2.5]" />
-          <span className="text-[10px] font-bold tracking-wide">Home</span>
+          <Home size={20} className="stroke-[2.5]" />
+          <span className="text-[9px] font-bold tracking-wide">Home</span>
         </Link>
         <Link to="/rooms" className="flex flex-col items-center gap-1 text-[#A39E93] hover:text-[#1E1E1E] transition">
-          <MessageSquare size={22} className="stroke-[2]" />
-          <span className="text-[10px] font-semibold">Messages</span>
+          <HomeIcon size={20} className="stroke-[2]" />
+          <span className="text-[9px] font-semibold">Rooms</span>
+        </Link>
+        <Link to="/roommates" className="flex flex-col items-center gap-1 text-[#A39E93] hover:text-[#1E1E1E] transition">
+          <Users size={20} className="stroke-[2]" />
+          <span className="text-[9px] font-semibold">Matches</span>
+        </Link>
+        <Link to="/messages" className="flex flex-col items-center gap-1 text-[#A39E93] hover:text-[#1E1E1E] transition">
+          <MessageSquare size={20} className="stroke-[2]" />
+          <span className="text-[9px] font-semibold">Inbox</span>
         </Link>
         <Link to="/profile" className="flex flex-col items-center gap-1 text-[#A39E93] hover:text-[#1E1E1E] transition">
-          <User size={22} className="stroke-[2]" />
-          <span className="text-[10px] font-semibold">Profile</span>
+          <User size={20} className="stroke-[2]" />
+          <span className="text-[9px] font-semibold">Profile</span>
         </Link>
       </nav>
     </div>

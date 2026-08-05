@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import RoomSearch from './pages/RoomSearch';
 import RoommateDiscovery from './pages/RoommateDiscovery';
 import ProfileEdit from './pages/ProfileEdit';
+import Chat from './pages/Chat';
 
 // Protected Route Guard component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -58,6 +59,11 @@ function AppRoutes() {
       <Route path="/profile" element={
         <ProtectedRoute>
           <ProfileEdit />
+        </ProtectedRoute>
+      } />
+      <Route path="/messages" element={
+        <ProtectedRoute>
+          <Chat />
         </ProtectedRoute>
       } />
 
