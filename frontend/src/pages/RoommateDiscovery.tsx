@@ -1,775 +1,397 @@
-import React, { useState } from 'react';
-import api from '../services/api';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, ShieldCheck, Compass, Heart, Star, X, MessageCircle, RefreshCw, Sun, Moon } from 'lucide-react';
-
-interface Match {
-  studentId: string;
-  fullName: string;
-  collegeName: string;
-  gender: string;
-  age: number;
-  course: string;
-  semester: number;
-  hometownDistrict: string;
-  avatarUrl: string;
-  matchScorePercentage: number;
-  interests: string[];
-  skills: string[];
-  languages: string[];
-  budgetMin: number;
-  budgetMax: number;
-  matchingPreferences: Record<string, string>;
-  mismatchedPreferences: Record<string, string>;
-}
+import { Sparkles, Users, Award, ShieldCheck, Heart, Bookmark, RefreshCw, CheckCircle, ChevronRight, Compass } from 'lucide-react';
+import { MOCK_ROOMMATES } from '../services/roommatesData';
 
 const RoommateDiscovery: React.FC = () => {
-  const [step, setStep] = useState<'QUIZ' | 'MATCHES'>('QUIZ');
-  const [quizStep, setQuizStep] = useState<number>(1);
-  
-  // Quiz values
-  const [smoking, setSmoking] = useState<boolean>(false);
-  const [budget, setBudget] = useState<number>(8000);
-  const [sleepSchedule, setSleepSchedule] = useState<'EARLY' | 'OWL'>('EARLY');
-  const [drinking, setDrinking] = useState<'NEVER' | 'SOCIALLY' | 'REGULAR'>('NEVER');
-  const [foodPreference, setFoodPreference] = useState<'VEG' | 'NON_VEG' | 'ANYTHING'>('ANYTHING');
-  const [cleanliness, setCleanliness] = useState<'HIGH' | 'MODERATE' | 'LOW'>('MODERATE');
-
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [currentIndex, setCurrentIndex] = useState<number>(0);
-  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
-  // Gesture Swipe States
-  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
-  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [swipeAction, setSwipeAction] = useState<'left' | 'right' | 'up' | null>(null);
+  const [step, setStep] = useState<'DASHBOARD' | 'QUIZ' | 'PROCESSING'>('DASHBOARD');
   
-  // Mutual Match Modal State
-  const [mutualMatchProfile, setMutualMatchProfile] = useState<Match | null>(null);
+  // Quiz State
+  const [quizStep, setQuizStep] = useState(1);
+  const [sleep, setSleep] = useState('EARLY');
+  const [smoking, setSmoking] = useState('NON_SMOKER');
+  const [cleanliness, setCleanliness] = useState('HIGH');
+  const [drinking, setDrinking] = useState('NEVER');
+  const [budget, setBudget] = useState('6k-8k');
 
-  const handleQuizSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    const payload = {
-      smoking: smoking ? 2 : 0,
-      drinking: drinking === 'NEVER' ? 0 : drinking === 'SOCIALLY' ? 1 : 2,
-      sleepSchedule: sleepSchedule === 'EARLY' ? 0 : 1,
-      cleanliness: cleanliness === 'HIGH' ? 2 : cleanliness === 'MODERATE' ? 1 : 0,
-      budgetMin: budget - 2000,
-      budgetMax: budget + 2000,
-      studyHabits: 1,
-      foodPreference: foodPreference === 'VEG' ? 0 : foodPreference === 'NON_VEG' ? 1 : 2,
-      socialLevel: 1,
-      noiseTolerance: 1
-    };
+  // Matching Loader State
+  const [progress, setProgress] = useState(0);
+  const [loaderMessage, setLoaderMessage] = useState('Analyzing Lifestyle Preferences...');
 
-    const MOCK_MATCHES: Match[] = [
-      {
-        studentId: "1",
-        fullName: "Suman Thapa",
-        collegeName: "Pulchowk Campus",
-        gender: "MALE",
-        age: 23,
-        course: "Mechanical Engineering",
-        semester: 5,
-        hometownDistrict: "Kaski",
-        avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=350",
-        matchScorePercentage: 81,
-        interests: ["Football", "Guitar", "Gaming"],
-        skills: ["SolidWorks", "Excel", "CAD"],
-        languages: ["Nepali", "English"],
-        budgetMin: 6000,
-        budgetMax: 9000,
-        matchingPreferences: {
-          "smoking": "Non-smoker",
-          "sleepSchedule": "Early Bird"
-        },
-        mismatchedPreferences: {
-          "socialLevel": "User is Introverted; Match is Extroverted"
-        }
-      },
-      {
-        studentId: "2",
-        fullName: "Rohan Basnet",
-        collegeName: "Apex College",
-        gender: "MALE",
-        age: 22,
-        course: "BBA",
-        semester: 3,
-        hometownDistrict: "Jhapa",
-        avatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=350",
-        matchScorePercentage: 74,
-        interests: ["Cooking", "Reading", "Chess"],
-        skills: ["Marketing", "Photoshop"],
-        languages: ["Nepali", "English", "Hindi"],
-        budgetMin: 5000,
-        budgetMax: 7000,
-        matchingPreferences: {
-          "smoking": "Non-smoker"
-        },
-        mismatchedPreferences: {
-          "sleepSchedule": "Opposite schedules (Early Bird vs Night Owl)"
-        }
-      },
-      {
-        studentId: "3",
-        fullName: "Alok Prasai",
-        collegeName: "NCIT Campus",
-        gender: "MALE",
-        age: 20,
-        course: "Software Engineering",
-        semester: 1,
-        hometownDistrict: "Morang",
-        avatarUrl: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=350",
-        matchScorePercentage: 92,
-        interests: ["Coding", "Hiking", "Books"],
-        skills: ["React", "Python"],
-        languages: ["Nepali", "English"],
-        budgetMin: 7000,
-        budgetMax: 10000,
-        matchingPreferences: {
-          "smoking": "Non-smoker",
-          "sleepSchedule": "Early Bird"
-        },
-        mismatchedPreferences: {}
-      }
-    ];
+  // Dashboard Stats States
+  const [stats, setStats] = useState({
+    compatibleMatches: 8,
+    pendingRequests: 3,
+    savedProfiles: 4,
+    acceptedConnections: 2
+  });
 
-    try {
-      // Save preferences
-      await api.post('/matching/preferences', payload);
-      
-      // Load suggestions
-      const res = await api.get('/matching/suggestions');
-      if (res.data && res.data.length > 0) {
-        // Map response to matches shape
-        const mappedMatches = res.data.map((p: any) => ({
-          studentId: p.id,
-          fullName: p.fullName,
-          collegeName: p.collegeName,
-          gender: p.gender,
-          age: p.age,
-          course: p.majorCourse,
-          semester: p.currentSemester,
-          hometownDistrict: p.hometownDistrict,
-          avatarUrl: p.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150',
-          matchScorePercentage: p.completenessPercentage || 80,
-          interests: p.interests || [],
-          skills: p.skills || [],
-          languages: p.languages || [],
-          budgetMin: p.budgetMin || 5000,
-          budgetMax: p.budgetMax || 9000,
-          matchingPreferences: {},
-          mismatchedPreferences: {}
-        }));
-        setMatches(mappedMatches);
-      } else {
-        setMatches(MOCK_MATCHES);
-      }
-      setCurrentIndex(0);
-      setStep('MATCHES');
-    } catch (err: any) {
-      console.warn("API matching failed, using mock matches based on design screenshot", err);
-      setMatches(MOCK_MATCHES);
-      setCurrentIndex(0);
-      setStep('MATCHES');
-    } finally {
-      setLoading(false);
+  // Load Saved Stats
+  useEffect(() => {
+    const savedPending = localStorage.getItem('pendingRequestsCount');
+    if (savedPending) {
+      setStats(prev => ({ ...prev, pendingRequests: parseInt(savedPending, 10) }));
     }
+    const savedBookmarks = localStorage.getItem('savedProfilesCount');
+    if (savedBookmarks) {
+      setStats(prev => ({ ...prev, savedProfiles: parseInt(savedBookmarks, 10) }));
+    }
+  }, [step]);
+
+  // Handle quiz submit & matching animation
+  const handleSubmitQuiz = () => {
+    setStep('PROCESSING');
+    setProgress(0);
   };
 
-  // Handle swipes logically
-  const registerSwipe = async (targetUserId: string, action: 'PASS' | 'SAVE' | 'INTERESTED') => {
-    // Call backend endpoint to persist
-    try {
-      const res = await api.post('/roommates/swipe', {
-        targetUserId,
-        actionType: action
+  useEffect(() => {
+    if (step !== 'PROCESSING') return;
+
+    const interval = setInterval(() => {
+      setProgress((prev) => {
+        const next = prev + 4;
+        if (next >= 100) {
+          clearInterval(interval);
+          setTimeout(() => {
+            navigate('/matches/results');
+          }, 300);
+          return 100;
+        }
+        return next;
       });
-      // Show match alert if mutualMatch is true
-      if (res.data && res.data.mutualMatch) {
-        const matchedProfile = matches.find(m => m.studentId === targetUserId);
-        if (matchedProfile) {
-          setMutualMatchProfile(matchedProfile);
-        }
-      }
-    } catch (err) {
-      // In mock mode, randomly trigger a mutual match on INTERESTED swipes
-      if (action === 'INTERESTED' && Math.random() > 0.4) {
-        const matchedProfile = matches[currentIndex];
-        setMutualMatchProfile(matchedProfile);
-      }
-    }
+    }, 100);
 
-    // Increment current card index
-    setTimeout(() => {
-      setCurrentIndex(prev => prev + 1);
-      setSwipeAction(null);
-      setDragOffset({ x: 0, y: 0 });
-    }, 300);
-  };
+    return () => clearInterval(interval);
+  }, [step, navigate]);
 
-  const handleManualSwipe = (action: 'PASS' | 'SAVE' | 'INTERESTED') => {
-    if (currentIndex >= matches.length) return;
-    const targetUserId = matches[currentIndex].studentId;
-    if (action === 'PASS') setSwipeAction('left');
-    else if (action === 'INTERESTED') setSwipeAction('right');
-    else if (action === 'SAVE') setSwipeAction('up');
-    
-    registerSwipe(targetUserId, action);
-  };
+  useEffect(() => {
+    if (step !== 'PROCESSING') return;
 
-  // Drag Gesture Handlers
-  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
-    if (currentIndex >= matches.length) return;
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    setDragStart({ x: clientX, y: clientY });
-    setIsDragging(true);
-  };
-
-  const handleDragMove = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!dragStart || !isDragging) return;
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    
-    setDragOffset({
-      x: clientX - dragStart.x,
-      y: clientY - dragStart.y
-    });
-  };
-
-  const handleDragEnd = () => {
-    if (!isDragging) return;
-    setIsDragging(false);
-    setDragStart(null);
-
-    const threshold = 120;
-    const targetUserId = matches[currentIndex].studentId;
-
-    if (dragOffset.x > threshold) {
-      setSwipeAction('right');
-      registerSwipe(targetUserId, 'INTERESTED');
-    } else if (dragOffset.x < -threshold) {
-      setSwipeAction('left');
-      registerSwipe(targetUserId, 'PASS');
-    } else if (dragOffset.y < -threshold) {
-      setSwipeAction('up');
-      registerSwipe(targetUserId, 'SAVE');
+    if (progress < 20) {
+      setLoaderMessage('Analyzing Lifestyle Preferences...');
+    } else if (progress < 40) {
+      setLoaderMessage('Comparing Study Habits...');
+    } else if (progress < 60) {
+      setLoaderMessage('Matching Budget Requirements...');
+    } else if (progress < 80) {
+      setLoaderMessage('Evaluating Cleanliness Compatibility...');
+    } else if (progress < 95) {
+      setLoaderMessage('Finding Compatible Students...');
     } else {
-      // Snap back to center
-      setDragOffset({ x: 0, y: 0 });
+      setLoaderMessage('Calculating Compatibility Score...');
     }
-  };
-
-  // Reset quiz state to discovery
-  const resetQuiz = () => {
-    setQuizStep(1);
-    setStep('QUIZ');
-  };
+  }, [progress, step]);
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] text-[#1E1E1E] flex flex-col items-center justify-start pb-24 font-sans select-none overflow-x-hidden">
-      <div className="w-full max-w-md px-6 pt-6">
+    <div className="min-h-screen bg-clay text-ink flex flex-col font-sans">
+      <main className="flex-1 max-w-6xl mx-auto w-full p-6 space-y-8">
         
-        {step === 'QUIZ' ? (
-          <div>
-            {/* Header bar */}
-            <header className="flex items-center justify-between mb-6">
-              <button 
-                onClick={() => navigate('/dashboard')} 
-                className="w-9 h-9 rounded-full bg-white border border-[#EAE5D9] flex items-center justify-center shadow-sm"
-              >
-                <ArrowLeft size={18} className="text-[#8E8674]" />
-              </button>
-              <h2 className="text-[#A39E93] text-xs font-bold uppercase tracking-wider">Preferences</h2>
-              <div className="w-9" />
-            </header>
-
-            {/* Title */}
-            <h1 className="text-3xl font-black text-[#1E1E1E] leading-tight mb-2 font-display">
-              Roommate<br />Preferences
-            </h1>
+        {step === 'DASHBOARD' && (
+          <div className="space-y-8">
             
-            {/* Progress indicator */}
-            <div className="flex items-center justify-between text-xs text-[#A39E93] font-bold mb-6">
-              <div className="w-2/3 bg-[#EAE5D9]/40 h-1 rounded-full overflow-hidden">
-                <div 
-                  className="bg-[#D9A25A] h-full rounded-full transition-all duration-300" 
-                  style={{ width: `${(quizStep / 6) * 100}%` }}
-                />
-              </div>
-              <span>{quizStep} of 6</span>
+            {/* Page Header */}
+            <div>
+              <h2 className="text-3xl font-black font-display text-ink">Roommate Matching Center</h2>
+              <p className="text-sm mt-1 text-ink-soft font-semibold">Discover compatible peers from your college to share rooms and split rental costs.</p>
             </div>
 
-            <form onSubmit={handleQuizSubmit} className="space-y-6">
-              {/* Question 1: Smoking */}
-              {quizStep === 1 && (
-                <div className="space-y-3">
-                  <label className="block text-sm font-bold text-[#1E1E1E]">Smoking Habit</label>
-                  <p className="text-[11px] text-[#8E8674] font-semibold -mt-1 leading-snug">Do you smoke, or prefer roommates who smoke?</p>
-                  <div className="grid grid-cols-2 gap-4">
-                    <button
-                      type="button"
-                      onClick={() => setSmoking(true)}
-                      className={`py-3.5 rounded-xl border text-sm font-bold transition flex items-center justify-center ${
-                        smoking 
-                          ? 'border-[#D9A25A] bg-[#FAF3E8] text-[#D9A25A]' 
-                          : 'border-[#EAE5D9] bg-white text-[#8E8674]'
-                      }`}
-                    >
-                      Yes
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSmoking(false)}
-                      className={`py-3.5 rounded-xl border text-sm font-bold transition flex items-center justify-center ${
-                        !smoking 
-                          ? 'border-[#D9A25A] bg-[#FAF3E8] text-[#D9A25A]' 
-                          : 'border-[#EAE5D9] bg-white text-[#8E8674]'
-                      }`}
-                    >
-                      No
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Question 2: Budget */}
-              {quizStep === 2 && (
-                <div className="space-y-3">
-                  <div className="flex justify-between items-baseline">
-                    <label className="block text-sm font-bold text-[#1E1E1E]">Target Monthly Budget (NPR)</label>
-                    <span className="text-sm font-bold text-[#D9A25A]">Rs. {budget}</span>
-                  </div>
-                  <p className="text-[11px] text-[#8E8674] font-semibold -mt-1 leading-snug">Select your maximum budget capacity for flat rent.</p>
-                  
-                  <div className="relative pt-6">
-                    <div 
-                      className="absolute -top-1 bg-[#D9A25A] text-white text-[10px] font-black px-2 py-0.5 rounded shadow-sm transition"
-                      style={{ left: `calc(${(budget - 3000) / 12000 * 85}% + 10px)` }}
-                    >
-                      NPR {budget}
-                    </div>
-                    <input
-                      type="range"
-                      min={3000}
-                      max={15000}
-                      step={500}
-                      value={budget}
-                      onChange={(e) => setBudget(parseInt(e.target.value))}
-                      className="w-full h-1.5 bg-[#EAE5D9] rounded-lg appearance-none cursor-pointer accent-[#D9A25A]"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Question 3: Sleep Schedule */}
-              {quizStep === 3 && (
-                <div className="space-y-3">
-                  <label className="block text-sm font-bold text-[#1E1E1E]">Sleep Schedule & Timing</label>
-                  <p className="text-[11px] text-[#8E8674] font-semibold -mt-1 leading-snug">Are you an early riser or a night owl?</p>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div
-                      onClick={() => setSleepSchedule('EARLY')}
-                      className={`cursor-pointer rounded-2xl p-5 border shadow-sm transition flex flex-col items-center gap-3 ${
-                        sleepSchedule === 'EARLY' 
-                          ? 'border-[#D9A25A] bg-[#FAF3E8] text-[#D9A25A]' 
-                          : 'border-[#EAE5D9] bg-white text-[#8E8674]'
-                      }`}
-                    >
-                      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#D9A25A] shadow-sm">
-                        <Sun size={18} className="stroke-[2.5]" />
-                      </div>
-                      <span className="text-xs font-black">Early Bird</span>
-                    </div>
-
-                    <div
-                      onClick={() => setSleepSchedule('OWL')}
-                      className={`cursor-pointer rounded-2xl p-5 border shadow-sm transition flex flex-col items-center gap-3 ${
-                        sleepSchedule === 'OWL' 
-                          ? 'border-[#D9A25A] bg-[#FAF3E8] text-[#D9A25A]' 
-                          : 'border-[#EAE5D9] bg-white text-[#8E8674]'
-                      }`}
-                    >
-                      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#D9A25A] shadow-sm">
-                        <Moon size={18} className="stroke-[2.5]" />
-                      </div>
-                      <span className="text-xs font-black">Night Owl</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Question 4: Drinking Habit */}
-              {quizStep === 4 && (
-                <div className="space-y-3">
-                  <label className="block text-sm font-bold text-[#1E1E1E]">Drinking Socially</label>
-                  <p className="text-[11px] text-[#8E8674] font-semibold -mt-1 leading-snug">How often do you drink alcohol?</p>
-                  <div className="flex flex-col gap-3">
-                    {['NEVER', 'SOCIALLY', 'REGULAR'].map((choice) => (
-                      <button
-                        key={choice}
-                        type="button"
-                        onClick={() => setDrinking(choice as any)}
-                        className={`w-full py-4 rounded-xl border text-xs font-black uppercase tracking-wider transition ${
-                          drinking === choice 
-                            ? 'border-[#D9A25A] bg-[#FAF3E8] text-[#D9A25A]' 
-                            : 'border-[#EAE5D9] bg-white text-[#8E8674]'
-                        }`}
-                      >
-                        {choice}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Question 5: Food Preference */}
-              {quizStep === 5 && (
-                <div className="space-y-3">
-                  <label className="block text-sm font-bold text-[#1E1E1E]">Diet / Food Preference</label>
-                  <p className="text-[11px] text-[#8E8674] font-semibold -mt-1 leading-snug">What are your dietary preferences for shared kitchens?</p>
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { key: 'VEG', label: 'Vegetarian' },
-                      { key: 'NON_VEG', label: 'Non-Veg' },
-                      { key: 'ANYTHING', label: 'Anything' }
-                    ].map((item) => (
-                      <button
-                        key={item.key}
-                        type="button"
-                        onClick={() => setFoodPreference(item.key as any)}
-                        className={`py-4 rounded-xl border text-[10px] font-black uppercase tracking-wider transition ${
-                          foodPreference === item.key 
-                            ? 'border-[#D9A25A] bg-[#FAF3E8] text-[#D9A25A]' 
-                            : 'border-[#EAE5D9] bg-white text-[#8E8674]'
-                        }`}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Question 6: Cleanliness Level */}
-              {quizStep === 6 && (
-                <div className="space-y-3">
-                  <label className="block text-sm font-bold text-[#1E1E1E]">Cleanliness Level</label>
-                  <p className="text-[11px] text-[#8E8674] font-semibold -mt-1 leading-snug">Describe your ideal cleaning routines for common areas.</p>
-                  <div className="flex flex-col gap-3">
-                    {[
-                      { key: 'HIGH', label: 'Very Clean (Organized daily)' },
-                      { key: 'MODERATE', label: 'Moderate (Clean weekly)' },
-                      { key: 'LOW', label: 'Relaxed (Clean occasionally)' }
-                    ].map((item) => (
-                      <button
-                        key={item.key}
-                        type="button"
-                        onClick={() => setCleanliness(item.key as any)}
-                        className={`w-full py-4 rounded-xl border text-xs font-black transition ${
-                          cleanliness === item.key 
-                            ? 'border-[#D9A25A] bg-[#FAF3E8] text-[#D9A25A]' 
-                            : 'border-[#EAE5D9] bg-white text-[#8E8674]'
-                        }`}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Navigation Action Buttons footer */}
-              <div className="flex gap-4 mt-8 pt-4">
-                {quizStep > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => setQuizStep(quizStep - 1)}
-                    className="w-1/3 bg-white border border-[#EAE5D9] hover:bg-[#FAF8F5] text-[#8E8674] font-bold py-4 rounded-xl shadow-sm transition text-xs uppercase tracking-wider"
-                  >
-                    Back
-                  </button>
-                )}
-                
-                {quizStep < 6 ? (
-                  <button
-                    type="button"
-                    onClick={() => setQuizStep(quizStep + 1)}
-                    className={`bg-[#D9A25A] hover:bg-[#C9924A] text-white font-bold py-4 rounded-xl shadow-md transition text-xs uppercase tracking-wider ${
-                      quizStep > 1 ? 'w-2/3' : 'w-full'
-                    }`}
-                  >
-                    Next
-                  </button>
-                ) : (
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-2/3 bg-[#D9A25A] hover:bg-[#C9924A] text-white font-black py-4 rounded-xl shadow-md transition disabled:opacity-50 text-xs uppercase tracking-wider"
-                  >
-                    {loading ? 'Submitting...' : 'Finish & Match'}
-                  </button>
-                )}
+            {/* Dashboard Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+              <div 
+                onClick={() => navigate('/matches/results')}
+                className="dashboard-card p-5 bg-paper flex flex-col justify-between min-h-[110px] cursor-pointer hover:shadow-md transition"
+              >
+                <span className="text-[10px] uppercase tracking-wider block font-bold text-ink-soft">Compatible Matches</span>
+                <h3 className="text-2xl font-black font-mono text-ink mt-2">{stats.compatibleMatches}</h3>
+                <span className="text-[10px] block mt-1 text-marigold-dark font-bold">View Results →</span>
               </div>
 
-            </form>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center">
-            {/* Header bar */}
-            <header className="w-full flex items-center justify-between mb-6">
-              <button 
-                onClick={resetQuiz} 
-                className="w-9 h-9 rounded-full bg-white border border-[#EAE5D9] flex items-center justify-center shadow-sm"
-              >
-                <ArrowLeft size={18} className="text-[#8E8674]" />
-              </button>
-              <h2 className="text-[#A39E93] text-xs font-bold uppercase tracking-wider font-display">Tinder discovery</h2>
-              <button 
-                onClick={resetQuiz}
-                className="w-9 h-9 rounded-full bg-white border border-[#EAE5D9] flex items-center justify-center shadow-sm text-[#D9A25A]"
-              >
-                <RefreshCw size={15} />
-              </button>
-            </header>
+              <div className="dashboard-card p-5 bg-paper flex flex-col justify-between min-h-[110px]">
+                <span className="text-[10px] uppercase tracking-wider block font-bold text-ink-soft">Pending Requests</span>
+                <h3 className="text-2xl font-black font-mono text-ink mt-2">{stats.pendingRequests}</h3>
+                <span className="text-[10px] block mt-1 text-ink-soft/75 font-semibold">Awaiting reply</span>
+              </div>
 
-            {/* Swipeable Card Deck Section */}
-            <div className="relative w-full h-[520px] flex items-center justify-center mt-2">
-              {currentIndex < matches.length ? (
-                matches.map((match, idx) => {
-                  // Render only the top card and the next card behind it
-                  if (idx < currentIndex || idx > currentIndex + 1) return null;
-                  
-                  const isTop = idx === currentIndex;
-                  
-                  // Drag Styles for Top Card
-                  let cardStyle: React.CSSProperties = {};
-                  if (isTop) {
-                    let transformStr = `translate(${dragOffset.x}px, ${dragOffset.y}px) rotate(${dragOffset.x * 0.04}deg)`;
-                    if (swipeAction === 'left') {
-                      transformStr = `translate(-150%, ${dragOffset.y}px) rotate(-15deg)`;
-                    } else if (swipeAction === 'right') {
-                      transformStr = `translate(150%, ${dragOffset.y}px) rotate(15deg)`;
-                    } else if (swipeAction === 'up') {
-                      transformStr = `translate(${dragOffset.x}px, -150%)`;
-                    }
-                    
-                    cardStyle = {
-                      transform: transformStr,
-                      transition: isDragging ? 'none' : 'transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                      zIndex: 10
-                    };
-                  } else {
-                    // Next card style
-                    cardStyle = {
-                      transform: 'scale(0.96) translate(0px, 12px)',
-                      opacity: 0.8,
-                      zIndex: 5
-                    };
-                  }
+              <div className="dashboard-card p-5 bg-paper flex flex-col justify-between min-h-[110px]">
+                <span className="text-[10px] uppercase tracking-wider block font-bold text-ink-soft">Saved Profiles</span>
+                <h3 className="text-2xl font-black font-mono text-ink mt-2">{stats.savedProfiles}</h3>
+                <span className="text-[10px] block mt-1 text-ink-soft/75 font-semibold">Bookmarked</span>
+              </div>
 
-                  return (
-                    <div
-                      key={match.studentId}
-                      style={cardStyle}
-                      onMouseDown={isTop ? handleDragStart : undefined}
-                      onMouseMove={isTop ? handleDragMove : undefined}
-                      onMouseUp={isTop ? handleDragEnd : undefined}
-                      onMouseLeave={isTop && isDragging ? handleDragEnd : undefined}
-                      onTouchStart={isTop ? handleDragStart : undefined}
-                      onTouchMove={isTop ? handleDragMove : undefined}
-                      onTouchEnd={isTop ? handleDragEnd : undefined}
-                      className="absolute w-full h-full bg-white border border-[#EAE5D9] rounded-[32px] p-4 shadow-lg flex flex-col justify-between cursor-grab active:cursor-grabbing select-none"
-                    >
-                      {/* Big Visual Image Block */}
-                      <div className="w-full h-72 rounded-2xl overflow-hidden relative bg-[#FAF8F5]">
-                        <img 
-                          src={match.avatarUrl} 
-                          alt={match.fullName}
-                          className="w-full h-full object-cover pointer-events-none"
-                        />
-
-                        {/* Medallion Overlay */}
-                        <div className="absolute bottom-4 right-4 bg-[#C08A4E] text-[#FAF8F5] border-4 border-[#EAE5D9]/40 w-22 h-22 rounded-full flex flex-col items-center justify-center shadow-xl p-2 select-none pointer-events-none">
-                          <span className="text-lg font-black leading-none">{match.matchScorePercentage}%</span>
-                          <span className="text-[7px] font-black uppercase tracking-wider text-[#FAF8F5]/80 mt-1">Compatibility</span>
-                        </div>
-                        
-                        {/* Swipe Direction overlay indicators */}
-                        {isDragging && dragOffset.x > 30 && (
-                          <div className="absolute top-4 left-4 border-4 border-green-500 text-green-500 text-xs font-black uppercase px-3 py-1 rounded rotate-[-10deg] tracking-widest">
-                            INTERESTED
-                          </div>
-                        )}
-                        {isDragging && dragOffset.x < -30 && (
-                          <div className="absolute top-4 right-4 border-4 border-red-500 text-red-500 text-xs font-black uppercase px-3 py-1 rounded rotate-[10deg] tracking-widest">
-                            PASS
-                          </div>
-                        )}
-                        {isDragging && dragOffset.y < -30 && (
-                          <div className="absolute bottom-4 left-4 border-4 border-amber-500 text-amber-500 text-xs font-black uppercase px-3 py-1 rounded tracking-widest">
-                            SAVE
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Header details */}
-                      <div className="mt-3">
-                        <div className="flex justify-between items-baseline">
-                          <h3 className="text-xl font-black text-[#1E1E1E] font-display">
-                            {match.fullName}, <span className="font-semibold text-[#8E8674]">{match.age}</span>
-                          </h3>
-                          <span className="text-xs bg-[#FAF3E8] text-[#D9A25A] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-[#D9A25A]/10">
-                            NPR {match.budgetMin}-{match.budgetMax}
-                          </span>
-                        </div>
-                        <p className="text-xs font-bold text-[#8E8674] mt-1">{match.collegeName} • {match.course}</p>
-                        <p className="text-[10px] text-[#A39E93] font-semibold mt-0.5">From {match.hometownDistrict}</p>
-                      </div>
-
-                      {/* Habits badges info list */}
-                      <div className="border-t border-[#EAE5D9]/70 pt-3 flex flex-wrap gap-1.5 mt-2">
-                        {match.interests?.slice(0, 3).map(interest => (
-                          <span key={interest} className="text-[9px] bg-[#FAF8F5] border border-[#EAE5D9] text-[#8E8674] px-2 py-0.5 rounded-full font-bold uppercase">
-                            {interest}
-                          </span>
-                        ))}
-                        {Object.entries(match.matchingPreferences || {}).slice(0, 1).map(([key, val]) => (
-                          <span key={key} className="text-[9px] bg-[#E6F4EA] border border-[#137333]/15 text-[#137333] px-2.5 py-0.5 rounded-full font-bold">
-                            ✓ {val}
-                          </span>
-                        ))}
-                      </div>
-
-                      {/* Verification Badges */}
-                      <div className="flex gap-2 border-t border-[#EAE5D9]/60 pt-3 mt-3 justify-center">
-                        <span className="inline-flex items-center gap-1 bg-[#E6F4EA] text-[#137333] text-[9px] font-bold px-2.5 py-1 rounded-full border border-[#137333]/10">
-                          <Check size={10} className="stroke-[2.5]" /> Verified Profile
-                        </span>
-                        <span className="inline-flex items-center gap-1 bg-[#E6F4EA] text-[#137333] text-[9px] font-bold px-2.5 py-1 rounded-full border border-[#137333]/10">
-                          <ShieldCheck size={10} className="stroke-[2.5]" /> ID Checked
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="text-center p-8 bg-white border border-[#EAE5D9] rounded-[32px] shadow-md flex flex-col items-center justify-center h-full w-full">
-                  <Compass className="animate-spin text-[#D9A25A] mb-4" size={48} />
-                  <h3 className="text-lg font-black text-[#1E1E1E] font-display">No More Roommates</h3>
-                  <p className="text-xs text-[#8E8674] mt-2 max-w-[200px] mx-auto leading-relaxed">
-                    Try adjusting your preference quiz parameters to search again!
-                  </p>
-                  <button 
-                    onClick={resetQuiz}
-                    className="bg-[#D9A25A] hover:bg-[#C9924A] text-white font-bold px-5 py-2.5 rounded-xl text-xs mt-6 shadow"
-                  >
-                    Adjust Filters
-                  </button>
-                </div>
-              )}
+              <div className="dashboard-card p-5 bg-paper flex flex-col justify-between min-h-[110px]">
+                <span className="text-[10px] uppercase tracking-wider block font-bold text-ink-soft">Connections</span>
+                <h3 className="text-2xl font-black font-mono text-pine mt-2">{stats.acceptedConnections}</h3>
+                <span className="text-[10px] block mt-1 text-pine font-bold">Ready to chat</span>
+              </div>
             </div>
 
-            {/* Tinder style Circular Action Buttons bottom row */}
-            {currentIndex < matches.length && (
-              <div className="flex items-center justify-center gap-5 mt-6 w-full">
-                {/* PASS button */}
-                <button
-                  onClick={() => handleManualSwipe('PASS')}
-                  className="w-12 h-12 rounded-full bg-white border border-[#EAE5D9] text-rose-500 flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition"
-                >
-                  <X size={20} className="stroke-[2.5]" />
-                </button>
+            {/* Matchmaker Banner Card */}
+            <div className="dashboard-card p-6 md:p-8 bg-paper flex flex-col md:flex-row justify-between items-center gap-6 border border-ink/5">
+              <div className="space-y-2 text-center md:text-left">
+                <span className="text-[9px] bg-marigold/10 border border-marigold/20 text-marigold-dark px-3 py-1 rounded-full font-bold uppercase tracking-wider inline-block">
+                  ⭐ Compatibility Quiz
+                </span>
+                <h3 className="text-xl font-black text-ink font-display">Update Your Roommate Preferences</h3>
+                <p className="text-xs text-ink-soft max-w-lg font-semibold leading-relaxed">
+                  Our matching engine computes compatibility percentage based on clean habits, sleep schedules, budgets, and study styles. Retake the quiz anytime.
+                </p>
+              </div>
+              <button 
+                onClick={() => { setQuizStep(1); setStep('QUIZ'); }}
+                className="bg-marigold hover:bg-marigold-dark text-paper font-black py-3 px-6 rounded-xl transition text-xs uppercase tracking-wider shadow-sm shrink-0"
+              >
+                Start Matchmaker Quiz
+              </button>
+            </div>
 
-                {/* SAVE button */}
-                <button
-                  onClick={() => handleManualSwipe('SAVE')}
-                  className="w-10 h-10 rounded-full bg-white border border-[#EAE5D9] text-[#D9A25A] flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition"
-                >
-                  <Star size={16} className="fill-[#D9A25A] stroke-[#D9A25A]" />
-                </button>
-
-                {/* INTERESTED button */}
-                <button
-                  onClick={() => handleManualSwipe('INTERESTED')}
-                  className="w-12 h-12 rounded-full bg-white border border-[#EAE5D9] text-emerald-500 flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition"
-                >
-                  <Heart size={20} className="fill-emerald-500 stroke-none" />
-                </button>
-
-                {/* Direct CHAT button */}
-                <button
-                  onClick={() => navigate('/dashboard')}
-                  className="w-10 h-10 rounded-full bg-white border border-[#EAE5D9] text-cyan-500 flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition"
-                >
-                  <MessageCircle size={16} className="stroke-[2.5]" />
+            {/* Quick Preview Matches List */}
+            <section className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-black text-ink font-display flex items-center gap-1.5">
+                  <Sparkles className="text-marigold" size={18} /> Top Recommended Matches
+                </h3>
+                <button onClick={() => navigate('/matches/results')} className="text-xs font-bold text-marigold-dark hover:underline">
+                  View All Matches
                 </button>
               </div>
-            )}
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {MOCK_ROOMMATES.slice(0, 3).map((match) => (
+                  <div 
+                    key={match.id}
+                    onClick={() => navigate(`/matches/${match.id}`)}
+                    className="dashboard-card p-5 bg-paper flex flex-col justify-between hover:-translate-y-0.5 hover:shadow-md transition cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <img src={match.avatarUrl} alt={match.name} className="w-12 h-12 rounded-full object-cover border border-ink/10" />
+                        <div>
+                          <h4 className="text-xs font-black text-ink">{match.name}</h4>
+                          <span className="text-[10px] text-ink-soft block font-semibold">{match.college}</span>
+                        </div>
+                      </div>
+                      <span className="text-xs font-bold text-pine bg-pine-light px-2.5 py-1 rounded-full font-mono">
+                        {match.compatibilityScore}%
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-ink-soft line-clamp-2 mt-4 font-medium italic">
+                      "{match.bio}"
+                    </p>
+
+                    <div className="flex flex-wrap gap-1.5 mt-4 pt-4 border-t border-ink/5">
+                      <span className="text-[8px] bg-clay text-ink-soft font-bold px-2 py-0.5 rounded uppercase">
+                        {match.sleepSchedule}
+                      </span>
+                      <span className="text-[8px] bg-clay text-ink-soft font-bold px-2 py-0.5 rounded uppercase">
+                        {match.smokingStatus}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
           </div>
         )}
 
-      </div>
-
-      {/* Full-Screen Mutual Match Overlay Modal */}
-      {mutualMatchProfile && (
-        <div className="fixed inset-0 bg-[#1E1E1E]/95 backdrop-blur-md z-50 flex flex-col items-center justify-center p-6 text-center animate-fade-in">
-          
-          <span className="text-[#D9A25A] text-xs font-bold uppercase tracking-widest animate-pulse">It's a Match!</span>
-          
-          <h2 className="text-4xl font-black text-white font-display mt-2 mb-6">
-            Mutual interest!
-          </h2>
-
-          <p className="text-xs text-[#FAF8F5]/80 max-w-xs leading-relaxed mb-8">
-            You and <span className="font-bold text-[#D9A25A]">{mutualMatchProfile.fullName}</span> are both interested in rooming together near college!
-          </p>
-
-          {/* Double Profile Avatar stack overlapping circles */}
-          <div className="flex items-center justify-center -space-x-8 mb-10">
-            <div className="w-28 h-28 rounded-full border-4 border-[#1E1E1E] overflow-hidden shadow-2xl relative">
-              <img 
-                src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=150" 
-                alt="My Profile" 
-                className="w-full h-full object-cover" 
-              />
+        {step === 'QUIZ' && (
+          <div className="max-w-md mx-auto bg-paper border border-ink/10 rounded-[32px] p-8 shadow-sm space-y-6">
+            
+            {/* Quiz Header */}
+            <div className="flex justify-between items-center">
+              <button 
+                onClick={() => setStep('DASHBOARD')}
+                className="text-xs font-bold text-ink-soft hover:underline"
+              >
+                ← Back
+              </button>
+              <span className="text-xs font-black font-mono text-marigold-dark">Question {quizStep} of 5</span>
             </div>
-            <div className="w-28 h-28 rounded-full border-4 border-[#1E1E1E] overflow-hidden shadow-2xl relative z-10">
-              <img 
-                src={mutualMatchProfile.avatarUrl} 
-                alt={mutualMatchProfile.fullName} 
-                className="w-full h-full object-cover" 
-              />
+
+            {/* Progress Bar */}
+            <div className="w-full bg-clay/30 h-1.5 rounded-full overflow-hidden">
+              <div className="bg-marigold h-full rounded-full transition-all duration-300" style={{ width: `${(quizStep / 5) * 100}%` }}></div>
+            </div>
+
+            {/* Question Card View */}
+            <div className="py-4 space-y-6">
+              
+              {quizStep === 1 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-black text-ink font-display leading-tight">What is your typical sleeping schedule?</h3>
+                  <div className="space-y-3">
+                    <button 
+                      onClick={() => { setSleep('EARLY'); setQuizStep(2); }}
+                      className={`w-full text-left p-4 rounded-2xl border text-xs font-bold transition ${
+                        sleep === 'EARLY' ? 'border-marigold bg-[#FAF8F5] text-marigold-dark' : 'border-ink/10 hover:bg-clay/10 text-ink-soft'
+                      }`}
+                    >
+                      🌅 Early Bird — sleep early, wake up early
+                    </button>
+                    <button 
+                      onClick={() => { setSleep('OWL'); setQuizStep(2); }}
+                      className={`w-full text-left p-4 rounded-2xl border text-xs font-bold transition ${
+                        sleep === 'OWL' ? 'border-marigold bg-[#FAF8F5] text-marigold-dark' : 'border-ink/10 hover:bg-clay/10 text-ink-soft'
+                      }`}
+                    >
+                      🌃 Night Owl — sleep late, wake up late
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {quizStep === 2 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-black text-ink font-display leading-tight">What is your smoking preference?</h3>
+                  <div className="space-y-3">
+                    <button 
+                      onClick={() => { setSmoking('NON_SMOKER'); setQuizStep(3); }}
+                      className={`w-full text-left p-4 rounded-2xl border text-xs font-bold transition ${
+                        smoking === 'NON_SMOKER' ? 'border-marigold bg-[#FAF8F5] text-marigold-dark' : 'border-ink/10 hover:bg-clay/10 text-ink-soft'
+                      }`}
+                    >
+                      🚭 Non-Smoker — prefer smoke-free flats
+                    </button>
+                    <button 
+                      onClick={() => { setSmoking('SOCIAL'); setQuizStep(3); }}
+                      className={`w-full text-left p-4 rounded-2xl border text-xs font-bold transition ${
+                        smoking === 'SOCIAL' ? 'border-marigold bg-[#FAF8F5] text-marigold-dark' : 'border-ink/10 hover:bg-clay/10 text-ink-soft'
+                      }`}
+                    >
+                      🚬 Social Smoker — occasional smoking allowed outside
+                    </button>
+                    <button 
+                      onClick={() => { setSmoking('SMOKER'); setQuizStep(3); }}
+                      className={`w-full text-left p-4 rounded-2xl border text-xs font-bold transition ${
+                        smoking === 'SMOKER' ? 'border-marigold bg-[#FAF8F5] text-marigold-dark' : 'border-ink/10 hover:bg-clay/10 text-ink-soft'
+                      }`}
+                    >
+                      🔥 Regular Smoker — smoking allowed in private rooms
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {quizStep === 3 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-black text-ink font-display leading-tight">How clean do you keep your living space?</h3>
+                  <div className="space-y-3">
+                    <button 
+                      onClick={() => { setCleanliness('HIGH'); setQuizStep(4); }}
+                      className={`w-full text-left p-4 rounded-2xl border text-xs font-bold transition ${
+                        cleanliness === 'HIGH' ? 'border-marigold bg-[#FAF8F5] text-marigold-dark' : 'border-ink/10 hover:bg-clay/10 text-ink-soft'
+                      }`}
+                    >
+                      ✨ High Cleanliness — clean dishes instantly, daily dusting
+                    </button>
+                    <button 
+                      onClick={() => { setCleanliness('MODERATE'); setQuizStep(4); }}
+                      className={`w-full text-left p-4 rounded-2xl border text-xs font-bold transition ${
+                        cleanliness === 'MODERATE' ? 'border-marigold bg-[#FAF8F5] text-marigold-dark' : 'border-ink/10 hover:bg-clay/10 text-ink-soft'
+                      }`}
+                    >
+                      🧹 Moderate — weekly cleanup, keep common areas neat
+                    </button>
+                    <button 
+                      onClick={() => { setCleanliness('LOW'); setQuizStep(4); }}
+                      className={`w-full text-left p-4 rounded-2xl border text-xs font-bold transition ${
+                        cleanliness === 'LOW' ? 'border-marigold bg-[#FAF8F5] text-marigold-dark' : 'border-ink/10 hover:bg-clay/10 text-ink-soft'
+                      }`}
+                    >
+                      📦 Low / Chilled — relaxed about cleaning schedules
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {quizStep === 4 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-black text-ink font-display leading-tight">What is your drinking preference?</h3>
+                  <div className="space-y-3">
+                    <button 
+                      onClick={() => { setDrinking('NEVER'); setQuizStep(5); }}
+                      className={`w-full text-left p-4 rounded-2xl border text-xs font-bold transition ${
+                        drinking === 'NEVER' ? 'border-marigold bg-[#FAF8F5] text-marigold-dark' : 'border-ink/10 hover:bg-clay/10 text-ink-soft'
+                      }`}
+                    >
+                      🥤 Never Drink — prefer a dry apartment
+                    </button>
+                    <button 
+                      onClick={() => { setDrinking('SOCIALLY'); setQuizStep(5); }}
+                      className={`w-full text-left p-4 rounded-2xl border text-xs font-bold transition ${
+                        drinking === 'SOCIALLY' ? 'border-marigold bg-[#FAF8F5] text-marigold-dark' : 'border-ink/10 hover:bg-clay/10 text-ink-soft'
+                      }`}
+                    >
+                      🍻 Socially — okay with occasional weekend beers
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {quizStep === 5 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-black text-ink font-display leading-tight">What is your monthly room budget range?</h3>
+                  <div className="space-y-3">
+                    {['4k-6k', '6k-8k', '8k-10k', '10k-12k'].map(range => (
+                      <button 
+                        key={range}
+                        onClick={() => { setBudget(range); handleSubmitQuiz(); }}
+                        className={`w-full text-left p-4 rounded-2xl border text-xs font-bold transition ${
+                          budget === range ? 'border-marigold bg-[#FAF8F5] text-marigold-dark' : 'border-ink/10 hover:bg-clay/10 text-ink-soft'
+                        }`}
+                      >
+                        NPR {range.replace('k', ',000').replace('k', ',000')} per month
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* Back Button */}
+            {quizStep > 1 && (
+              <button 
+                onClick={() => setQuizStep(prev => prev - 1)}
+                className="w-full text-center text-xs font-bold text-ink-soft hover:text-ink pt-2 transition"
+              >
+                Go back to previous question
+              </button>
+            )}
+
+          </div>
+        )}
+
+        {step === 'PROCESSING' && (
+          <div className="max-w-md mx-auto bg-paper border border-ink/10 rounded-[32px] p-8 shadow-sm text-center py-16 space-y-8">
+            {/* Spinning Mandala Logo */}
+            <div className="flex justify-center">
+              <div className="w-16 h-16 rounded-full bg-[#FAF3E8] border border-marigold flex items-center justify-center text-marigold animate-spin-slow">
+                <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                </svg>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-xl font-black text-ink font-display">Finding Your Roommate Matches</h3>
+              <p className="text-xs text-marigold-dark font-mono font-bold animate-pulse">{loaderMessage}</p>
+            </div>
+
+            {/* Progress Percentage Counter */}
+            <div className="space-y-2">
+              <div className="w-full bg-clay/30 h-2.5 rounded-full overflow-hidden">
+                <div className="bg-marigold h-full rounded-full transition-all duration-100" style={{ width: `${progress}%` }}></div>
+              </div>
+              <span className="text-xs font-bold font-mono text-ink-soft">{progress}% Completed</span>
             </div>
           </div>
+        )}
 
-          {/* Actions */}
-          <div className="space-y-4 w-full max-w-xs">
-            <button 
-              onClick={() => {
-                setMutualMatchProfile(null);
-                navigate('/dashboard');
-              }}
-              className="w-full bg-[#D9A25A] hover:bg-[#C9924A] text-white font-black py-4 rounded-xl shadow-lg transition text-xs tracking-wider uppercase"
-            >
-              Start Chatting
-            </button>
-            <button 
-              onClick={() => setMutualMatchProfile(null)}
-              className="w-full bg-transparent hover:bg-white/10 text-white font-bold py-3.5 rounded-xl transition text-xs"
-            >
-              Keep Swiping
-            </button>
-          </div>
-
-        </div>
-      )}
-
+      </main>
     </div>
   );
 };

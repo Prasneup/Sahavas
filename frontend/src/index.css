@@ -4,9 +4,58 @@
 
 @layer base {
   body {
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-body);
+    background-color: var(--clay);
+    color: var(--ink);
   }
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Outfit', sans-serif;
+    font-family: var(--font-display);
+    font-weight: 600;
   }
+}
+
+:root {
+  --ink: #1B2440;
+  --ink-soft: #2E3A63;
+  --clay: #EFE2C8;
+  --paper: #FAF6EC;
+  --marigold: #E8A33D;
+  --marigold-dark: #B57722;
+  --brick: #B5502E;
+  --pine: #2F6B5E;
+  --pine-light: #E1EEE9;
+  --line: rgba(27,36,64,0.12);
+
+  --font-display: 'Fraunces', serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+
+.dashboard-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(27, 36, 64, 0.06);
+}
+
+.action-card-primary {
+  background: var(--ink);
+  color: var(--paper);
+}
+.action-card-primary .icon-circle {
+  background: var(--marigold);
+}
+.action-card-primary h3 {
+  color: var(--paper);
+  font-family: var(--font-display);
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+.animate-dash {
+  animation: dash 2s linear infinite;
 }

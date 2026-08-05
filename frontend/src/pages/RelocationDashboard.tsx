@@ -109,7 +109,7 @@ const RelocationDashboard: React.FC = () => {
     alert("✨ Milestone Unlocked! +100 XP Earned. Keep climbing the relocation road! ✨");
   };
 
-  // Node structures definition alternating positions matching Duolingo's path
+  // Node structures definition alternating positions matching winding path
   const pathNodes: PathNode[] = [
     {
       id: 'admissionCompleted',
@@ -137,7 +137,7 @@ const RelocationDashboard: React.FC = () => {
       description: 'Locate a verified room listing near campus and secure lease options.',
       icon: <Home size={22} />,
       position: 'center',
-      subTasks: ['Search Airbnb style housing listings', 'Shortlist at least 3 flat rooms', 'Sign rent agreement or secure deposit'],
+      subTasks: ['Search verified housing listings', 'Shortlist at least 3 flat rooms', 'Sign rent agreement or secure deposit'],
       appLink: '/rooms',
       linkText: 'Search Housing Rooms'
     },
@@ -182,34 +182,35 @@ const RelocationDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#FAF8F5] text-[#D9A25A]">
-        <span className="animate-pulse font-bold text-sm">Opening Assistant...</span>
+      <div className="flex items-center justify-center min-h-screen bg-clay text-marigold">
+        <span className="animate-pulse font-bold text-sm">Opening Journey...</span>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] text-[#1E1E1E] flex flex-col items-center pb-24 font-sans select-none overflow-x-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-start pb-24 select-none" style={{ backgroundColor: 'var(--clay)', color: 'var(--ink)', fontFamily: 'var(--font-body)' }}>
       
-      {/* Header Info Banner containing Duolingo stats */}
-      <div className="w-full bg-white border-b border-[#EAE5D9] px-6 py-4 flex justify-between items-center sticky top-0 z-20 shadow-sm w-full max-w-md">
+      {/* Top Header stats bar */}
+      <div className="w-full max-w-md px-6 pt-6 flex justify-between items-center z-25">
         <button 
           onClick={() => navigate('/dashboard')} 
-          className="w-9 h-9 rounded-full bg-[#FAF8F5] border border-[#EAE5D9] flex items-center justify-center shadow-sm"
+          style={{ backgroundColor: 'var(--paper)', border: '1px solid var(--line)' }}
+          className="w-9 h-9 rounded-full flex items-center justify-center shadow-sm hover:scale-105 transition"
         >
-          <ArrowLeft size={18} className="text-[#8E8674]" />
+          <ArrowLeft size={18} style={{ color: 'var(--ink-soft)' }} />
         </button>
 
         {/* Gamification stats */}
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5 text-orange-500 font-black text-sm">
-            <Flame className="fill-orange-500 stroke-orange-500 animate-pulse" size={20} />
-            <span>{progress.streakDays} Day Streak</span>
+          <div className="flex items-center gap-1.5 text-orange-600 font-bold text-sm">
+            <Flame className="fill-orange-600 stroke-orange-600 animate-pulse" size={20} />
+            <span style={{ fontFamily: 'var(--font-mono)' }}>{progress.streakDays} Day Streak</span>
           </div>
 
-          <div className="flex items-center gap-1.5 text-[#D9A25A] font-black text-sm">
-            <Star className="fill-[#D9A25A] stroke-[#D9A25A]" size={20} />
-            <span>{progress.totalXp} XP</span>
+          <div className="flex items-center gap-1.5 font-bold text-sm" style={{ color: 'var(--marigold)' }}>
+            <Star className="fill-marigold stroke-marigold" size={20} />
+            <span style={{ fontFamily: 'var(--font-mono)' }}>{progress.totalXp} XP</span>
           </div>
         </div>
       </div>
@@ -218,29 +219,29 @@ const RelocationDashboard: React.FC = () => {
         
         {/* Title */}
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-black text-[#1E1E1E] tracking-tight font-display">Relocation Path</h1>
-          <p className="text-xs text-[#8E8674] mt-1 font-semibold">Track milestones and earn moving rewards!</p>
+          <h1 className="text-2xl" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--ink)' }}>Relocation Path</h1>
+          <p className="text-xs mt-1 font-semibold" style={{ color: 'var(--ink-soft)' }}>Track milestones and earn moving rewards!</p>
         </div>
 
         {/* Global Progress Bar meter */}
-        <div className="bg-white border border-[#EAE5D9] rounded-2xl p-4 shadow-sm mb-8">
+        <div className="dashboard-card p-5 mb-8">
           <div className="flex justify-between items-baseline mb-2">
-            <span className="text-[10px] font-black text-[#A39E93] uppercase tracking-wider">Overall Progress</span>
-            <span className="text-xs font-black text-[#D9A25A]">{progress.completionPercentage}%</span>
+            <span className="text-[10px] uppercase tracking-wider block" style={{ color: 'var(--ink-soft)', fontFamily: 'var(--font-body)', fontWeight: 500 }}>Overall Progress</span>
+            <span className="text-xs font-bold font-mono" style={{ color: 'var(--marigold)' }}>{progress.completionPercentage}%</span>
           </div>
-          <div className="w-full bg-[#FAF8F5] h-3 rounded-full overflow-hidden border border-[#EAE5D9]/50">
+          <div className="w-full h-3 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--line)' }}>
             <div 
-              className="bg-[#D9A25A] h-full rounded-full transition-all duration-1000"
-              style={{ width: `${progress.completionPercentage}%` }}
+              className="h-full rounded-full transition-all duration-1000"
+              style={{ width: `${progress.completionPercentage}%`, backgroundColor: 'var(--marigold)' }}
             />
           </div>
         </div>
 
-        {/* Duolingo Winding Checkpoints Path */}
+        {/* Winding Checkpoints Path */}
         <div className="relative flex flex-col items-center py-6 min-h-[460px]">
           
           {/* Vertical Connecting Road Line */}
-          <div className="absolute top-0 bottom-0 w-2.5 bg-[#EAE5D9] rounded-full z-0" />
+          <div className="absolute top-0 bottom-0 w-2.5 rounded-full z-0" style={{ backgroundColor: 'var(--line)' }} />
 
           <div className="w-full space-y-12 relative z-10 flex flex-col items-center">
             {pathNodes.map((node, idx) => {
@@ -248,7 +249,7 @@ const RelocationDashboard: React.FC = () => {
               const isNext = idx === 0 || progress[pathNodes[idx - 1].id] === true;
               const isLocked = !isCompleted && !isNext;
 
-              // Node alignments offsets classes matching Duolingo road
+              // Node alignments offsets classes matching checkpoints road
               let alignClass = 'self-center';
               if (node.position === 'left') alignClass = 'self-start pl-8';
               if (node.position === 'right') alignClass = 'self-end pr-8';
@@ -256,22 +257,29 @@ const RelocationDashboard: React.FC = () => {
               return (
                 <div key={node.id} className={`flex flex-col items-center ${alignClass}`}>
                   
-                  {/* Duolingo circular checkpoint button */}
+                  {/* Circular checkpoint button */}
                   <button
                     onClick={() => setSelectedNode(node)}
                     className={`w-16 h-16 rounded-full flex items-center justify-center border-4 shadow-lg transition transform active:scale-95 ${
                       isCompleted 
-                        ? 'bg-[#FAF3E8] border-[#D9A25A] text-[#D9A25A] hover:scale-105' 
+                        ? 'hover:scale-105' 
                         : isNext 
-                          ? 'bg-[#D9A25A] border-white text-white animate-bounce hover:scale-105' 
-                          : 'bg-white border-[#EAE5D9] text-[#A39E93] cursor-not-allowed opacity-60'
+                          ? 'animate-bounce hover:scale-105' 
+                          : 'cursor-not-allowed opacity-60'
                     }`}
+                    style={
+                      isCompleted 
+                        ? { backgroundColor: 'var(--pine-light)', borderColor: 'var(--pine)', color: 'var(--pine)' }
+                        : isNext
+                          ? { backgroundColor: 'var(--marigold)', borderColor: 'var(--paper)', color: 'var(--paper)' }
+                          : { backgroundColor: 'var(--paper)', borderColor: 'var(--line)', color: 'var(--ink-soft)' }
+                    }
                     disabled={isLocked}
                   >
                     {isCompleted ? <CheckCircle2 className="stroke-[2.5]" size={28} /> : node.icon}
                   </button>
 
-                  <span className="text-[10px] font-black text-[#8E8674] uppercase tracking-wider mt-2.5 text-center bg-white/80 px-2 py-0.5 rounded border border-[#EAE5D9]/50 shadow-sm">
+                  <span className="text-[10px] tracking-wider mt-2.5 text-center px-2 py-0.5 rounded border shadow-sm" style={{ backgroundColor: 'var(--paper)', borderColor: 'var(--line)', color: 'var(--ink-soft)', fontFamily: 'var(--font-body)', fontWeight: 500 }}>
                     {node.title}
                   </span>
 
@@ -283,8 +291,8 @@ const RelocationDashboard: React.FC = () => {
         </div>
 
         {/* Achievement Medals Panel */}
-        <div className="border-t border-[#EAE5D9] pt-8 mt-8 space-y-4">
-          <h3 className="text-xs font-black text-[#A39E93] uppercase tracking-wider text-center font-display">Unlocked Achievements</h3>
+        <div className="border-t pt-8 mt-8 space-y-4" style={{ borderColor: 'var(--line)' }}>
+          <h3 className="text-xs uppercase tracking-wider text-center" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--ink-soft)' }}>Unlocked Achievements</h3>
           
           <div className="grid grid-cols-2 gap-4">
             {badgesList.map(badge => {
@@ -292,9 +300,10 @@ const RelocationDashboard: React.FC = () => {
               return (
                 <div 
                   key={badge.id}
-                  className={`bg-white border rounded-2xl p-4 flex flex-col items-center text-center shadow-sm relative overflow-hidden transition ${
-                    isUnlocked ? 'border-[#D9A25A]' : 'border-[#EAE5D9] opacity-50'
+                  className={`dashboard-card p-4 flex flex-col items-center text-center relative overflow-hidden transition ${
+                    isUnlocked ? '' : 'opacity-50'
                   }`}
+                  style={isUnlocked ? { borderColor: 'var(--marigold)' } : {}}
                 >
                   <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${
                     isUnlocked ? badge.color : 'from-slate-100 to-slate-200'
@@ -307,8 +316,8 @@ const RelocationDashboard: React.FC = () => {
                     )}
                   </div>
                   
-                  <h4 className="text-xs font-black text-[#1E1E1E] truncate font-display">{badge.name}</h4>
-                  <p className="text-[9px] text-[#8E8674] font-medium leading-snug mt-1">{badge.desc}</p>
+                  <h4 className="text-xs text-ink truncate" style={{ fontFamily: 'var(--font-display)', fontWeight: 600 }}>{badge.name}</h4>
+                  <p className="text-[9px] text-ink-soft font-medium leading-snug mt-1">{badge.desc}</p>
                 </div>
               );
             })}
@@ -319,32 +328,33 @@ const RelocationDashboard: React.FC = () => {
 
       {/* Milestone Sheet Modal popup */}
       {selectedNode && (
-        <div className="fixed inset-0 bg-[#1E1E1E]/60 backdrop-blur-sm z-50 flex items-end justify-center p-0 md:p-6 animate-fade-in">
-          <div className="bg-white border-t md:border border-[#EAE5D9] rounded-t-[32px] md:rounded-[32px] w-full max-w-md p-6 shadow-2xl animate-slide-up flex flex-col gap-5">
+        <div className="fixed inset-0 bg-ink/60 backdrop-blur-sm z-50 flex items-end justify-center p-0 md:p-6 animate-fade-in">
+          <div className="dashboard-card rounded-t-[32px] md:rounded-[32px] w-full max-w-md p-6 shadow-2xl animate-slide-up flex flex-col gap-5" style={{ backgroundColor: 'var(--paper)', borderTop: '1px solid var(--line)' }}>
             
             {/* Header info */}
             <div className="flex justify-between items-start">
               <div>
-                <span className="text-[9px] font-black text-[#D9A25A] uppercase tracking-wider">Milestone Details</span>
-                <h3 className="text-xl font-black text-[#1E1E1E] font-display mt-0.5">{selectedNode.title}</h3>
+                <span className="text-[9px] uppercase tracking-wider block font-bold" style={{ color: 'var(--marigold)' }}>Milestone Details</span>
+                <h3 className="text-xl mt-0.5" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--ink)' }}>{selectedNode.title}</h3>
               </div>
               <button 
                 onClick={() => setSelectedNode(null)}
-                className="w-8 h-8 rounded-full bg-[#FAF8F5] border border-[#EAE5D9] flex items-center justify-center text-[#8E8674] text-sm font-black hover:scale-105 transition"
+                style={{ backgroundColor: 'var(--clay)', border: '1px solid var(--line)', color: 'var(--ink)' }}
+                className="w-8 h-8 rounded-full flex items-center justify-center shadow-sm hover:scale-105 transition"
               >
                 ✕
               </button>
             </div>
 
-            <p className="text-xs text-[#8E8674] leading-relaxed">{selectedNode.description}</p>
+            <p className="text-xs leading-relaxed font-medium" style={{ color: 'var(--ink-soft)' }}>{selectedNode.description}</p>
 
             {/* Checklist items */}
-            <div className="space-y-3 border-t border-[#EAE5D9]/60 pt-4">
-              <span className="text-[10px] font-black text-[#A39E93] uppercase tracking-wider block">Requirement Checklist:</span>
+            <div className="space-y-3 border-t pt-4" style={{ borderColor: 'var(--line)' }}>
+              <span className="text-[10px] uppercase tracking-wider block font-bold" style={{ color: 'var(--ink-soft)' }}>Requirement Checklist:</span>
               <div className="space-y-2">
                 {selectedNode.subTasks.map((task, idx) => (
-                  <div key={idx} className="flex items-start gap-2 text-xs font-semibold text-[#8E8674]">
-                    <span className="w-1.5 h-1.5 bg-[#D9A25A] rounded-full mt-1.5 flex-shrink-0" />
+                  <div key={idx} className="flex items-start gap-2 text-xs font-semibold" style={{ color: 'var(--ink-soft)' }}>
+                    <span className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ backgroundColor: 'var(--marigold)' }} />
                     <p>{task}</p>
                   </div>
                 ))}
@@ -358,7 +368,8 @@ const RelocationDashboard: React.FC = () => {
                   setSelectedNode(null);
                   navigate(selectedNode.appLink!);
                 }}
-                className="w-full bg-[#FAF8F5] border border-[#EAE5D9] hover:bg-[#FAF3E8] hover:border-[#D9A25A]/40 text-[#8E8674] hover:text-[#D9A25A] font-bold py-3.5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition"
+                style={{ backgroundColor: 'var(--clay)', border: '1px solid var(--line)', color: 'var(--ink)' }}
+                className="w-full hover:bg-paper hover:border-marigold/40 hover:text-marigold font-bold py-3.5 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition"
               >
                 {selectedNode.linkText || 'Complete Action'} <ArrowRight size={13} />
               </button>
@@ -371,7 +382,8 @@ const RelocationDashboard: React.FC = () => {
                 handleToggleTask(selectedNode.id, !isCurrentCompleted);
                 setSelectedNode(null);
               }}
-              className="w-full bg-[#D9A25A] hover:bg-[#C9924A] text-white font-black py-4 rounded-xl shadow-md transition text-xs tracking-wider uppercase"
+              style={{ backgroundColor: 'var(--marigold)', color: 'var(--paper)' }}
+              className="w-full hover:bg-marigold-dark font-black py-4 rounded-xl shadow-md transition text-xs tracking-wider uppercase"
             >
               {progress[selectedNode.id] === true ? 'Mark Incomplete' : 'Complete Milestone & Claim XP'}
             </button>

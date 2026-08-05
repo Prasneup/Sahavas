@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Send, ArrowLeft, Paperclip, CheckCheck, Home, User, MessageCircle, Compass } from 'lucide-react';
+import { MOCK_ROOMMATES } from '../services/roommatesData';
 
 interface PeerProfile {
   id: string;
@@ -33,6 +34,7 @@ interface Message {
 }
 
 const Chat: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -68,13 +70,47 @@ const Chat: React.FC = () => {
   const loadConversations = async () => {
     try {
       const res = await api.get('/chats/conversations');
-      setConversations(res.data);
-      if (res.data && res.data.length > 0) {
-        setActiveConversation(res.data[0]);
+      let list = res.data || [];
+      
+      if (id) {
+        const alreadyExists = list.some((c: any) => c.peerProfile.id === id);
+        if (!alreadyExists) {
+          const r = MOCK_ROOMMATES.find(item => item.id === id);
+          if (r) {
+            const newConv: Conversation = {
+              conversationId: `c_${r.id}`,
+              peerProfile: {
+                id: r.id,
+                fullName: r.name,
+                collegeName: r.college,
+                majorCourse: r.department,
+                avatarUrl: r.avatarUrl,
+                completenessPercentage: r.compatibilityScore
+              },
+              lastMessage: "Hi, I saw we have a high compatibility score. Would you like to discuss accommodation options?",
+              lastMessageTime: new Date().toISOString(),
+              unreadCount: 0
+            };
+            list = [newConv, ...list];
+          }
+        }
+      }
+
+      setConversations(list);
+      
+      if (id) {
+        const found = list.find((c: any) => c.peerProfile.id === id);
+        if (found) {
+          setActiveConversation(found);
+        } else if (list.length > 0) {
+          setActiveConversation(list[0]);
+        }
+      } else if (list.length > 0) {
+        setActiveConversation(list[0]);
       }
     } catch (err) {
       console.warn("API conversations failed, loading mock chats");
-      const mockConversations: Conversation[] = [
+      let mockConversations: Conversation[] = [
         {
           conversationId: "c1",
           peerProfile: {
@@ -82,7 +118,7 @@ const Chat: React.FC = () => {
             fullName: "Suman Thapa",
             collegeName: "Pulchowk Campus",
             majorCourse: "Mechanical Engineering",
-            avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150",
+            avatarUrl: "/src/assets/roommates/media__1785942064373.png",
             completenessPercentage: 81
           },
           lastMessage: "I'll visit the Pulchowk flat tomorrow morning, want to join?",
@@ -104,8 +140,41 @@ const Chat: React.FC = () => {
           unreadCount: 0
         }
       ];
+
+      if (id) {
+        const alreadyExists = mockConversations.some(c => c.peerProfile.id === id);
+        if (!alreadyExists) {
+          const r = MOCK_ROOMMATES.find(item => item.id === id);
+          if (r) {
+            const newConv: Conversation = {
+              conversationId: `c_${r.id}`,
+              peerProfile: {
+                id: r.id,
+                fullName: r.name,
+                collegeName: r.college,
+                majorCourse: r.department,
+                avatarUrl: r.avatarUrl,
+                completenessPercentage: r.compatibilityScore
+              },
+              lastMessage: "Hi, I saw we have a high compatibility score. Would you like to discuss accommodation options?",
+              lastMessageTime: new Date().toISOString(),
+              unreadCount: 0
+            };
+            mockConversations = [newConv, ...mockConversations];
+          }
+        }
+      }
+
       setConversations(mockConversations);
-      if (mockConversations.length > 0) {
+      
+      if (id) {
+        const found = mockConversations.find(c => c.peerProfile.id === id);
+        if (found) {
+          setActiveConversation(found);
+        } else if (mockConversations.length > 0) {
+          setActiveConversation(mockConversations[0]);
+        }
+      } else if (mockConversations.length > 0) {
         setActiveConversation(mockConversations[0]);
       }
     } finally {
@@ -114,6 +183,22 @@ const Chat: React.FC = () => {
   };
 
   const loadMessages = async (convId: string) => {
+    if (convId.startsWith('c_')) {
+      const peerId = convId.replace('c_', '');
+      setMessages([
+        {
+          id: `m_start_${peerId}`,
+          conversationId: convId,
+          senderId: peerId,
+          content: "Hi, I saw we have a high compatibility score. Would you like to discuss accommodation options?",
+          messageType: "TEXT",
+          isRead: true,
+          createdAt: new Date(Date.now() - 300000).toISOString()
+        }
+      ]);
+      return;
+    }
+
     try {
       const res = await api.get(`/chats/conversations/${convId}/messages`);
       setMessages(res.data);
@@ -295,117 +380,121 @@ const Chat: React.FC = () => {
   }
 
   return (
-    <div className="h-screen bg-[#FAF8F5] text-[#1E1E1E] flex flex-col font-sans overflow-hidden">
+    <div className="h-screen flex flex-col overflow-hidden" style={{ backgroundColor: 'var(--clay)', color: 'var(--ink)', fontFamily: 'var(--font-body)' }}>
       
-      {/* Top sticky header bar */}
-      <header className="border-b border-[#EAE5D9] bg-[#FAF8F5]/85 backdrop-blur-md px-6 py-4 flex justify-between items-center z-10 flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => navigate('/dashboard')} 
-            className="w-9 h-9 rounded-full bg-white border border-[#EAE5D9] flex items-center justify-center shadow-sm"
-          >
-            <ArrowLeft size={18} className="text-[#8E8674]" />
-          </button>
-          
-          <div className="flex items-center gap-1.5">
-            {/* Sahavas Mandala Logo */}
-            <div className="w-7 h-7 rounded-full bg-[#FAF8F5] flex items-center justify-center border border-[#D9A25A]/40">
-              <svg className="w-4.5 h-4.5 text-[#D9A25A]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <circle cx="12" cy="12" r="4" />
-                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-              </svg>
-            </div>
-            <h1 className="text-xl font-black text-[#1A2540] tracking-tight font-display">सहवास Messages</h1>
-          </div>
-        </div>
-
-        <span className="text-xs text-[#8E8674] font-bold">
-          Logged in as: <span className="text-[#D9A25A]">{user?.fullName || 'Prasanna'}</span>
-        </span>
-      </header>
-
-      {/* Main double column screen layout */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* Centralized Desktop Chat Container */}
+      <div className="w-full max-w-6xl mx-auto flex-1 my-6 flex flex-col overflow-hidden dashboard-card bg-paper">
         
-        {/* Left Sidebar: Discord Channels/Threads list */}
-        <aside className="w-80 border-r border-[#EAE5D9] bg-white flex flex-col flex-shrink-0 hidden md:flex">
-          <div className="p-4 border-b border-[#EAE5D9]/60 flex items-center gap-2">
-            <MessageCircle size={16} className="text-[#D9A25A]" />
-            <span className="text-xs font-bold text-[#8E8674] uppercase tracking-wider">Active Conversations</span>
-          </div>
-
-          <div className="flex-1 overflow-y-auto divide-y divide-[#EAE5D9]/50">
-            {conversations.map(conv => {
-              const isActive = activeConversation?.conversationId === conv.conversationId;
-              return (
-                <div
-                  key={conv.conversationId}
-                  onClick={() => setActiveConversation(conv)}
-                  className={`p-4 cursor-pointer flex items-center gap-3 transition ${
-                    isActive ? 'bg-[#FAF3E8]' : 'hover:bg-[#FAF8F5]'
-                  }`}
-                >
-                  <div className="w-12 h-12 rounded-full overflow-hidden bg-[#FAF8F5] relative border border-[#EAE5D9] flex-shrink-0">
-                    <img src={conv.peerProfile.avatarUrl} alt="Peer Avatar" className="w-full h-full object-cover" />
-                    {/* Active online circle indicator */}
-                    <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-baseline mb-0.5">
-                      <h4 className="text-xs font-black text-[#1E1E1E] truncate font-display">
-                        {conv.peerProfile.fullName}
-                      </h4>
-                      <span className="text-[9px] text-[#A39E93] font-semibold">
-                        {new Date(conv.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-[#8E8674] truncate font-medium">{conv.lastMessage}</p>
-                  </div>
-
-                  {conv.unreadCount > 0 && (
-                    <span className="w-5 h-5 rounded-full bg-[#D9A25A] text-white text-[9px] font-black flex items-center justify-center flex-shrink-0 shadow-sm animate-pulse">
-                      {conv.unreadCount}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </aside>
-
-        {/* Right Main Chat Frame (Messenger Style) */}
-        <main className="flex-1 flex flex-col bg-[#FAF8F5] overflow-hidden">
-          {activeConversation ? (
-            <>
-              {/* Active Conversation Header */}
-              <div className="bg-white border-b border-[#EAE5D9] px-6 py-4 flex items-center justify-between flex-shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-full overflow-hidden border border-[#EAE5D9] relative flex-shrink-0">
-                    <img src={activeConversation.peerProfile.avatarUrl} alt="Peer" className="w-full h-full object-cover" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-black text-[#1E1E1E] flex items-center gap-1.5 font-display">
-                      {activeConversation.peerProfile.fullName}
-                      <span className="inline-flex items-center gap-0.5 bg-[#E6F4EA] text-[#137333] text-[8px] font-black px-2 py-0.5 rounded-full">
-                        <CheckCheck size={8} /> Student
-                      </span>
-                    </h3>
-                    <p className="text-[10px] text-[#8E8674] font-semibold">
-                      {activeConversation.peerProfile.collegeName} • {activeConversation.peerProfile.majorCourse}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Compatibility gauge pill */}
-                <div className="bg-[#FAF3E8] border border-[#D9A25A]/25 rounded-full px-4 py-1.5 flex items-center gap-1.5 shadow-sm">
-                  <span className="text-[10px] text-[#8E8674] font-bold uppercase tracking-wider">Match Score</span>
-                  <span className="text-xs font-black text-[#C08A4E]">{activeConversation.peerProfile.completenessPercentage}%</span>
-                </div>
+        {/* Top Header bar */}
+        <header className="border-b px-6 py-4 flex justify-between items-center z-10 flex-shrink-0" style={{ borderColor: 'var(--line)' }}>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => navigate('/dashboard')} 
+              style={{ backgroundColor: 'var(--paper)', border: '1px solid var(--line)' }}
+              className="w-9 h-9 rounded-full flex items-center justify-center shadow-sm"
+            >
+              <ArrowLeft size={18} style={{ color: 'var(--ink-soft)' }} />
+            </button>
+            
+            <div className="flex items-center gap-1.5">
+              {/* Sahavas Mandala Logo */}
+              <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'var(--marigold)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)' }}>
+                <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                </svg>
               </div>
+              <h1 className="text-xl font-bold tracking-tight" style={{ fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>सहवास Messages</h1>
+            </div>
+          </div>
 
-              {/* Scrollable Message stream panel */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <span className="text-xs font-bold" style={{ color: 'var(--ink-soft)' }}>
+            Logged in as: <span style={{ color: 'var(--marigold-dark)' }}>{user?.fullName || 'Prasanna'}</span>
+          </span>
+        </header>
+
+        {/* Main double column screen layout */}
+        <div className="flex-1 flex overflow-hidden">
+          
+          {/* Left Sidebar: Inbox conversations list */}
+          <aside className="w-80 border-r flex flex-col flex-shrink-0 hidden md:flex bg-paper" style={{ borderColor: 'var(--line)' }}>
+            <div className="p-4 border-b flex items-center gap-2" style={{ borderColor: 'var(--line)' }}>
+              <MessageCircle size={16} className="text-marigold" />
+              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--ink-soft)' }}>Active Conversations</span>
+            </div>
+
+            <div className="flex-1 overflow-y-auto divide-y" style={{ borderColor: 'var(--line)' }}>
+              {conversations.map(conv => {
+                const isActive = activeConversation?.conversationId === conv.conversationId;
+                return (
+                  <div
+                    key={conv.conversationId}
+                    onClick={() => setActiveConversation(conv)}
+                    className={`p-4 cursor-pointer flex items-center gap-3 transition ${
+                      isActive ? 'bg-clay/20' : 'hover:bg-clay/5'
+                    }`}
+                  >
+                    <div className="w-12 h-12 rounded-full overflow-hidden relative border flex-shrink-0" style={{ borderColor: 'var(--line)', backgroundColor: 'var(--paper)' }}>
+                      <img src={conv.peerProfile.avatarUrl} alt="Peer Avatar" className="w-full h-full object-cover" />
+                      {/* Active online circle indicator */}
+                      <span className="absolute bottom-0 right-0 w-3 h-3 border-2 border-white rounded-full" style={{ backgroundColor: 'var(--pine)' }} />
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-baseline mb-0.5">
+                        <h4 className="text-xs font-bold truncate" style={{ fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>
+                          {conv.peerProfile.fullName}
+                        </h4>
+                        <span className="text-[9px] font-semibold font-mono" style={{ color: 'var(--ink-soft)' }}>
+                          {new Date(conv.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <p className="text-[11px] truncate font-medium" style={{ color: 'var(--ink-soft)' }}>{conv.lastMessage}</p>
+                    </div>
+
+                    {conv.unreadCount > 0 && (
+                      <span className="w-5 h-5 rounded-full bg-marigold text-paper text-[9px] font-bold flex items-center justify-center flex-shrink-0 shadow-sm animate-pulse">
+                        {conv.unreadCount}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </aside>
+
+          {/* Right Main Chat Frame (Messenger Style) */}
+          <main className="flex-1 flex flex-col overflow-hidden bg-paper">
+            {activeConversation ? (
+              <>
+                {/* Active Conversation Header */}
+                <div className="border-b px-6 py-4 flex items-center justify-between flex-shrink-0" style={{ borderColor: 'var(--line)' }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-full overflow-hidden border relative flex-shrink-0" style={{ borderColor: 'var(--line)' }}>
+                      <img src={activeConversation.peerProfile.avatarUrl} alt="Peer" className="w-full h-full object-cover" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold flex items-center gap-1.5" style={{ fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>
+                        {activeConversation.peerProfile.fullName}
+                        <span className="inline-flex items-center gap-0.5 bg-pine-light text-pine text-[8px] font-black px-2 py-0.5 rounded-full border border-pine/10">
+                          <CheckCheck size={8} /> Student
+                        </span>
+                      </h3>
+                      <p className="text-[10px] font-semibold" style={{ color: 'var(--ink-soft)' }}>
+                        {activeConversation.peerProfile.collegeName} • {activeConversation.peerProfile.majorCourse}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Compatibility gauge pill */}
+                  <div className="bg-[#FAF3E8] border border-marigold/10 rounded-full px-4 py-1.5 flex items-center gap-1.5 shadow-sm">
+                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--ink-soft)' }}>Match Score</span>
+                    <span className="text-xs font-bold font-mono" style={{ color: 'var(--marigold-dark)' }}>{activeConversation.peerProfile.completenessPercentage}%</span>
+                  </div>
+                </div>
+
+                {/* Scrollable Message stream panel */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-4">
                 {messages.map((msg, idx) => {
                   const isMe = msg.senderId === (user?.id || "my-id");
                   return (
@@ -415,9 +504,12 @@ const Chat: React.FC = () => {
                         {/* Render Message bubble based on type */}
                         <div className={`p-4 rounded-[20px] shadow-sm text-xs font-semibold leading-relaxed border ${
                           isMe 
-                            ? 'bg-[#D9A25A] text-white border-[#C9924A] rounded-tr-none' 
-                            : 'bg-white text-[#1E1E1E] border-[#EAE5D9] rounded-tl-none'
-                        }`}>
+                            ? 'text-paper rounded-tr-none' 
+                            : 'text-ink rounded-tl-none'
+                        }`} style={{
+                          backgroundColor: isMe ? 'var(--marigold)' : 'var(--paper)',
+                          borderColor: isMe ? 'var(--marigold-dark)' : 'var(--line)'
+                        }}>
                           
                           {msg.messageType === 'TEXT' && (
                             <p>{msg.content}</p>
@@ -428,8 +520,8 @@ const Chat: React.FC = () => {
                               <p className="font-bold underline text-[10px] uppercase tracking-wider mb-2">
                                 {msg.content}
                               </p>
-                              {/* Renders shared Airbnb Card */}
-                              <div className="bg-[#FAF8F5] border border-[#EAE5D9] rounded-2xl overflow-hidden shadow-inner text-[#1E1E1E] max-w-xs">
+                              {/* Renders shared Housing Card */}
+                              <div className="border rounded-2xl overflow-hidden shadow-inner max-w-xs text-ink bg-paper" style={{ borderColor: 'var(--line)' }}>
                                 <img 
                                   src="https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=300" 
                                   className="w-full h-32 object-cover" 
@@ -437,7 +529,7 @@ const Chat: React.FC = () => {
                                 />
                                 <div className="p-3">
                                   <h4 className="text-xs font-black truncate font-display">Premium Single flat near Pulchowk</h4>
-                                  <span className="text-[10px] text-[#D9A25A] font-bold block mt-1">NPR 7,500 / month</span>
+                                  <span className="text-[10px] font-bold block mt-1" style={{ color: 'var(--marigold-dark)' }}>NPR 7,500 / month</span>
                                 </div>
                               </div>
                             </div>
@@ -449,13 +541,13 @@ const Chat: React.FC = () => {
                                 {msg.content}
                               </p>
                               {/* Renders shared student Profile card */}
-                              <div className="bg-[#FAF8F5] border border-[#EAE5D9] rounded-2xl p-4 shadow-inner text-[#1E1E1E] flex items-center gap-3 max-w-xs">
-                                <div className="w-10 h-10 rounded-full overflow-hidden border border-[#EAE5D9]">
+                              <div className="border rounded-2xl p-4 shadow-inner flex items-center gap-3 max-w-xs text-ink bg-paper" style={{ borderColor: 'var(--line)' }}>
+                                <div className="w-10 h-10 rounded-full overflow-hidden border" style={{ borderColor: 'var(--line)' }}>
                                   <img src={activeConversation.peerProfile.avatarUrl} alt="Student" className="w-full h-full object-cover" />
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <h4 className="text-xs font-black truncate font-display">{activeConversation.peerProfile.fullName}</h4>
-                                  <span className="text-[9px] text-[#8E8674] truncate block mt-0.5">{activeConversation.peerProfile.collegeName}</span>
+                                  <span className="text-[9px] truncate block mt-0.5" style={{ color: 'var(--ink-soft)' }}>{activeConversation.peerProfile.collegeName}</span>
                                 </div>
                               </div>
                             </div>
@@ -464,14 +556,14 @@ const Chat: React.FC = () => {
                         </div>
 
                         {/* Timestamp + Read Receipts */}
-                        <div className={`flex items-center gap-1.5 mt-1.5 text-[9px] text-[#A39E93] font-semibold ${
+                        <div className={`flex items-center gap-1.5 mt-1.5 text-[9px] font-semibold ${
                           isMe ? 'justify-end' : 'justify-start'
-                        }`}>
+                        }`} style={{ color: 'var(--ink-soft)' }}>
                           <span>
                             {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                           {isMe && (
-                            <CheckCheck size={11} className={msg.isRead ? 'text-[#D9A25A]' : 'text-[#A39E93]'} />
+                            <CheckCheck size={11} className={msg.isRead ? 'text-marigold' : ''} />
                           )}
                         </div>
 
@@ -483,10 +575,10 @@ const Chat: React.FC = () => {
                 {/* Animated Typing Indicator bubble */}
                 {isTyping && (
                   <div className="flex justify-start w-full">
-                    <div className="bg-white border border-[#EAE5D9] px-4 py-3 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-1 text-[11px] text-[#8E8674] font-semibold">
-                      <span className="w-1.5 h-1.5 bg-[#8E8674] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-1.5 h-1.5 bg-[#8E8674] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-1.5 h-1.5 bg-[#8E8674] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    <div className="bg-paper border px-4 py-3 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-1 text-[11px] font-semibold" style={{ borderColor: 'var(--line)', color: 'var(--ink-soft)' }}>
+                      <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: 'var(--ink-soft)', animationDelay: '0ms' }} />
+                      <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: 'var(--ink-soft)', animationDelay: '150ms' }} />
+                      <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor: 'var(--ink-soft)', animationDelay: '300ms' }} />
                       <span className="ml-1 text-[10px]">{activeConversation.peerProfile.fullName.split(' ')[0]} is typing...</span>
                     </div>
                   </div>
@@ -496,20 +588,20 @@ const Chat: React.FC = () => {
               </div>
 
               {/* Bottom toolbar & Message Input Area */}
-              <div className="bg-white border-t border-[#EAE5D9] p-4 flex-shrink-0 space-y-3">
+              <div className="bg-paper border-t p-4 flex-shrink-0 space-y-3" style={{ borderColor: 'var(--line)' }}>
                 
                 {/* Sharing attachment row */}
                 <div className="flex items-center gap-3">
-                  <span className="text-[10px] text-[#A39E93] font-bold uppercase tracking-wider">Quick Share:</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--ink-soft)' }}>Quick Share:</span>
                   <button 
                     onClick={() => handleShareResource('ROOM')}
-                    className="bg-[#FAF8F5] border border-[#EAE5D9] hover:bg-[#FAF3E8] hover:border-[#D9A25A]/40 text-[#8E8674] hover:text-[#D9A25A] text-[10px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1 shadow-sm transition"
+                    className="bg-[#FAF8F5] border border-ink/10 hover:bg-clay/10 text-ink-soft hover:text-marigold-dark text-[10px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1 shadow-sm transition"
                   >
                     <Home size={11} /> Share Room Flat
                   </button>
                   <button 
                     onClick={() => handleShareResource('PROFILE')}
-                    className="bg-[#FAF8F5] border border-[#EAE5D9] hover:bg-[#FAF3E8] hover:border-[#D9A25A]/40 text-[#8E8674] hover:text-[#D9A25A] text-[10px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1 shadow-sm transition"
+                    className="bg-[#FAF8F5] border border-ink/10 hover:bg-clay/10 text-ink-soft hover:text-marigold-dark text-[10px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1 shadow-sm transition"
                   >
                     <User size={11} /> Share Profile Vector
                   </button>
@@ -519,7 +611,7 @@ const Chat: React.FC = () => {
                 <form onSubmit={handleSendMessage} className="flex items-center gap-3">
                   <button 
                     type="button" 
-                    className="w-11 h-11 bg-[#FAF8F5] border border-[#EAE5D9] hover:bg-[#FAF3E8] text-[#8E8674] rounded-xl flex items-center justify-center shadow-sm transition"
+                    className="w-11 h-11 bg-[#FAF8F5] border border-ink/10 hover:bg-clay/10 text-ink-soft rounded-xl flex items-center justify-center shadow-sm transition"
                   >
                     <Paperclip size={18} />
                   </button>
@@ -529,12 +621,13 @@ const Chat: React.FC = () => {
                     placeholder="Type a message or share coordinate maps..."
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
-                    className="flex-1 bg-[#FAF8F5] border border-[#EAE5D9] text-[#1E1E1E] rounded-xl px-5 py-3.5 focus:outline-none focus:border-[#D9A25A] text-sm font-semibold placeholder-[#A39E93]"
+                    className="flex-1 bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-5 py-3.5 focus:outline-none focus:border-marigold text-sm font-semibold placeholder-ink-soft/40"
                   />
 
                   <button
                     type="submit"
-                    className="w-11 h-11 bg-[#D9A25A] hover:bg-[#C9924A] text-white rounded-xl flex items-center justify-center shadow-md transition"
+                    style={{ backgroundColor: 'var(--marigold)', color: 'var(--paper)' }}
+                    className="w-11 h-11 hover:bg-marigold-dark rounded-xl flex items-center justify-center shadow-md transition"
                   >
                     <Send size={16} />
                   </button>
@@ -543,9 +636,9 @@ const Chat: React.FC = () => {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-[#8E8674]">
-              <Compass className="animate-spin text-[#D9A25A] mb-4" size={48} />
-              <h3 className="text-lg font-black text-[#1E1E1E] font-display">Select a Chat</h3>
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center" style={{ color: 'var(--ink-soft)' }}>
+              <Compass className="animate-spin text-marigold mb-4" size={48} />
+              <h3 className="text-lg font-black text-ink font-display">Select a Chat</h3>
               <p className="text-xs max-w-xs leading-relaxed mt-2">
                 Click on one of your roommate matches on the left to start coordinating housing search plans!
               </p>
@@ -556,7 +649,8 @@ const Chat: React.FC = () => {
       </div>
 
     </div>
-  );
+  </div>
+);
 };
 
 export default Chat;

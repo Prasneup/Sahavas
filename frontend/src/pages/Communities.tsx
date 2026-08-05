@@ -114,6 +114,12 @@ const Communities: React.FC = () => {
           name: "BBA Students Network",
           description: "Academic support and housing listings for BBA students across Nepal.",
           type: 'COURSE'
+        },
+        {
+          id: "com4",
+          name: "Thapathali campus",
+          description: "Official discussion for Thapathali campus, Thapathali",
+          type: 'COLLEGE'
         }
       ];
       setCommunities(mockComs);
@@ -135,7 +141,7 @@ const Communities: React.FC = () => {
           communityId: "com1",
           authorId: "user1",
           authorName: "Suman Thapa",
-          authorAvatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150",
+          authorAvatar: "https://www.shutterstock.com/image-photo/nepali-bag-boy-model-people-260nw-2458102951.jpg",
           authorVerification: "VERIFIED",
           title: "Looking for flat replacement near Pulchowk Gate",
           content: "We have one spare room in a 2BHK flat. Looking for a neat Pulchowk student to join us. Rent is around NPR 6,500. Message me for photos!",
@@ -150,7 +156,7 @@ const Communities: React.FC = () => {
           communityId: "com1",
           authorId: "user2",
           authorName: "Alok Prasai",
-          authorAvatar: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=150",
+          authorAvatar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT-3u_VaB3cULFaAZjUQ4IKfniEnTLJsqkTETb9CDT4SA&s",
           authorVerification: "VERIFIED",
           title: "Quick Poll: Sleep habits of engineering students",
           content: "Curious to know when most engineering roommates prefer to sleep during exam periods.",
@@ -364,66 +370,67 @@ const Communities: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#FAF8F5] text-[#D9A25A]">
+      <div className="flex items-center justify-center min-h-screen bg-clay text-marigold">
         <span className="animate-pulse font-bold text-sm">Entering Hub...</span>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] text-[#1E1E1E] flex flex-col font-sans pb-24">
-      
+    <div className="min-h-screen flex flex-col pb-24" style={{ backgroundColor: 'var(--clay)', color: 'var(--ink)', fontFamily: 'var(--font-body)' }}>
+
       {/* Top Header bar */}
-      <header className="border-b border-[#EAE5D9] bg-white px-6 py-4 flex justify-between items-center sticky top-0 z-20 shadow-sm">
+      <header className="border-b bg-paper px-6 py-4 flex justify-between items-center sticky top-0 z-20 shadow-sm" style={{ borderColor: 'var(--line)' }}>
         <div className="flex items-center gap-3">
-          <button 
-            onClick={() => navigate('/dashboard')} 
-            className="w-9 h-9 rounded-full bg-white border border-[#EAE5D9] flex items-center justify-center shadow-sm"
+          <button
+            onClick={() => navigate('/dashboard')}
+            style={{ backgroundColor: 'var(--paper)', border: '1px solid var(--line)' }}
+            className="w-9 h-9 rounded-full flex items-center justify-center shadow-sm"
           >
-            <ArrowLeft size={18} className="text-[#8E8674]" />
+            <ArrowLeft size={18} style={{ color: 'var(--ink-soft)' }} />
           </button>
-          
+
           <div className="flex items-center gap-1.5">
             {/* Sahavas Mandala Logo */}
-            <div className="w-7 h-7 rounded-full bg-[#FAF8F5] flex items-center justify-center border border-[#D9A25A]/40">
-              <svg className="w-4.5 h-4.5 text-[#D9A25A]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'var(--marigold)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)' }}>
+              <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <circle cx="12" cy="12" r="4" />
                 <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
               </svg>
             </div>
-            <h1 className="text-xl font-black text-[#1A2540] tracking-tight font-display">सहवास Community</h1>
+            <h1 className="text-xl font-bold tracking-tight" style={{ fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>सहवास Community</h1>
           </div>
         </div>
 
-        <button 
+        <button
           onClick={() => setShowCreateModal(true)}
-          className="bg-[#D9A25A] hover:bg-[#C9924A] text-white font-bold px-4 py-2.5 rounded-xl shadow-sm text-xs flex items-center gap-1.5 transition"
+          style={{ backgroundColor: 'var(--marigold)', color: 'var(--paper)' }}
+          className="hover:bg-marigold-dark font-bold px-4 py-2.5 rounded-xl shadow-sm text-xs flex items-center gap-1.5 transition"
         >
           <Plus size={14} className="stroke-[2.5]" /> Create Post
         </button>
       </header>
 
-      {/* Main split double column grid */}
-      <div className="w-full max-w-6xl mx-auto px-6 pt-6 flex flex-col md:flex-row gap-6">
-        
+      {/* Main split triple column grid */}
+      <div className="w-full max-w-7xl mx-auto px-6 pt-6 flex flex-col lg:flex-row gap-6 items-start">
+
         {/* Left Sidebar: Subscribed Groups */}
-        <aside className="w-full md:w-64 flex-shrink-0 space-y-4">
-          
-          <div className="bg-white border border-[#EAE5D9] rounded-3xl p-5 shadow-sm">
-            <h3 className="text-xs font-black text-[#A39E93] uppercase tracking-wider mb-4 font-display">Communities</h3>
-            
+        <aside className="w-full lg:w-64 flex-shrink-0 space-y-4">
+
+          <div className="dashboard-card p-5">
+            <h3 className="text-xs uppercase tracking-wider mb-4" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--ink-soft)' }}>Communities</h3>
+
             <div className="space-y-6">
               {/* College Groups */}
               <div>
-                <span className="text-[10px] font-black text-[#D9A25A] uppercase tracking-wider block mb-2">College Hubs</span>
+                <span className="text-[10px] uppercase tracking-wider block mb-2 font-bold" style={{ color: 'var(--marigold)' }}>College Hubs</span>
                 <div className="space-y-1.5">
                   {communities.filter(c => c.type === 'COLLEGE').map(c => (
                     <button
                       key={c.id}
                       onClick={() => setSelectedCommunity(c)}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition truncate ${
-                        selectedCommunity?.id === c.id ? 'bg-[#FAF3E8] text-[#D9A25A]' : 'text-[#8E8674] hover:bg-[#FAF8F5]'
-                      }`}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition truncate ${selectedCommunity?.id === c.id ? 'bg-[#FAF3E8] text-[#D9A25A] border border-[#D9A25A]/15' : 'text-[#8E8674] hover:bg-clay/10'
+                        }`}
                     >
                       🏫 {c.name}
                     </button>
@@ -433,15 +440,14 @@ const Communities: React.FC = () => {
 
               {/* District Unions */}
               <div>
-                <span className="text-[10px] font-black text-[#D9A25A] uppercase tracking-wider block mb-2">Home District Unions</span>
+                <span className="text-[10px] uppercase tracking-wider block mb-2 font-bold" style={{ color: 'var(--marigold)' }}>Home District Unions</span>
                 <div className="space-y-1.5">
                   {communities.filter(c => c.type === 'DISTRICT').map(c => (
                     <button
                       key={c.id}
                       onClick={() => setSelectedCommunity(c)}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition truncate ${
-                        selectedCommunity?.id === c.id ? 'bg-[#FAF3E8] text-[#D9A25A]' : 'text-[#8E8674] hover:bg-[#FAF8F5]'
-                      }`}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition truncate ${selectedCommunity?.id === c.id ? 'bg-[#FAF3E8] text-[#D9A25A] border border-[#D9A25A]/15' : 'text-[#8E8674] hover:bg-clay/10'
+                        }`}
                     >
                       🏔️ {c.name}
                     </button>
@@ -451,15 +457,14 @@ const Communities: React.FC = () => {
 
               {/* Course Sections */}
               <div>
-                <span className="text-[10px] font-black text-[#D9A25A] uppercase tracking-wider block mb-2">Course Sections</span>
+                <span className="text-[10px] uppercase tracking-wider block mb-2 font-bold" style={{ color: 'var(--marigold)' }}>Course Sections</span>
                 <div className="space-y-1.5">
                   {communities.filter(c => c.type === 'COURSE').map(c => (
                     <button
                       key={c.id}
                       onClick={() => setSelectedCommunity(c)}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition truncate ${
-                        selectedCommunity?.id === c.id ? 'bg-[#FAF3E8] text-[#D9A25A]' : 'text-[#8E8674] hover:bg-[#FAF8F5]'
-                      }`}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition truncate ${selectedCommunity?.id === c.id ? 'bg-[#FAF3E8] text-[#D9A25A] border border-[#D9A25A]/15' : 'text-[#8E8674] hover:bg-clay/10'
+                        }`}
                     >
                       📖 {c.name}
                     </button>
@@ -474,42 +479,42 @@ const Communities: React.FC = () => {
 
         {/* Center Stream: Interactive Reddit Posts Feed */}
         <main className="flex-1 space-y-6">
-          
+
           {selectedCommunity && (
-            <div className="bg-white border border-[#EAE5D9] rounded-3xl p-5 shadow-sm">
-              <h2 className="text-xl font-black text-[#1E1E1E] font-display">{selectedCommunity.name}</h2>
-              <p className="text-xs text-[#8E8674] mt-1.5 leading-relaxed">{selectedCommunity.description}</p>
+            <div className="dashboard-card p-5">
+              <h2 className="text-xl" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--ink)' }}>{selectedCommunity.name}</h2>
+              <p className="text-xs mt-1.5 leading-relaxed" style={{ color: 'var(--ink-soft)' }}>{selectedCommunity.description}</p>
             </div>
           )}
 
           {posts.length > 0 ? (
             posts.map(post => (
-              <div key={post.id} className="bg-white border border-[#EAE5D9] rounded-3xl p-6 shadow-sm space-y-4">
-                
+              <div key={post.id} className="dashboard-card p-6 space-y-4">
+
                 {/* Post Author details */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full overflow-hidden border border-[#EAE5D9]">
+                    <div className="w-10 h-10 rounded-full overflow-hidden border" style={{ borderColor: 'var(--line)' }}>
                       <img src={post.authorAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150'} alt="Author" className="w-full h-full object-cover" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-black text-[#1E1E1E] flex items-center gap-1">
+                      <h4 className="text-xs font-bold text-ink flex items-center gap-1.5">
                         {post.authorName}
                         {post.authorVerification === 'VERIFIED' && (
-                          <span className="w-3.5 h-3.5 rounded-full bg-[#E6F4EA] border border-[#137333]/10 flex items-center justify-center text-[#137333] text-[8px] font-black">
+                          <span className="w-3.5 h-3.5 rounded-full bg-pine-light border border-pine/10 flex items-center justify-center text-pine text-[8px] font-black">
                             ✓
                           </span>
                         )}
                       </h4>
-                      <span className="text-[10px] text-[#A39E93] font-semibold">
+                      <span className="text-[10px] text-ink-soft font-semibold">
                         Posted {new Date(post.createdAt).toLocaleDateString()}
                       </span>
                     </div>
                   </div>
 
-                  <button 
+                  <button
                     onClick={() => handleReportPost(post.id)}
-                    className="text-[#A39E93] hover:text-red-500 transition p-1"
+                    className="text-ink-soft hover:text-red-500 transition p-1"
                     title="Flag Post"
                   >
                     <Flag size={14} />
@@ -518,21 +523,21 @@ const Communities: React.FC = () => {
 
                 {/* Post Title & Content body */}
                 <div className="space-y-2">
-                  <h3 className="text-base font-black text-[#1A2540] leading-snug font-display">
+                  <h3 className="text-base font-bold leading-snug" style={{ fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>
                     {post.title}
                   </h3>
-                  <p className="text-xs text-[#8E8674] leading-relaxed whitespace-pre-line">
+                  <p className="text-xs text-ink-soft leading-relaxed whitespace-pre-line">
                     {post.content}
                   </p>
                 </div>
 
                 {/* Conditional Sub-Module render for Polls */}
                 {post.postType === 'POLL' && post.pollOptions && (
-                  <div className="bg-[#FAF8F5] border border-[#EAE5D9]/60 rounded-2xl p-4 space-y-3 mt-3">
-                    <span className="text-[9px] font-black text-[#D9A25A] uppercase tracking-wider block mb-1">
+                  <div className="bg-[#FAF8F5] border rounded-2xl p-4 space-y-3 mt-3" style={{ borderColor: 'var(--line)' }}>
+                    <span className="text-[9px] font-black uppercase tracking-wider block mb-1" style={{ color: 'var(--marigold)' }}>
                       <BarChart2 size={12} className="inline mr-1" /> Student Poll Survey
                     </span>
-                    
+
                     <div className="space-y-2.5">
                       {post.pollOptions.map(opt => {
                         const totalVotes = post.pollOptions!.reduce((sum, o) => sum + o.votesCount, 0);
@@ -540,22 +545,21 @@ const Communities: React.FC = () => {
                         const isVoted = userVotes[post.id] === opt.id;
 
                         return (
-                          <div 
+                          <div
                             key={opt.id}
                             onClick={() => handleVoteOption(post.id, opt.id)}
-                            className={`cursor-pointer border rounded-xl p-3 relative overflow-hidden transition ${
-                              isVoted ? 'border-[#D9A25A] bg-[#FAF3E8]' : 'border-[#EAE5D9] hover:bg-white bg-white'
-                            }`}
+                            className="cursor-pointer border border-ink/10 rounded-xl p-3 bg-paper hover:bg-clay/10 transition"
                           >
-                            {/* Visual progress bar fill */}
-                            <div 
-                              className="absolute top-0 bottom-0 left-0 bg-[#D9A25A]/10 transition-all duration-500"
-                              style={{ width: `${pct}%` }}
-                            />
-                            
-                            <div className="flex justify-between items-center relative z-10 text-xs font-semibold">
-                              <span className={isVoted ? 'text-[#D9A25A]' : 'text-[#8E8674]'}>{opt.optionText}</span>
-                              <span className="text-[10px] text-[#A39E93] font-bold">{opt.votesCount} votes ({pct}%)</span>
+                            <div className="flex justify-between items-center text-xs font-semibold">
+                              <span className={isVoted ? 'text-marigold' : 'text-ink-soft'}>{opt.optionText}</span>
+                              <span className="text-[10px] text-ink-soft font-bold font-mono">{opt.votesCount} votes ({pct}%)</span>
+                            </div>
+                            {/* Poll progress bar track & fill matching profile status pattern */}
+                            <div className="mt-2 w-full h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--line)' }}>
+                              <div
+                                className="h-full rounded-full transition-all duration-500"
+                                style={{ width: `${pct}%`, backgroundColor: 'var(--marigold)' }}
+                              />
                             </div>
                           </div>
                         );
@@ -566,29 +570,30 @@ const Communities: React.FC = () => {
 
                 {/* Conditional Sub-Module render for Events */}
                 {post.postType === 'EVENT' && post.eventDetails && (
-                  <div className="bg-[#FAF8F5] border border-[#EAE5D9]/60 rounded-2xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mt-3">
+                  <div className="bg-[#FAF8F5] border rounded-2xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mt-3" style={{ borderColor: 'var(--line)' }}>
                     <div className="space-y-2">
-                      <span className="text-[9px] font-black text-[#D9A25A] uppercase tracking-wider block">
+                      <span className="text-[9px] font-black uppercase tracking-wider block" style={{ color: 'var(--marigold)' }}>
                         <Calendar size={12} className="inline mr-1" /> Local Event Schedule
                       </span>
-                      
+
                       <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-xs font-semibold text-[#8E8674]">
-                          <Calendar size={13} className="text-[#D9A25A]" />
+                        <div className="flex items-center gap-2 text-xs font-semibold text-ink-soft">
+                          <Calendar size={13} className="text-marigold" />
                           <span>{new Date(post.eventDetails.eventDate).toLocaleString()}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-xs font-semibold text-[#8E8674]">
-                          <MapPin size={13} className="text-[#D9A25A]" />
+                        <div className="flex items-center gap-2 text-xs font-semibold text-ink-soft">
+                          <MapPin size={13} className="text-marigold" />
                           <span>{post.eventDetails.location}</span>
                         </div>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <span className="text-[10px] text-[#A39E93] font-bold">{post.eventDetails.rsvpsCount} RSVP'd</span>
-                      <button 
+                      <span className="text-[10px] text-ink-soft font-bold font-mono">{post.eventDetails.rsvpsCount} RSVP'd</span>
+                      <button
                         onClick={() => alert("RSVP Recorded! Event added to your calendar.")}
-                        className="bg-[#D9A25A] hover:bg-[#C9924A] text-white font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition"
+                        style={{ backgroundColor: 'var(--marigold)', color: 'var(--paper)' }}
+                        className="hover:bg-marigold-dark font-bold px-4 py-2 rounded-xl text-xs shadow-sm transition"
                       >
                         RSVP / Join
                       </button>
@@ -597,8 +602,8 @@ const Communities: React.FC = () => {
                 )}
 
                 {/* Action footer triggers row */}
-                <div className="flex items-center gap-4 border-t border-[#EAE5D9]/60 pt-3 text-xs text-[#8E8674] font-semibold">
-                  <button 
+                <div className="flex items-center gap-4 border-t pt-3 text-xs text-ink-soft font-semibold" style={{ borderColor: 'var(--line)' }}>
+                  <button
                     onClick={() => handleLikePost(post.id)}
                     className={`flex items-center gap-1.5 transition ${post.likedByMe ? 'text-[#D9A25A]' : 'hover:text-[#1E1E1E]'}`}
                   >
@@ -606,7 +611,7 @@ const Communities: React.FC = () => {
                     <span>{post.likesCount} Likes</span>
                   </button>
 
-                  <button 
+                  <button
                     onClick={() => toggleComments(post.id)}
                     className="flex items-center gap-1.5 hover:text-[#1E1E1E] transition"
                   >
@@ -614,7 +619,7 @@ const Communities: React.FC = () => {
                     <span>{post.commentsCount} Comments</span>
                   </button>
 
-                  <button 
+                  <button
                     onClick={() => alert("Post link copied to clipboard!")}
                     className="flex items-center gap-1.5 hover:text-[#1E1E1E] transition ml-auto"
                   >
@@ -646,7 +651,7 @@ const Communities: React.FC = () => {
                         onChange={(e) => setNewCommentText(e.target.value)}
                         className="flex-1 bg-[#FAF8F5] border border-[#EAE5D9] text-[#1E1E1E] rounded-xl px-4 py-2.5 text-xs font-semibold focus:outline-none focus:border-[#D9A25A]"
                       />
-                      <button 
+                      <button
                         type="submit"
                         className="bg-[#D9A25A] hover:bg-[#C9924A] text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-sm transition"
                       >
@@ -669,21 +674,21 @@ const Communities: React.FC = () => {
         </main>
 
         {/* Right Sidebar: Rules & Student Moderation Guidelines */}
-        <aside className="w-full md:w-64 flex-shrink-0 space-y-4">
-          
-          <div className="bg-white border border-[#EAE5D9] rounded-3xl p-5 shadow-sm space-y-4">
-            <h3 className="text-xs font-black text-[#A39E93] uppercase tracking-wider font-display">Hub Guidelines</h3>
-            
-            <ul className="space-y-3 text-[11px] text-[#8E8674] font-semibold leading-relaxed list-decimal pl-4">
+        <aside className="w-full lg:w-80 flex-shrink-0 space-y-4">
+
+          <div className="dashboard-card p-5 space-y-4">
+            <h3 className="text-xs uppercase tracking-wider mb-4" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--ink-soft)' }}>Hub Guidelines</h3>
+
+            <ul className="space-y-3 text-[11px] font-semibold leading-relaxed list-decimal pl-4" style={{ color: 'var(--ink-soft)' }}>
               <li>Verified student members only. No external agents allowed.</li>
               <li>Respect roommates, lifestyles, and food choices.</li>
               <li>No false deposit claims or spamming of same flats.</li>
               <li>Report inappropriate reviews or abusive behaviors instantly.</li>
             </ul>
 
-            <div className="pt-2 border-t border-[#EAE5D9]/60 flex items-center gap-2">
-              <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse" />
-              <span className="text-[9px] text-[#A39E93] font-bold uppercase tracking-wider">Moderators Active</span>
+            <div className="pt-3 border-t flex items-center gap-2" style={{ borderColor: 'var(--line)' }}>
+              <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'var(--pine)' }} />
+              <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: 'var(--pine)' }}>Moderators Active</span>
             </div>
           </div>
 
@@ -695,37 +700,34 @@ const Communities: React.FC = () => {
       {showCreateModal && (
         <div className="fixed inset-0 bg-[#1E1E1E]/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
           <div className="bg-white border border-[#EAE5D9] rounded-[32px] w-full max-w-md p-6 shadow-2xl animate-scale-in">
-            
+
             <h3 className="text-xl font-black text-[#1E1E1E] mb-4 font-display">New Community Post</h3>
-            
+
             <form onSubmit={handleCreatePost} className="space-y-4">
-              
+
               {/* Type Select Tabs */}
               <div className="grid grid-cols-3 gap-2 bg-[#FAF8F5] p-1 rounded-xl border border-[#EAE5D9]/60">
                 <button
                   type="button"
                   onClick={() => setPostType('TEXT')}
-                  className={`py-2 rounded-lg text-[10px] font-black tracking-wider uppercase transition ${
-                    postType === 'TEXT' ? 'bg-white border border-[#EAE5D9] text-[#D9A25A]' : 'text-[#8E8674]'
-                  }`}
+                  className={`py-2 rounded-lg text-[10px] font-black tracking-wider uppercase transition ${postType === 'TEXT' ? 'bg-white border border-[#EAE5D9] text-[#D9A25A]' : 'text-[#8E8674]'
+                    }`}
                 >
                   📝 Post
                 </button>
                 <button
                   type="button"
                   onClick={() => setPostType('POLL')}
-                  className={`py-2 rounded-lg text-[10px] font-black tracking-wider uppercase transition ${
-                    postType === 'POLL' ? 'bg-white border border-[#EAE5D9] text-[#D9A25A]' : 'text-[#8E8674]'
-                  }`}
+                  className={`py-2 rounded-lg text-[10px] font-black tracking-wider uppercase transition ${postType === 'POLL' ? 'bg-white border border-[#EAE5D9] text-[#D9A25A]' : 'text-[#8E8674]'
+                    }`}
                 >
                   📊 Poll
                 </button>
                 <button
                   type="button"
                   onClick={() => setPostType('EVENT')}
-                  className={`py-2 rounded-lg text-[10px] font-black tracking-wider uppercase transition ${
-                    postType === 'EVENT' ? 'bg-white border border-[#EAE5D9] text-[#D9A25A]' : 'text-[#8E8674]'
-                  }`}
+                  className={`py-2 rounded-lg text-[10px] font-black tracking-wider uppercase transition ${postType === 'EVENT' ? 'bg-white border border-[#EAE5D9] text-[#D9A25A]' : 'text-[#8E8674]'
+                    }`}
                 >
                   📅 Event
                 </button>
@@ -839,7 +841,7 @@ const Communities: React.FC = () => {
       {flaggedPostId && (
         <div className="fixed inset-0 bg-[#1E1E1E]/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
           <div className="bg-white border border-[#EAE5D9] rounded-[32px] w-full max-w-sm p-6 shadow-2xl animate-scale-in">
-            
+
             <div className="flex items-center gap-2 text-red-500 mb-3">
               <AlertTriangle size={20} />
               <h3 className="text-lg font-black font-display">Report Community Post</h3>
@@ -854,9 +856,8 @@ const Communities: React.FC = () => {
                 <button
                   key={reason}
                   onClick={() => setFlagReason(reason)}
-                  className={`w-full text-left px-4 py-2.5 rounded-xl border text-xs font-semibold transition ${
-                    flagReason === reason ? 'border-red-500 bg-red-50/50 text-red-600' : 'border-[#EAE5D9] bg-white text-[#8E8674]'
-                  }`}
+                  className={`w-full text-left px-4 py-2.5 rounded-xl border text-xs font-semibold transition ${flagReason === reason ? 'border-red-500 bg-red-50/50 text-red-600' : 'border-[#EAE5D9] bg-white text-[#8E8674]'
+                    }`}
                 >
                   {reason}
                 </button>

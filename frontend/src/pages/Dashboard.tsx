@@ -1,16 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
-import { Home, MessageSquare, User, Home as HomeIcon, Users } from 'lucide-react';
+import { User, Home as HomeIcon, Users, Flame, MapPin, Compass, Bookmark, Award, Sparkles, Activity, MessageCircle } from 'lucide-react';
 import api from '../services/api';
+import { MOCK_LISTINGS } from '../services/listingsData';
+
+interface RoommateMatch {
+  id: string;
+  name: string;
+  college: string;
+  gender: string;
+  matchScore: number;
+  badges: string[];
+  avatarUrl: string;
+}
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [profileCompleteness, setProfileCompleteness] = useState(60);
 
+  // Mock Checklist Tasks
+  const [checklist, setChecklist] = useState([
+    { id: 1, text: 'Complete Profile Verification', done: true },
+    { id: 2, text: 'Take Roommate Compatibility Quiz', done: true },
+    { id: 3, text: 'Explore & Shortlist 3 Rooms', done: true },
+    { id: 4, text: 'Schedule a Property Visit', done: false },
+    { id: 5, text: 'Sign Digital Lease Agreement', done: false },
+    { id: 6, text: 'Submit Security Deposit', done: false },
+  ]);
+
+  const toggleChecklistTask = (id: number) => {
+    setChecklist(checklist.map(task => 
+      task.id === id ? { ...task, done: !task.done } : task
+    ));
+  };
+
+  const completedTasks = checklist.filter(t => t.done).length;
+  const checklistPercentage = Math.round((completedTasks / checklist.length) * 100);
+
   useEffect(() => {
-    // Attempt to load current completeness dynamically from profile endpoint
     api.get('/profiles/me')
       .then(res => {
         if (res.data && res.data.completenessPercentage !== undefined) {
@@ -18,33 +47,68 @@ const Dashboard: React.FC = () => {
         }
       })
       .catch(() => {
-        // Fallback to default 60% as shown in UI design mocks
         setProfileCompleteness(60);
       });
   }, []);
 
+  // Filter 3 recommended rooms with high compatibility scores
+  const recommendedRooms = MOCK_LISTINGS.slice(0, 3).map((room, idx) => ({
+    ...room,
+    compatibility: [96, 92, 88][idx] || 85
+  }));
+
+  // Saved Rooms Shortcut (using rooms 2 and 4)
+  const savedRooms = [MOCK_LISTINGS[1], MOCK_LISTINGS[3]].filter(Boolean);
+
+  // Mock Recommended Roommates Data
+  const recommendedRoommates: RoommateMatch[] = [
+    {
+      id: "rm1",
+      name: "Suman Thapa",
+      college: "IOE Pulchowk",
+      gender: "Male",
+      matchScore: 94,
+      badges: ["Quiet", "Early Bird", "Non-Smoker"],
+      avatarUrl: "/src/assets/roommates/media__1785942064373.png"
+    },
+    {
+      id: "rm2",
+      name: "Prerna Adhikari",
+      college: "Patan Multiple Campus",
+      gender: "Female",
+      matchScore: 89,
+      badges: ["Studious", "Clean", "Veg"],
+      avatarUrl: "/src/assets/roommates/media__1785942172505.png"
+    },
+    {
+      id: "rm3",
+      name: "Kshitiz Shrestha",
+      college: "NCIT Campus",
+      gender: "Male",
+      matchScore: 86,
+      badges: ["Guitarist", "Late Owl", "Gaming"],
+      avatarUrl: "/src/assets/roommates/media__1785942101755.png"
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-[#FAF8F5] text-[#1E1E1E] flex flex-col items-center justify-start pb-24 font-sans">
-      <div className="w-full max-w-md px-6 pt-6">
+    <div className="min-h-screen flex flex-col items-center justify-start pb-32" style={{ backgroundColor: 'var(--clay)', color: 'var(--ink)', fontFamily: 'var(--font-body)' }}>
+      <div className="w-full max-w-md md:max-w-6xl px-6 pt-6 flex flex-col items-stretch space-y-8">
         
         {/* Header Bar */}
-        <header className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-2">
-            {/* Sahavas Mandala/Sun Logo Icon */}
-            <div className="w-8 h-8 rounded-full bg-[#FAF8F5] flex items-center justify-center border border-[#D9A25A]/40 shadow-sm">
-              <svg className="w-5 h-5 text-[#D9A25A]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+        <header className="flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--marigold)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)' }}>
+              <svg className="w-5.5 h-5.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <circle cx="12" cy="12" r="4" />
                 <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
               </svg>
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-[#1A2540] flex items-center gap-2.5 font-display">
+              <h1 className="text-2xl tracking-tight flex items-center gap-2.5" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--ink)' }}>
                 सहवास
-                <Link to="/verify" className="inline-flex items-center gap-0.5 bg-[#FAF3E8] hover:bg-[#FAF3E8]/80 text-[#D9A25A] text-[9px] font-black px-2 py-0.5 rounded-full border border-[#D9A25A]/15 cursor-pointer shadow-sm">
-                  🛡️ Vetting Status
-                </Link>
               </h1>
-              <span className="text-[10px] text-[#A39E93] font-semibold tracking-wider block -mt-1 uppercase">
+              <span className="text-[10px] tracking-wider block -mt-1 uppercase font-semibold" style={{ color: 'var(--ink-soft)' }}>
                 Namaste, {user?.fullName?.split(' ')[0] || 'Prasanna'}
               </span>
             </div>
@@ -52,135 +116,353 @@ const Dashboard: React.FC = () => {
           
           <button 
             onClick={() => navigate('/profile')}
-            className="w-9 h-9 rounded-full bg-[#EAE5D9] flex items-center justify-center border border-[#D9A25A]/30 overflow-hidden shadow-sm hover:scale-105 transition"
+            style={{ backgroundColor: 'var(--paper)', border: '1px solid var(--line)' }}
+            className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden shadow-sm hover:scale-105 transition"
           >
-            <User size={18} className="text-[#8E8674]" />
+            <User size={20} style={{ color: 'var(--ink-soft)' }} />
           </button>
         </header>
 
-        {/* Dashboard Title */}
-        <section className="mb-6">
-          <h2 className="text-2xl font-black text-[#1E1E1E] font-display">Dashboard</h2>
-          <p className="text-xs text-[#6E685A] mt-1.5 leading-relaxed">
-            Welcome to Sahavas, Refore; UI/Utinate you wire refer for and Sahavas!
+        {/* Dashboard Title & Welcome Section */}
+        <section>
+          <h2 className="text-3xl font-black" style={{ fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>Dashboard</h2>
+          <p className="text-sm mt-1 leading-relaxed font-semibold" style={{ color: 'var(--ink-soft)' }}>
+            Welcome back — here's what's happening on Sahavas.
           </p>
         </section>
 
-        {/* Two Large Call to Action Cards (Housing vs Roommates) */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <Link 
-            to="/rooms" 
-            className="bg-[#D9A25A] hover:bg-[#C9924A] text-white rounded-2xl p-5 shadow flex flex-col justify-between h-44 transition duration-300 hover:scale-102"
-          >
-            <div className="w-10 h-10 rounded-full bg-[#FAF8F5] flex items-center justify-center shadow-sm">
-              <HomeIcon size={18} className="text-[#D9A25A]" />
+        {/* Top 4 Stats Cards Banner */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 w-full">
+          <div className="dashboard-card p-5 flex flex-col justify-between min-h-[110px]">
+            <span className="text-[10px] uppercase tracking-wider block font-bold" style={{ color: 'var(--ink-soft)' }}>Profile Completeness</span>
+            <div className="flex justify-between items-baseline mt-2">
+              <h3 className="text-2xl font-black font-mono" style={{ color: 'var(--ink)' }}>{profileCompleteness}%</h3>
+              <span className="text-[10px] font-bold" style={{ color: 'var(--ink-soft)' }}>Finished</span>
             </div>
-            <h3 className="text-base font-black leading-snug font-display">
-              Looking for<br />Housing?
+            <div className="w-full h-2 rounded-full overflow-hidden mt-3" style={{ backgroundColor: 'var(--line)' }}>
+              <div className="h-full rounded-full transition-all duration-750" style={{ width: `${profileCompleteness}%`, backgroundColor: 'var(--marigold)' }} />
+            </div>
+          </div>
+
+          <div className="dashboard-card p-5 flex flex-col justify-between min-h-[110px]">
+            <span className="text-[10px] uppercase tracking-wider block font-bold" style={{ color: 'var(--ink-soft)' }}>Vetting Status</span>
+            <div className="mt-2.5">
+              <Link to="/verify" style={{ backgroundColor: 'rgba(232, 163, 61, 0.15)', color: 'var(--marigold-dark)', borderRadius: '20px', padding: '5px 12px', fontWeight: 600, fontSize: '11px' }} className="inline-block cursor-pointer hover:underline">
+                🛡️ Check Status
+              </Link>
+            </div>
+            <span className="text-[10px] block mt-2 font-semibold" style={{ color: 'var(--ink-soft)' }}>Pending Vetting</span>
+          </div>
+
+          <div className="dashboard-card p-5 flex flex-col justify-between min-h-[110px]">
+            <span className="text-[10px] uppercase tracking-wider block font-bold" style={{ color: 'var(--ink-soft)' }}>Discovery Matches</span>
+            <h3 className="text-2xl mt-2 font-black font-mono" style={{ color: 'var(--ink)' }}>8</h3>
+            <span className="text-[10px] block mt-1 font-semibold" style={{ color: 'var(--ink-soft)' }}>Compatible Peers</span>
+          </div>
+
+          <div className="dashboard-card p-5 flex flex-col justify-between min-h-[110px]">
+            <span className="text-[10px] uppercase tracking-wider block font-bold" style={{ color: 'var(--ink-soft)' }}>Relocation Streak</span>
+            <div className="flex items-center gap-1.5 mt-2 text-orange-600 font-bold">
+              <Flame className="fill-orange-600 stroke-orange-600 animate-pulse" size={20} />
+              <span style={{ fontFamily: 'var(--font-mono)' }}>3 Days</span>
+            </div>
+            <span className="text-[10px] block mt-1 font-semibold" style={{ color: 'var(--ink-soft)' }}>120 Total XP</span>
+          </div>
+        </div>
+
+        {/* Primary Action Buttons */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
+          <Link to="/rooms" className="dashboard-card action-card-primary p-6 flex flex-col justify-between h-44 transition duration-300 hover:-translate-y-0.5 cursor-pointer shadow-sm">
+            <div className="icon-circle shadow-sm" style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--marigold)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)' }}>
+              <HomeIcon size={18} className="stroke-[2.5]" />
+            </div>
+            <h3 className="text-lg leading-snug font-black" style={{ fontFamily: 'var(--font-display)' }}>
+              Looking for<br />Housing? Explore Rooms
             </h3>
           </Link>
 
-          <Link 
-            to="/roommates" 
-            className="bg-[#D9A25A] hover:bg-[#C9924A] text-white rounded-2xl p-5 shadow flex flex-col justify-between h-44 transition duration-300 hover:scale-102"
-          >
-            <div className="w-10 h-10 rounded-full bg-[#FAF8F5] flex items-center justify-center shadow-sm">
-              <Users size={18} className="text-[#D9A25A]" />
+          <Link to="/roommates" className="dashboard-card action-card-primary p-6 flex flex-col justify-between h-44 transition duration-300 hover:-translate-y-0.5 cursor-pointer shadow-sm">
+            <div className="icon-circle shadow-sm" style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--marigold)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)' }}>
+              <Users size={18} className="stroke-[2.5]" />
             </div>
-            <h3 className="text-base font-black leading-snug font-display">
-              Looking for a<br />Roommate?
+            <h3 className="text-lg leading-snug font-black" style={{ fontFamily: 'var(--font-display)' }}>
+              Looking for a<br />Roommate? Quiz Matches
             </h3>
+          </Link>
+
+          <Link to="/communities" className="dashboard-card p-6 flex flex-col justify-between h-44 transition duration-300 hover:-translate-y-0.5 cursor-pointer shadow-sm">
+            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--pine-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--pine)' }} className="shadow-sm">
+              <Users size={18} className="stroke-[2]" />
+            </div>
+            <div>
+              <h4 className="text-sm font-black text-ink" style={{ fontFamily: 'var(--font-display)' }}>Student Communities</h4>
+              <p className="text-[10px] font-semibold mt-0.5" style={{ color: 'var(--ink-soft)' }}>Network with peer student unions.</p>
+            </div>
+          </Link>
+
+          <Link to="/relocation" className="dashboard-card p-6 flex flex-col justify-between h-44 transition duration-300 hover:-translate-y-0.5 cursor-pointer shadow-sm">
+            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--pine-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--pine)' }} className="shadow-sm">
+              <Compass size={18} className="stroke-[2]" />
+            </div>
+            <div className="flex items-end justify-between w-full">
+              <div>
+                <h4 className="text-sm font-black text-ink" style={{ fontFamily: 'var(--font-display)' }}>Move-In Journey</h4>
+                <p className="text-[10px] font-semibold mt-0.5" style={{ color: 'var(--ink-soft)' }}>Track your moving checklists.</p>
+              </div>
+              <span className="text-[10px] font-bold shrink-0 text-marigold-dark">Go →</span>
+            </div>
           </Link>
         </div>
 
-        {/* Student Communities Card */}
-        <Link 
-          to="/communities" 
-          className="bg-white border border-[#EAE5D9] hover:border-[#D9A25A]/40 rounded-2xl p-5 shadow-sm flex items-center justify-between transition duration-300 hover:scale-[1.01] mb-6 cursor-pointer"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-[#FAF3E8] flex items-center justify-center text-[#D9A25A] shadow-sm flex-shrink-0">
-              <svg className="w-5 h-5 text-[#D9A25A]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
-            </div>
-            <div>
-              <h4 className="text-sm font-black text-[#1E1E1E] font-display">Student Communities Hub</h4>
-              <p className="text-[11px] text-[#8E8674] font-medium mt-0.5">Network with students from your campus and district.</p>
-            </div>
-          </div>
-        </Link>
+        {/* Redesigned Grid Sections */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full items-start">
+          
+          {/* Left Main Column (8 / 12) */}
+          <div className="lg:col-span-8 space-y-8">
+            
+            {/* Recommended Rooms Section */}
+            <section className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-black text-ink font-display flex items-center gap-1.5">
+                  <Sparkles className="text-marigold" size={18} /> Recommended for You
+                </h3>
+                <Link to="/rooms" className="text-xs font-bold text-marigold-dark hover:underline">View All Rooms</Link>
+              </div>
 
-        {/* Relocation Assistant Card */}
-        <Link 
-          to="/relocation" 
-          className="bg-white border border-[#EAE5D9] hover:border-orange-500/40 rounded-2xl p-5 shadow-sm flex items-center justify-between transition duration-300 hover:scale-[1.01] mb-6 cursor-pointer"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-500 shadow-sm flex-shrink-0">
-              <svg className="w-5 h-5 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                <path d="M2 17l10 5 10-5" />
-                <path d="M2 12l10 5 10-5" />
-              </svg>
-            </div>
-            <div>
-              <h4 className="text-sm font-black text-[#1E1E1E] font-display">Student Relocation Road</h4>
-              <p className="text-[11px] text-[#8E8674] font-medium mt-0.5">Earn XP and track flat hunt checklists (Duolingo style).</p>
-            </div>
-          </div>
-          <span className="text-orange-500 text-xs font-black">Play →</span>
-        </Link>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {recommendedRooms.map(room => (
+                  <div key={room.id} className="dashboard-card overflow-hidden flex flex-col justify-between bg-paper hover:shadow-md transition">
+                    <div className="h-32 bg-clay relative overflow-hidden">
+                      <img src={room.images?.[0]?.imageUrl} alt={room.title} className="w-full h-full object-cover" />
+                      <span className="absolute top-2 left-2 text-[8px] bg-paper/95 text-ink px-2 py-0.5 rounded-full font-bold">
+                        {room.compatibility}% Match
+                      </span>
+                    </div>
+                    <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+                      <div>
+                        <h4 className="text-xs font-bold text-ink truncate">{room.title}</h4>
+                        <span className="text-[9px] text-marigold font-bold flex items-center gap-0.5 mt-1">
+                          <MapPin size={9} /> {room.distanceFromCollegeText.split('from')[0] || 'Near college'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t border-ink/5">
+                        <span className="text-xs font-bold text-ink font-mono">NPR {room.rentAmount}</span>
+                        <button 
+                          onClick={() => navigate(`/rooms/${room.id}`)}
+                          className="bg-marigold hover:bg-marigold-dark text-paper text-[8px] font-black px-2.5 py-1.5 rounded-lg transition uppercase tracking-wider"
+                        >
+                          View Room
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
 
-        {/* Profile Status Completeness Card */}
-        <div className="bg-white border border-[#EAE5D9] rounded-2xl p-5 shadow-sm">
-          <span className="text-xs font-bold text-[#A39E93] uppercase tracking-wider block mb-1">
-            Your Profile Status
-          </span>
-          <div className="flex justify-between items-baseline mb-3">
-            <h3 className="text-3xl font-black text-[#1E1E1E] tracking-tight font-display">
-              {profileCompleteness}%
-            </h3>
-            <span className="text-xs font-semibold text-[#8E8674]">Completed</span>
+            {/* Saved Rooms Shortcut */}
+            <section className="space-y-4">
+              <h3 className="text-lg font-black text-ink font-display flex items-center gap-1.5">
+                <Bookmark className="text-marigold" size={18} /> Recently Saved Shortlists
+              </h3>
+
+              {savedRooms.length === 0 ? (
+                <div className="dashboard-card p-6 text-center text-xs font-semibold text-ink-soft bg-paper">
+                  No saved rooms yet. Explore listings to shortlist.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {savedRooms.map(room => (
+                    <div 
+                      key={`saved-${room.id}`} 
+                      onClick={() => navigate(`/rooms/${room.id}`)}
+                      className="dashboard-card p-3.5 flex gap-4 bg-paper hover:shadow-sm transition cursor-pointer"
+                    >
+                      <img src={room.images?.[0]?.imageUrl} alt={room.title} className="w-16 h-16 rounded-xl object-cover bg-clay" />
+                      <div className="min-w-0 flex-1 flex flex-col justify-between">
+                        <div>
+                          <h4 className="text-xs font-bold text-ink truncate">{room.title}</h4>
+                          <span className="text-[9px] text-ink-soft block mt-0.5">Near: {room.collegeName}</span>
+                        </div>
+                        <span className="text-xs font-bold text-marigold-dark font-mono">NPR {room.rentAmount}/mo</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* Move-In Checklist */}
+            <section className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-black text-ink font-display flex items-center gap-1.5">
+                  <Award className="text-marigold" size={18} /> Moving Checklist Progress
+                </h3>
+                <span className="text-xs font-bold font-mono text-marigold-dark">{checklistPercentage}% Completed</span>
+              </div>
+
+              <div className="dashboard-card p-6 bg-paper space-y-5">
+                <div className="w-full bg-clay/30 h-2.5 rounded-full overflow-hidden">
+                  <div className="bg-marigold h-full rounded-full transition-all duration-500" style={{ width: `${checklistPercentage}%` }}></div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {checklist.map(task => (
+                    <div 
+                      key={task.id} 
+                      onClick={() => toggleChecklistTask(task.id)}
+                      className="flex items-center gap-3 p-3 bg-[#FAF8F5] border border-ink/5 rounded-xl cursor-pointer hover:bg-clay/10 transition"
+                    >
+                      <input 
+                        type="checkbox" 
+                        checked={task.done} 
+                        onChange={() => {}} // Controlled by outer div onClick
+                        className="rounded text-marigold focus:ring-marigold accent-marigold w-4 h-4 cursor-pointer"
+                      />
+                      <span className={`text-xs font-semibold ${task.done ? 'line-through text-ink-soft/50' : 'text-ink-soft'}`}>
+                        {task.text}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
           </div>
 
-          {/* Completeness slider progress line */}
-          <div className="w-full bg-[#FAF8F5] h-3 rounded-full overflow-hidden border border-[#EAE5D9]/60">
-            <div 
-              className="bg-[#D9A25A] h-full rounded-full transition-all duration-750"
-              style={{ width: `${profileCompleteness}%` }}
-            />
+          {/* Right Column (4 / 12) */}
+          <div className="lg:col-span-4 space-y-8">
+            
+            {/* Recommended Roommates Match Sidebar */}
+            <section className="space-y-4">
+              <h3 className="text-lg font-black text-ink font-display flex items-center gap-1.5">
+                <Sparkles className="text-marigold" size={18} /> Compatible Roommates
+              </h3>
+
+              <div className="space-y-4">
+                {recommendedRoommates.map(match => (
+                  <div key={match.id} className="dashboard-card p-4 bg-paper flex items-center justify-between hover:shadow-sm transition">
+                    <div className="flex items-center gap-3">
+                      <img src={match.avatarUrl} alt={match.name} className="w-10 h-10 rounded-full object-cover border border-ink/10" />
+                      <div>
+                        <h4 className="text-xs font-bold text-ink">{match.name}</h4>
+                        <span className="text-[9px] text-ink-soft block font-semibold">{match.college}</span>
+                        
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {match.badges.slice(0, 2).map(badge => (
+                            <span key={badge} className="text-[7px] bg-clay/40 text-ink-soft px-1 rounded uppercase font-bold">
+                              {badge}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-right flex flex-col items-end gap-1.5">
+                      <span className="text-xs font-bold text-pine bg-pine-light px-2 py-0.5 rounded-full font-mono">
+                        {match.matchScore}%
+                      </span>
+                      <button 
+                        onClick={() => navigate('/roommates')}
+                        className="bg-marigold hover:bg-marigold-dark text-paper text-[8px] font-black px-2 py-1 rounded-md transition uppercase"
+                      >
+                        Match
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Housing Insights Analytics */}
+            <section className="space-y-4">
+              <h3 className="text-lg font-black text-ink font-display flex items-center gap-1.5">
+                <Compass className="text-marigold" size={18} /> Rental Market Insights
+              </h3>
+
+              <div className="dashboard-card p-5 bg-paper space-y-4">
+                <div className="space-y-1">
+                  <span className="text-[9px] text-ink-soft font-bold uppercase tracking-wider block">Average Student Rent</span>
+                  <div className="text-lg font-black font-mono">NPR 6,800 <span className="text-[10px] text-ink-soft font-sans font-medium">/ month</span></div>
+                </div>
+
+                <div className="border-t border-ink/5 pt-3.5 space-y-2 text-xs font-semibold text-ink-soft">
+                  <div className="flex justify-between">
+                    <span>Popular Neighborhood:</span>
+                    <span className="font-bold text-ink">Balkumari, Lalitpur</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Active Listings This Week:</span>
+                    <span className="font-bold text-pine">+14 Rooms Added</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Rented Houses This Month:</span>
+                    <span className="font-bold text-ink">28 shortlists matched</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Platform Recent Activity Timeline */}
+            <section className="space-y-4">
+              <h3 className="text-lg font-black text-ink font-display flex items-center gap-1.5">
+                <Activity className="text-marigold" size={18} /> Recent Activity Timeline
+              </h3>
+
+              <div className="dashboard-card p-5 bg-paper space-y-4 font-sans text-xs">
+                <div className="flex gap-3">
+                  <span className="w-2 h-2 rounded-full bg-pine mt-1.5 shrink-0"></span>
+                  <div>
+                    <span className="font-bold text-ink block">Profile Verified</span>
+                    <span className="text-[10px] text-ink-soft">Your student registration has been verified by IOE Pulchowk Office.</span>
+                  </div>
+                </div>
+                <div className="flex gap-3 border-t border-ink/5 pt-3">
+                  <span className="w-2 h-2 rounded-full bg-marigold mt-1.5 shrink-0"></span>
+                  <div>
+                    <span className="font-bold text-ink block">Saved New Shortlist</span>
+                    <span className="text-[10px] text-ink-soft">You added "Premium Room near IOE Pulchowk gate" to your shortlists.</span>
+                  </div>
+                </div>
+                <div className="flex gap-3 border-t border-ink/5 pt-3">
+                  <span className="w-2 h-2 rounded-full bg-marigold mt-1.5 shrink-0"></span>
+                  <div>
+                    <span className="font-bold text-ink block">New Compatible Roommates</span>
+                    <span className="text-[10px] text-ink-soft">Kshitiz Shrestha joined NCIT communities with 86% match score.</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Student Community Feed */}
+            <section className="space-y-4">
+              <h3 className="text-lg font-black text-ink font-display flex items-center gap-1.5">
+                <MessageCircle className="text-marigold" size={18} /> Student Community Feed
+              </h3>
+
+              <div className="dashboard-card p-5 bg-paper space-y-3">
+                <div className="p-3 bg-[#FAF8F5] border border-ink/5 rounded-xl">
+                  <span className="text-[8px] text-marigold font-black uppercase tracking-wider block">Admin Notice</span>
+                  <p className="text-[11px] font-semibold text-ink-soft leading-relaxed mt-1">
+                    Sahavas v1.2 is officially live! You can now check public transport and biking route times to NCIT, Pulchowk, and Kirtipur.
+                  </p>
+                </div>
+                <div className="p-3 bg-[#FAF8F5] border border-ink/5 rounded-xl">
+                  <span className="text-[8px] text-pine font-bold uppercase tracking-wider block">General Discussion</span>
+                  <p className="text-[11px] font-semibold text-ink-soft leading-relaxed mt-1">
+                    Basanta Rijal just listed a new flatlet available near Patan Campus for NPR 6,200. Check it out!
+                  </p>
+                </div>
+              </div>
+            </section>
+
           </div>
+
         </div>
 
       </div>
 
-      {/* Bottom Sticky Mobile Navigation Dock */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#FAF8F5] border-t border-[#EAE5D9] py-3.5 px-6 flex justify-between items-center shadow-lg z-30 w-full max-w-md mx-auto">
-        <Link to="/dashboard" className="flex flex-col items-center gap-1 text-[#D9A25A] transition">
-          <Home size={20} className="stroke-[2.5]" />
-          <span className="text-[9px] font-bold tracking-wide">Home</span>
-        </Link>
-        <Link to="/rooms" className="flex flex-col items-center gap-1 text-[#A39E93] hover:text-[#1E1E1E] transition">
-          <HomeIcon size={20} className="stroke-[2]" />
-          <span className="text-[9px] font-semibold">Rooms</span>
-        </Link>
-        <Link to="/roommates" className="flex flex-col items-center gap-1 text-[#A39E93] hover:text-[#1E1E1E] transition">
-          <Users size={20} className="stroke-[2]" />
-          <span className="text-[9px] font-semibold">Matches</span>
-        </Link>
-        <Link to="/messages" className="flex flex-col items-center gap-1 text-[#A39E93] hover:text-[#1E1E1E] transition">
-          <MessageSquare size={20} className="stroke-[2]" />
-          <span className="text-[9px] font-semibold">Inbox</span>
-        </Link>
-        <Link to="/profile" className="flex flex-col items-center gap-1 text-[#A39E93] hover:text-[#1E1E1E] transition">
-          <User size={20} className="stroke-[2]" />
-          <span className="text-[9px] font-semibold">Profile</span>
-        </Link>
-      </nav>
+
     </div>
   );
 };

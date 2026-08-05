@@ -9,8 +9,13 @@ import RoommateDiscovery from './pages/RoommateDiscovery';
 import ProfileEdit from './pages/ProfileEdit';
 import Chat from './pages/Chat';
 import Communities from './pages/Communities';
+import RoomDetails from './pages/RoomDetails';
+import RouteMap from './pages/RouteMap';
 import RelocationDashboard from './pages/RelocationDashboard';
 import Verification from './pages/Verification';
+import Layout from './components/Layout';
+import MatchResults from './pages/MatchResults';
+import RoommateProfile from './pages/RoommateProfile';
 
 // Protected Route Guard component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -28,7 +33,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     return <Navigate to="/login" replace />;
   }
 
-  return <>{children}</>;
+  return <Layout>{children}</Layout>;
 };
 
 function AppRoutes() {
@@ -54,9 +59,29 @@ function AppRoutes() {
           <RoomSearch />
         </ProtectedRoute>
       } />
+      <Route path="/rooms/:id" element={
+        <ProtectedRoute>
+          <RoomDetails />
+        </ProtectedRoute>
+      } />
+      <Route path="/rooms/:id/route" element={
+        <ProtectedRoute>
+          <RouteMap />
+        </ProtectedRoute>
+      } />
       <Route path="/roommates" element={
         <ProtectedRoute>
           <RoommateDiscovery />
+        </ProtectedRoute>
+      } />
+      <Route path="/matches/results" element={
+        <ProtectedRoute>
+          <MatchResults />
+        </ProtectedRoute>
+      } />
+      <Route path="/matches/:id" element={
+        <ProtectedRoute>
+          <RoommateProfile />
         </ProtectedRoute>
       } />
       <Route path="/profile" element={
@@ -65,6 +90,11 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
       <Route path="/messages" element={
+        <ProtectedRoute>
+          <Chat />
+        </ProtectedRoute>
+      } />
+      <Route path="/chat/:id" element={
         <ProtectedRoute>
           <Chat />
         </ProtectedRoute>

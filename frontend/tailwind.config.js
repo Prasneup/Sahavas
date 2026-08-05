@@ -7,6 +7,15 @@ export default {
   theme: {
     extend: {
       colors: {
+        ink: 'var(--ink)',
+        'ink-soft': 'var(--ink-soft)',
+        clay: 'var(--clay)',
+        paper: 'var(--paper)',
+        marigold: 'var(--marigold)',
+        'marigold-dark': 'var(--marigold-dark)',
+        brick: 'var(--brick)',
+        pine: 'var(--pine)',
+        'pine-light': 'var(--pine-light)',
         brand: {
           cyan: '#0D9488', // Sagarmatha Cyan
           crimson: '#E11D48', // Crimson Rhododendron
@@ -20,7 +29,8 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
-        display: ['Outfit', 'sans-serif']
+        display: ['Fraunces', 'serif'],
+        mono: ['"IBM Plex Mono"', 'monospace']
       }
     },
   },
