@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Star, Heart, MessageSquare, Award, Navigation, MapPin } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Award, MapPin } from 'lucide-react';
 import { Roommate, MOCK_ROOMMATES } from '../services/roommatesData';
 
 const RoommateProfile: React.FC = () => {

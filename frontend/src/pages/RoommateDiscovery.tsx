@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Users, Award, ShieldCheck, Heart, Bookmark, RefreshCw, CheckCircle, ChevronRight, Compass } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { MOCK_ROOMMATES } from '../services/roommatesData';
 
 const RoommateDiscovery: React.FC = () => {
