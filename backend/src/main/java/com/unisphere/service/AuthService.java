@@ -40,11 +40,19 @@ public class AuthService {
             throw new IllegalArgumentException("Email is already in use");
         }
 
+        String rawRole = request.getRole() != null ? request.getRole() : "student";
+        String dbRole = "student";
+        if (rawRole.toUpperCase().contains("ADMIN")) {
+            dbRole = "admin";
+        } else if (rawRole.toUpperCase().contains("LANDLORD") || rawRole.toUpperCase().contains("OWNER")) {
+            dbRole = "owner";
+        }
+
         User user = User.builder()
                 .phoneNumber(request.getPhoneNumber())
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .role(request.getRole() != null ? request.getRole() : "ROLE_STUDENT")
+                .role(dbRole)
                 .status("PENDING_VERIFICATION")
                 .build();
 

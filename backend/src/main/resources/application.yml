@@ -1,22 +1,33 @@
 spring:
   application:
     name: unisphere-nepal
+  jackson:
+    serialization:
+      fail-on-empty-beans: false
   
-  # Database Configuration (In-Memory H2 fallback to allow run without Docker daemon)
+  # Database Configuration (Neon PostgreSQL database connection setup)
   datasource:
-    url: jdbc:h2:mem:unisphere_db;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
-    username: sa
-    password: password
-    driver-class-name: org.h2.Driver
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/unisphere_nepal}
+    username: ${SPRING_DATASOURCE_USERNAME:unisphere_admin}
+    password: ${SPRING_DATASOURCE_PASSWORD:admin_password_123}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${SPRING_DATASOURCE_HIKARI_MAX_POOL_SIZE:10}
+      minimum-idle: ${SPRING_DATASOURCE_HIKARI_MIN_IDLE:2}
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 30000
 
-  # Disable SQL script initialization for H2 in-memory runs
+  # Automatic SQL migration execution setup
   sql:
     init:
-      mode: never
+      mode: ${SPRING_SQL_INIT_MODE:always}
+      schema-locations: file:../database/migrations/0001_initial_schema.sql
+      continue-on-error: true # Ensure startup succeeds if schema elements already exist
   
-  # JPA & Hibernate Configurations
+  # JPA & Hibernate Configurations for PostgreSQL
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
     show-sql: true

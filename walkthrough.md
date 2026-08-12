@@ -1,6 +1,6 @@
 # Verification Walkthrough: Building UniSphere Nepal
 
-We have successfully bootstrapped and built the step-by-step codebase for **UniSphere Nepal** (Sahavas), spanning the containerized databases, Java Spring Boot REST backend, and the React + Vite frontend dashboard.
+We have successfully bootstrapped and built the step-by-step codebase for **UniSphere Nepal** (Nivaro), spanning the containerized databases, Java Spring Boot REST backend, and the React + Vite frontend dashboard.
 
 ---
 
@@ -42,7 +42,7 @@ We have successfully bootstrapped and built the step-by-step codebase for **UniS
 
 ## 3. Directory Layout Blueprint
 ```
-Sahavas/
+Nivaro/
 ├── docker-compose.yml
 ├── backend/
 │   ├── build.gradle

@@ -149,7 +149,7 @@ const ProfileEdit: React.FC = () => {
               <ArrowLeft size={18} style={{ color: 'var(--ink-soft)' }} />
             </button>
             <div className="flex items-center gap-1.5">
-              {/* Sahavas Mandala Logo */}
+              {/* Nivaro Mandala Logo */}
               <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'var(--marigold)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)' }}>
                 <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <circle cx="12" cy="12" r="4" />

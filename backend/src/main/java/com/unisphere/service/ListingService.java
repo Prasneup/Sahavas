@@ -26,6 +26,9 @@ public class ListingService {
         User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         listing.setOwner(owner);
+        if (listing.getImages() != null) {
+            listing.getImages().forEach(img -> img.setListing(listing));
+        }
         return listingRepository.save(listing);
     }
 
@@ -44,6 +47,63 @@ public class ListingService {
     @Transactional(readOnly = true)
     public List<Listing> getAll() {
         return listingRepository.findAll();
+    }
+
+    @Transactional(readOnly = true)
+    public Listing getById(UUID id) {
+        log.info("Querying database for listing by ID: {}", id);
+        Listing listing = listingRepository.findById(id).orElse(null);
+        log.info("Database query result for listing ID {}: {}", id, listing != null ? "Found" : "Not Found");
+        return listing;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Listing> getByOwnerId(UUID ownerId) {
+        return listingRepository.findByOwnerId(ownerId);
+    }
+
+    @Transactional
+    public Listing updateListing(UUID ownerId, UUID listingId, Listing listingDetails) {
+        Listing listing = listingRepository.findById(listingId)
+                .orElseThrow(() -> new IllegalArgumentException("Listing not found"));
+
+        if (!listing.getOwner().getId().equals(ownerId)) {
+            throw new IllegalStateException("You are not authorized to update this listing");
+        }
+
+        listing.setTitle(listingDetails.getTitle());
+        listing.setDescription(listingDetails.getDescription());
+        listing.setRentAmount(listingDetails.getRentAmount());
+        listing.setDepositAmount(listingDetails.getDepositAmount());
+        listing.setLocationLat(listingDetails.getLocationLat());
+        listing.setLocationLng(listingDetails.getLocationLng());
+        listing.setRoomType(listingDetails.getRoomType());
+        listing.setGenderPreference(listingDetails.getGenderPreference());
+        listing.setDistanceFromCollegeText(listingDetails.getDistanceFromCollegeText());
+        listing.setAmenities(listingDetails.getAmenities());
+        listing.setIsAvailable(listingDetails.getIsAvailable());
+
+        if (listingDetails.getImages() != null) {
+            listing.getImages().clear();
+            for (var img : listingDetails.getImages()) {
+                img.setListing(listing);
+                listing.getImages().add(img);
+            }
+        }
+
+        return listingRepository.save(listing);
+    }
+
+    @Transactional
+    public void deleteListing(UUID ownerId, UUID listingId) {
+        Listing listing = listingRepository.findById(listingId)
+                .orElseThrow(() -> new IllegalArgumentException("Listing not found"));
+
+        if (!listing.getOwner().getId().equals(ownerId)) {
+            throw new IllegalStateException("You are not authorized to delete this listing");
+        }
+
+        listingRepository.delete(listing);
     }
 
     private double calculateDistance(double lat1, double lon1, double lat2, double lon2) {

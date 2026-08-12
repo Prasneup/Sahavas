@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MessageSquare, Heart, Navigation, ShieldCheck, Star } from 'lucide-react';
-import { Listing, MOCK_LISTINGS } from '../services/listingsData';
+import { Listing } from '../services/listingsData';
 import api from '../services/api';
 
 const RoomDetails: React.FC = () => {
@@ -20,21 +20,45 @@ const RoomDetails: React.FC = () => {
         if (res.data) {
           setListing(res.data);
         } else {
-          const mock = MOCK_LISTINGS.find(item => item.id === id);
-          setListing(mock || null);
+          setListing(null);
         }
       } catch (err) {
-        const mock = MOCK_LISTINGS.find(item => item.id === id);
-        setListing(mock || null);
+        console.error("Failed to fetch listing details", err);
+        setListing(null);
       } finally {
-        setTimeout(() => {
-          setLoading(false);
-        }, 300);
+        setLoading(false);
+      }
+    };
+
+    const checkSaveStatus = async () => {
+      try {
+        const res = await api.get('/listings/saved');
+        if (res.data) {
+          const savedIds = res.data.map((item: any) => item.id);
+          setIsSaved(savedIds.includes(id));
+        }
+      } catch (err) {
+        console.warn("Could not check save status", err);
       }
     };
 
     fetchListing();
+    checkSaveStatus();
   }, [id]);
+
+  const handleToggleSave = async () => {
+    try {
+      if (isSaved) {
+        await api.delete(`/listings/${id}/save`);
+        setIsSaved(false);
+      } else {
+        await api.post(`/listings/${id}/save`);
+        setIsSaved(true);
+      }
+    } catch (err) {
+      console.error("Failed to toggle save status", err);
+    }
+  };
 
   if (loading) {
     return (
@@ -123,7 +147,7 @@ const RoomDetails: React.FC = () => {
               />
               
               <button 
-                onClick={() => setIsSaved(!isSaved)}
+                onClick={handleToggleSave}
                 className="absolute top-4 right-4 bg-paper/95 hover:bg-paper border border-ink/10 text-ink p-3 rounded-full shadow-md transition"
                 title="Save Room"
               >
@@ -269,7 +293,7 @@ const RoomDetails: React.FC = () => {
             </div>
 
             <button 
-              onClick={() => navigate('/chat')}
+              onClick={() => navigate(`/chat/${listing.owner?.id || 'rm1'}`)}
               className="w-full bg-ink hover:bg-ink-soft text-paper font-black py-3 rounded-xl transition text-xs flex items-center justify-center gap-2"
             >
               <MessageSquare size={13} /> Contact Owner

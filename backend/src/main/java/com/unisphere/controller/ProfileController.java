@@ -66,6 +66,13 @@ public class ProfileController {
         return ResponseEntity.ok(mapToResponse(saved));
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<ProfileResponse> getProfileById(@PathVariable("id") UUID id) {
+        StudentProfile profile = studentProfileRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Profile not found"));
+        return ResponseEntity.ok(mapToResponse(profile));
+    }
+
     private ProfileResponse mapToResponse(StudentProfile profile) {
         // Calculate completeness
         int completeness = 0;

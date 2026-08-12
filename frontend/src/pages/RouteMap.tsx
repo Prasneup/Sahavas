@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Navigation, Info } from 'lucide-react';
-import { Listing, MOCK_LISTINGS } from '../services/listingsData';
+import { Listing } from '../services/listingsData';
 import api from '../services/api';
 
 const RouteMap: React.FC = () => {
@@ -32,12 +32,11 @@ const RouteMap: React.FC = () => {
         if (res.data) {
           setListing(res.data);
         } else {
-          const mock = MOCK_LISTINGS.find(item => item.id === id);
-          setListing(mock || null);
+          setListing(null);
         }
       } catch (err) {
-        const mock = MOCK_LISTINGS.find(item => item.id === id);
-        setListing(mock || null);
+        console.error("Failed to fetch listing route details", err);
+        setListing(null);
       } finally {
         setTimeout(() => {
           setLoading(false);

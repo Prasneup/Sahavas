@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, MessageSquare, Award, MapPin } from 'lucide-react';
-import { Roommate, MOCK_ROOMMATES } from '../services/roommatesData';
+import api from '../services/api';
+import { Roommate } from '../services/roommatesData';
 
 const RoommateProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [profile, setProfile] = useState<Roommate | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -15,30 +17,69 @@ const RoommateProfile: React.FC = () => {
   const [isInterested, setIsInterested] = useState(false);
 
   useEffect(() => {
-    const fetchProfile = () => {
+    const fetchProfile = async () => {
       setLoading(true);
-      const match = MOCK_ROOMMATES.find(item => item.id === id);
-      setProfile(match || null);
-
-      if (match) {
-        const storedSaved = localStorage.getItem('savedRoommates');
-        if (storedSaved) {
-          const list = JSON.parse(storedSaved);
-          setIsSaved(list.includes(match.id));
+      try {
+        if (location.state?.roommate) {
+          // If profile object was passed in navigation state, use it directly
+          setProfile(location.state.roommate);
+          checkLocalStorage(location.state.roommate.id);
+        } else {
+          // Otherwise fetch from profiles API
+          const res = await api.get(`/profiles/${id}`);
+          const p = res.data;
+          const mapped: Roommate = {
+            id: p.id,
+            name: p.fullName || "Student Partner",
+            compatibilityScore: 85,
+            college: p.collegeName || "NCIT Balkumari",
+            department: p.majorCourse || "Computer Science",
+            academicYear: p.academicYear ? `${p.academicYear} Year` : "1st Year",
+            budgetRange: `NPR ${p.budgetMin || 6000} - ${p.budgetMax || 8000} / mo`,
+            smokingStatus: "Non-Smoker",
+            drinkingHabit: "Socially",
+            studyStyle: "Quiet study",
+            sleepSchedule: "Early Bird",
+            cleanlinessLevel: "Moderate Cleanliness",
+            guestPreference: "No overnight guests",
+            hometown: p.hometownDistrict || "Kathmandu",
+            bio: p.bio || "Looking for a roommate on Sahavas",
+            avatarUrl: p.avatarUrl || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=200",
+            interests: p.interests && p.interests.length > 0 ? p.interests : ["Reading", "Music"],
+            compatibilityBreakdown: {
+              lifestyle: 80,
+              study: 80,
+              budget: 80,
+              cleanliness: 80,
+              location: 80
+            }
+          };
+          setProfile(mapped);
+          checkLocalStorage(p.id);
         }
-        const storedInterested = localStorage.getItem('interestedRoommates');
-        if (storedInterested) {
-          const list = JSON.parse(storedInterested);
-          setIsInterested(list.includes(match.id));
-        }
-      }
-      setTimeout(() => {
+      } catch (err) {
+        console.error("Failed to load roommate profile", err);
+        setProfile(null);
+      } finally {
         setLoading(false);
-      }, 200);
+      }
+    };
+
+    const checkLocalStorage = (rid: string) => {
+      const storedSaved = localStorage.getItem('savedRoommates');
+      if (storedSaved) {
+        const list = JSON.parse(storedSaved);
+        setIsSaved(list.includes(rid));
+      }
+      const storedInterested = localStorage.getItem('interestedRoommates');
+      if (storedInterested) {
+        const list = JSON.parse(storedInterested);
+        setIsInterested(list.includes(rid));
+      }
     };
 
     fetchProfile();
-  }, [id]);
+  }, [id, location.state]);
 
   const handleSaveToggle = () => {
     if (!profile) return;

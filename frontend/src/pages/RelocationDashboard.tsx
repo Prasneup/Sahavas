@@ -54,8 +54,7 @@ const RelocationDashboard: React.FC = () => {
       const res = await api.get('/relocation/progress');
       setProgress(res.data);
     } catch (err) {
-      console.warn("API progress load failed, using mock path state");
-      // Keep initial mock progress state
+      console.error("Failed to load relocation progress", err);
     } finally {
       setLoading(false);
     }
@@ -66,42 +65,11 @@ const RelocationDashboard: React.FC = () => {
       const res = await api.post('/relocation/progress/toggle', { taskName, completed });
       setProgress(res.data);
       
-      // Update selected node state locally to reflect live state
-      if (selectedNode && selectedNode.id === taskName) {
-        // Just trigger alert/audio if completed
-        if (completed) {
-          showConfettiAlert();
-        }
-      }
-    } catch (err) {
-      // Offline fallback state update
-      const updatedMock = { ...progress };
-      (updatedMock as any)[taskName] = completed;
-      
-      // Count completions
-      let count = 0;
-      if (updatedMock.admissionCompleted) count++;
-      if (updatedMock.collegeConfirmed) count++;
-      if (updatedMock.roomFound) count++;
-      if (updatedMock.roommateFound) count++;
-      if (updatedMock.internetSetup) count++;
-      if (updatedMock.transportationSetup) count++;
-
-      updatedMock.completionPercentage = Math.round((count / 6) * 100);
-      updatedMock.totalXp = progress.totalXp + (completed ? 100 : -100);
-
-      // Evaluate mock badges
-      const badgesSet = new Set(progress.unlockedBadges);
-      if (completed) badgesSet.add('FRESH_MOVER');
-      if (updatedMock.roomFound) badgesSet.add('ROOF_FINDER');
-      if (updatedMock.roommateFound) badgesSet.add('CO_HABITOR');
-      if (count === 6) badgesSet.add('FULLY_SET');
-      updatedMock.unlockedBadges = Array.from(badgesSet);
-
-      setProgress(updatedMock);
       if (completed) {
         showConfettiAlert();
       }
+    } catch (err) {
+      alert("Failed to toggle task progress. Please verify connection.");
     }
   };
 

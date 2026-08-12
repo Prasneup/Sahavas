@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Shield, AlertTriangle, Upload, FileText, Lock } from 'lucide-react';
+import { ArrowLeft, Shield, AlertTriangle, Upload, FileText, Lock, Loader2 } from 'lucide-react';
 
 interface TrustData {
   trustScore: number;
@@ -23,6 +23,7 @@ const Verification: React.FC = () => {
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -48,9 +49,25 @@ const Verification: React.FC = () => {
     }
   };
 
-  const handleMockUpload = () => {
-    // Simulate image upload preview
-    setUploadedFile("https://images.unsplash.com/photo-1554774853-aae0a22c8aa4?auto=format&fit=crop&q=80&w=300");
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setUploading(true);
+    try {
+      const res = await api.post('/media/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (res.data?.url) {
+        setUploadedFile(res.data.url);
+      }
+    } catch (err) {
+      alert("Failed to upload scan file to Cloudinary.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSubmitVerification = async (e: React.FormEvent) => {
@@ -72,16 +89,9 @@ const Verification: React.FC = () => {
         verificationLevel: res.data.newVerificationLevel,
         trustScore: res.data.newTrustScore
       }));
-      alert("🎉 Credentials verified! Your verification level has been upgraded.");
+      alert("🎉 Verification submitted! Your document has been sent to administrators for vetting. Status is now PENDING VERIFICATION.");
     } catch (err) {
-      // Fallback update state locally
-      const isCollege = documentType === 'STUDENT_ID';
-      setTrust(prev => ({
-        ...prev,
-        verificationLevel: isCollege ? 'COLLEGE_VERIFIED' : 'STUDENT_VERIFIED',
-        trustScore: isCollege ? 95 : 75
-      }));
-      alert("🎉 Simulated credentials verification successful! Trust score boosted.");
+      alert("Failed to submit verification request. Please verify inputs or permissions.");
     } finally {
       setSubmitting(false);
     }
@@ -260,14 +270,24 @@ const Verification: React.FC = () => {
                   </button>
                 </div>
               ) : (
-                <div 
-                  onClick={handleMockUpload}
+                <label 
                   className="border-2 border-dashed border-ink/10 hover:border-marigold/30 rounded-xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center bg-[#FAF8F5] text-ink-soft"
                 >
-                  <Upload size={24} className="text-ink-soft/40 mb-2" />
-                  <span className="text-xs font-bold">Select scan file to upload</span>
+                  {uploading ? (
+                    <Loader2 size={24} className="text-marigold animate-spin mb-2" />
+                  ) : (
+                    <Upload size={24} className="text-ink-soft/40 mb-2" />
+                  )}
+                  <span className="text-xs font-bold">{uploading ? 'Uploading document...' : 'Select scan file to upload'}</span>
                   <span className="text-[10px] text-ink-soft/40 mt-0.5">Supports PNG, JPG (Max 5MB)</span>
-                </div>
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={handleFileUpload}
+                    disabled={uploading}
+                    className="hidden"
+                  />
+                </label>
               )}
             </div>
 
@@ -289,7 +309,7 @@ const Verification: React.FC = () => {
             <AlertTriangle size={15} /> Anti-Scam Protection active
           </h4>
           <p className="text-[11px] text-ink-soft leading-relaxed font-semibold">
-            Sahavas runs automated checks on listings:
+            Nivaro runs automated checks on listings:
           </p>
           <ul className="list-disc pl-4 space-y-1.5 text-[10px] text-ink-soft font-medium leading-relaxed">
             <li><span className="font-bold text-ink">Rent Outliers:</span> Rent listings posted below normal district levels are flagged to prevent advance deposit scams.</li>

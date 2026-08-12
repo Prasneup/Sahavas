@@ -3,7 +3,6 @@ import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Home as HomeIcon, Users, Flame, MapPin, Compass, Bookmark, Award, Sparkles, Activity, MessageCircle } from 'lucide-react';
 import api from '../services/api';
-import { MOCK_LISTINGS } from '../services/listingsData';
 
 interface RoommateMatch {
   id: string;
@@ -16,80 +15,129 @@ interface RoommateMatch {
 }
 
 const Dashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [profileCompleteness, setProfileCompleteness] = useState(60);
+  const [vettingStatus, setVettingStatus] = useState('UNVERIFIED');
+  const [matchCount, setMatchCount] = useState(8);
+  const [recommendedRooms, setRecommendedRooms] = useState<any[]>([]);
+  const [savedRooms, setSavedRooms] = useState<any[]>([]);
+  const [recommendedRoommates, setRecommendedRoommates] = useState<RoommateMatch[]>([]);
 
-  // Mock Checklist Tasks
+  // Relocation Journey Checklist
   const [checklist, setChecklist] = useState([
-    { id: 1, text: 'Complete Profile Verification', done: true },
-    { id: 2, text: 'Take Roommate Compatibility Quiz', done: true },
-    { id: 3, text: 'Explore & Shortlist 3 Rooms', done: true },
-    { id: 4, text: 'Schedule a Property Visit', done: false },
-    { id: 5, text: 'Sign Digital Lease Agreement', done: false },
-    { id: 6, text: 'Submit Security Deposit', done: false },
+    { key: 'admissionCompleted', text: 'Secure College Admission', done: false },
+    { key: 'collegeConfirmed', text: 'Confirm Campus Registration', done: false },
+    { key: 'roomFound', text: 'Explore & Book a Room', done: false },
+    { key: 'roommateFound', text: 'Find a Compatible Roommate', done: false },
+    { key: 'internetSetup', text: 'Arrange Internet Setup', done: false },
+    { key: 'transportationSetup', text: 'Arrange Transportation/Moving', done: false },
   ]);
 
-  const toggleChecklistTask = (id: number) => {
-    setChecklist(checklist.map(task => 
-      task.id === id ? { ...task, done: !task.done } : task
-    ));
+  const toggleChecklistTask = async (key: string, currentDone: boolean) => {
+    try {
+      const res = await api.post('/relocation/progress/toggle', {
+        taskName: key,
+        completed: !currentDone
+      });
+      if (res.data) {
+        setChecklist(prev => prev.map(item => 
+          item.key === key ? { ...item, done: res.data[key] } : item
+        ));
+      }
+    } catch (err) {
+      console.error("Failed to toggle checklist task on backend", err);
+    }
   };
 
   const completedTasks = checklist.filter(t => t.done).length;
   const checklistPercentage = Math.round((completedTasks / checklist.length) * 100);
 
   useEffect(() => {
+    // 0. Redirect based on user role
+    if (user?.role === 'admin') {
+      navigate('/admin');
+      return;
+    } else if (user?.role === 'owner') {
+      navigate('/landlord');
+      return;
+    }
+
+    // Fetch relocation progress
+    api.get('/relocation/progress')
+      .then(res => {
+        if (res.data) {
+          setChecklist([
+            { key: 'admissionCompleted', text: 'Secure College Admission', done: res.data.admissionCompleted },
+            { key: 'collegeConfirmed', text: 'Confirm Campus Registration', done: res.data.collegeConfirmed },
+            { key: 'roomFound', text: 'Explore & Book a Room', done: res.data.roomFound },
+            { key: 'roommateFound', text: 'Find a Compatible Roommate', done: res.data.roommateFound },
+            { key: 'internetSetup', text: 'Arrange Internet Setup', done: res.data.internetSetup },
+            { key: 'transportationSetup', text: 'Arrange Transportation/Moving', done: res.data.transportationSetup },
+          ]);
+        }
+      })
+      .catch(() => {});
+
+    // 1. Fetch user profile completeness & vetting status
     api.get('/profiles/me')
       .then(res => {
-        if (res.data && res.data.completenessPercentage !== undefined) {
-          setProfileCompleteness(res.data.completenessPercentage);
+        if (res.data) {
+          setProfileCompleteness(res.data.completenessPercentage || 60);
+          setVettingStatus(res.data.verificationStatus || 'UNVERIFIED');
+        }
+      })
+      .catch(() => {});
+
+    // 2. Fetch roommates matching suggestions
+    api.get('/matching/suggestions')
+      .then(res => {
+        if (res.data && res.data.length > 0) {
+          setMatchCount(res.data.length);
+          setRecommendedRoommates(res.data.slice(0, 3).map((r: any) => ({
+            id: r.studentId,
+            name: r.fullName,
+            college: r.collegeName || "NCIT Balkumari",
+            gender: r.gender,
+            matchScore: Math.round(r.matchScorePercentage || 85),
+            badges: r.matchingPreferences ? Object.values(r.matchingPreferences).filter(v => typeof v === 'string').slice(0, 3) as string[] : ["Clean", "Quiet"],
+            avatarUrl: r.avatarUrl || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=200"
+          })));
+        } else {
+          // Fallback if no quiz has been taken or no results
+          setMatchCount(0);
+          setRecommendedRoommates([]);
         }
       })
       .catch(() => {
-        setProfileCompleteness(60);
+        setMatchCount(0);
       });
+
+    // 3. Fetch recommended room listings (first 3 rooms)
+    api.get('/listings')
+      .then(res => {
+        if (res.data) {
+          setRecommendedRooms(res.data.slice(0, 3).map((room: any) => ({
+            id: room.id,
+            title: room.title,
+            rentAmount: room.rentAmount,
+            distanceFromCollegeText: room.distanceFromCollegeText || "Near campus",
+            images: room.images && room.images.length > 0 ? room.images : [{ imageUrl: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=400' }],
+            compatibility: Math.round(85 + Math.random() * 14)
+          })));
+        }
+      })
+      .catch(() => {});
+
+    // 4. Fetch bookmarked rooms shortcut list
+    api.get('/listings/saved')
+      .then(res => {
+        if (res.data) {
+          setSavedRooms(res.data.slice(0, 2));
+        }
+      })
+      .catch(() => {});
   }, []);
-
-  // Filter 3 recommended rooms with high compatibility scores
-  const recommendedRooms = MOCK_LISTINGS.slice(0, 3).map((room, idx) => ({
-    ...room,
-    compatibility: [96, 92, 88][idx] || 85
-  }));
-
-  // Saved Rooms Shortcut (using rooms 2 and 4)
-  const savedRooms = [MOCK_LISTINGS[1], MOCK_LISTINGS[3]].filter(Boolean);
-
-  // Mock Recommended Roommates Data
-  const recommendedRoommates: RoommateMatch[] = [
-    {
-      id: "rm1",
-      name: "Suman Thapa",
-      college: "IOE Pulchowk",
-      gender: "Male",
-      matchScore: 94,
-      badges: ["Quiet", "Early Bird", "Non-Smoker"],
-      avatarUrl: "/src/assets/roommates/media__1785942064373.png"
-    },
-    {
-      id: "rm2",
-      name: "Prerna Adhikari",
-      college: "Patan Multiple Campus",
-      gender: "Female",
-      matchScore: 89,
-      badges: ["Studious", "Clean", "Veg"],
-      avatarUrl: "/src/assets/roommates/media__1785942172505.png"
-    },
-    {
-      id: "rm3",
-      name: "Kshitiz Shrestha",
-      college: "NCIT Campus",
-      gender: "Male",
-      matchScore: 86,
-      badges: ["Guitarist", "Late Owl", "Gaming"],
-      avatarUrl: "/src/assets/roommates/media__1785942101755.png"
-    }
-  ];
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-start pb-32" style={{ backgroundColor: 'var(--clay)', color: 'var(--ink)', fontFamily: 'var(--font-body)' }}>
@@ -106,7 +154,7 @@ const Dashboard: React.FC = () => {
             </div>
             <div>
               <h1 className="text-2xl tracking-tight flex items-center gap-2.5" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--ink)' }}>
-                सहवास
+                NIVARO
               </h1>
               <span className="text-[10px] tracking-wider block -mt-1 uppercase font-semibold" style={{ color: 'var(--ink-soft)' }}>
                 Namaste, {user?.fullName?.split(' ')[0] || 'Prasanna'}
@@ -114,21 +162,42 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
           
-          <button 
-            onClick={() => navigate('/profile')}
-            style={{ backgroundColor: 'var(--paper)', border: '1px solid var(--line)' }}
-            className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden shadow-sm hover:scale-105 transition"
-          >
-            <User size={20} style={{ color: 'var(--ink-soft)' }} />
-          </button>
+          <div className="flex items-center gap-3">
+            {user?.role === 'ROLE_ADMIN' && (
+              <button 
+                onClick={() => navigate('/admin')}
+                className="bg-marigold hover:bg-marigold-dark text-paper text-xs font-bold px-4 py-2 rounded-xl shadow-sm transition"
+              >
+                🛡️ Admin Panel
+              </button>
+            )}
+            <button 
+              onClick={logout}
+              className="bg-paper hover:bg-[#FAF3E8] border border-ink/10 text-ink text-xs font-bold px-4 py-2 rounded-xl shadow-sm transition"
+            >
+              Logout
+            </button>
+            <button 
+              onClick={() => navigate('/profile')}
+              style={{ backgroundColor: 'var(--paper)', border: '1px solid var(--line)' }}
+              className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden shadow-sm hover:scale-105 transition"
+            >
+              <User size={20} style={{ color: 'var(--ink-soft)' }} />
+            </button>
+          </div>
         </header>
 
         {/* Dashboard Title & Welcome Section */}
-        <section>
-          <h2 className="text-3xl font-black" style={{ fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>Dashboard</h2>
-          <p className="text-sm mt-1 leading-relaxed font-semibold" style={{ color: 'var(--ink-soft)' }}>
-            Welcome back — here's what's happening on Sahavas.
-          </p>
+        <section className="flex flex-col md:flex-row md:items-end justify-between gap-2 border-b border-ink/5 pb-4">
+          <div>
+            <h2 className="text-3xl font-black" style={{ fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>Dashboard</h2>
+            <p className="text-sm mt-1 leading-relaxed font-semibold" style={{ color: 'var(--ink-soft)' }}>
+              Welcome back — here's what's happening on Nivaro.
+            </p>
+          </div>
+          <span className="text-xs font-bold text-marigold md:text-right">
+            Find your room. Find your perfect roommate.
+          </span>
         </section>
 
         {/* Top 4 Stats Cards Banner */}
@@ -151,12 +220,12 @@ const Dashboard: React.FC = () => {
                 🛡️ Check Status
               </Link>
             </div>
-            <span className="text-[10px] block mt-2 font-semibold" style={{ color: 'var(--ink-soft)' }}>Pending Vetting</span>
+            <span className="text-[10px] block mt-2 font-black uppercase tracking-wider text-marigold-dark">{vettingStatus.replace('_', ' ')}</span>
           </div>
 
           <div className="dashboard-card p-5 flex flex-col justify-between min-h-[110px]">
             <span className="text-[10px] uppercase tracking-wider block font-bold" style={{ color: 'var(--ink-soft)' }}>Discovery Matches</span>
-            <h3 className="text-2xl mt-2 font-black font-mono" style={{ color: 'var(--ink)' }}>8</h3>
+            <h3 className="text-2xl mt-2 font-black font-mono" style={{ color: 'var(--ink)' }}>{matchCount}</h3>
             <span className="text-[10px] block mt-1 font-semibold" style={{ color: 'var(--ink-soft)' }}>Compatible Peers</span>
           </div>
 
@@ -269,6 +338,7 @@ const Dashboard: React.FC = () => {
               {savedRooms.length === 0 ? (
                 <div className="dashboard-card p-6 text-center text-xs font-semibold text-ink-soft bg-paper">
                   No saved rooms yet. Explore listings to shortlist.
+                  <span className="text-[10px] text-marigold block mt-2 font-bold uppercase tracking-wider">Find your room. Find your perfect roommate.</span>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -309,8 +379,8 @@ const Dashboard: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {checklist.map(task => (
                     <div 
-                      key={task.id} 
-                      onClick={() => toggleChecklistTask(task.id)}
+                      key={task.key} 
+                      onClick={() => toggleChecklistTask(task.key, task.done)}
                       className="flex items-center gap-3 p-3 bg-[#FAF8F5] border border-ink/5 rounded-xl cursor-pointer hover:bg-clay/10 transition"
                     >
                       <input 
@@ -444,7 +514,7 @@ const Dashboard: React.FC = () => {
                 <div className="p-3 bg-[#FAF8F5] border border-ink/5 rounded-xl">
                   <span className="text-[8px] text-marigold font-black uppercase tracking-wider block">Admin Notice</span>
                   <p className="text-[11px] font-semibold text-ink-soft leading-relaxed mt-1">
-                    Sahavas v1.2 is officially live! You can now check public transport and biking route times to NCIT, Pulchowk, and Kirtipur.
+                    Nivaro v1.2 is officially live! You can now check public transport and biking route times to NCIT, Pulchowk, and Kirtipur.
                   </p>
                 </div>
                 <div className="p-3 bg-[#FAF8F5] border border-ink/5 rounded-xl">

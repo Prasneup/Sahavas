@@ -22,7 +22,15 @@ public class UserPrincipal implements UserDetails {
         this.id = user.getId();
         this.phoneNumber = user.getPhoneNumber();
         this.password = user.getPasswordHash();
-        this.authorities = Collections.singletonList(new SimpleGrantedAuthority(user.getRole()));
+        String securityRole = user.getRole();
+        if (securityRole != null) {
+            if (!securityRole.toUpperCase().startsWith("ROLE_")) {
+                securityRole = "ROLE_" + securityRole.toUpperCase();
+            }
+        } else {
+            securityRole = "ROLE_STUDENT";
+        }
+        this.authorities = Collections.singletonList(new SimpleGrantedAuthority(securityRole));
     }
 
     @Override

@@ -7,6 +7,7 @@ const Signup: React.FC = () => {
     phoneNumber: '',
     email: '',
     password: '',
+    role: 'student',
     fullName: '',
     gender: 'MALE',
     hometownDistrict: '',
@@ -47,16 +48,16 @@ const Signup: React.FC = () => {
         
         {/* Header Bar */}
         <div className="text-center mb-8 flex flex-col items-center">
-          {/* Sahavas Mandala/Sun Logo Icon */}
+          {/* Nivaro Mandala/Sun Logo Icon */}
           <div className="w-10 h-10 rounded-full bg-paper flex items-center justify-center border border-ink/10 shadow-sm mb-3">
             <svg className="w-6 h-6 text-marigold" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <circle cx="12" cy="12" r="4" />
               <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
             </svg>
           </div>
-          <h2 className="text-3xl font-black text-ink font-display">सहवास</h2>
+          <h2 className="text-3xl font-black text-ink font-display">NIVARO</h2>
           <p className="text-xs text-ink-soft font-semibold mt-2">
-            Create Student Profile to discover housing & roommates.
+            Find your room. Find your perfect roommate.
           </p>
         </div>
 
@@ -67,6 +68,19 @@ const Signup: React.FC = () => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Account Type</label>
+            <select
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold"
+            >
+              <option value="student">Student (Looking for roommate/rooms)</option>
+              <option value="owner">House Owner / Landlord (Posting rooms)</option>
+            </select>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Full Name</label>
@@ -155,34 +169,36 @@ const Signup: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Major Course</label>
-              <input
-                type="text"
-                name="majorCourse"
-                value={formData.majorCourse}
-                onChange={handleChange}
-                placeholder="e.g. BBA, BIM, CSIT"
-                className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold"
-              />
-            </div>
+          {formData.role === 'student' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Major Course</label>
+                <input
+                  type="text"
+                  name="majorCourse"
+                  value={formData.majorCourse}
+                  onChange={handleChange}
+                  placeholder="e.g. BBA, BIM, CSIT"
+                  className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold"
+                />
+              </div>
 
-            <div>
-              <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Academic Year</label>
-              <select
-                name="academicYear"
-                value={formData.academicYear}
-                onChange={handleChange}
-                className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold"
-              >
-                <option value={1}>First Year</option>
-                <option value={2}>Second Year</option>
-                <option value={3}>Third Year</option>
-                <option value={4}>Fourth Year</option>
-              </select>
+              <div>
+                <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Academic Year</label>
+                <select
+                  name="academicYear"
+                  value={formData.academicYear}
+                  onChange={handleChange}
+                  className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold"
+                >
+                  <option value={1}>First Year</option>
+                  <option value={2}>Second Year</option>
+                  <option value={3}>Third Year</option>
+                  <option value={4}>Fourth Year</option>
+                </select>
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
             <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Password</label>

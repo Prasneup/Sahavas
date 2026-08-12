@@ -11,4 +11,5 @@ import java.util.UUID;
 public interface TrustReportRepository extends JpaRepository<TrustReport, UUID> {
     List<TrustReport> findByReportedUserId(UUID reportedUserId);
     long countByReportedUserIdAndStatus(UUID reportedUserId, TrustReport.ReportStatus status);
+    long countByStatus(TrustReport.ReportStatus status);
 }

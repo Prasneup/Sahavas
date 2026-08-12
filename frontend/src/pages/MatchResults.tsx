@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, RefreshCw } from 'lucide-react';
-import { Roommate, MOCK_ROOMMATES } from '../services/roommatesData';
+import { Roommate } from '../services/roommatesData';
+import api from '../services/api';
 
 const MatchResults: React.FC = () => {
   const navigate = useNavigate();
@@ -25,9 +26,47 @@ const MatchResults: React.FC = () => {
     const storedInterested = localStorage.getItem('interestedRoommates');
     if (storedInterested) setInterestedIds(JSON.parse(storedInterested));
 
-    // Sort mock roommates by compatibilityScore
-    const sorted = [...MOCK_ROOMMATES].sort((a, b) => b.compatibilityScore - a.compatibilityScore);
-    setRoommates(sorted);
+    const loadSuggestions = async () => {
+      try {
+        const res = await api.get('/matching/suggestions');
+        if (res.data && res.data.length > 0) {
+          const mapped = res.data.map((r: any) => ({
+            id: r.studentId,
+            name: r.fullName,
+            compatibilityScore: Math.round(r.matchScorePercentage || 85),
+            college: r.collegeName || "NCIT Balkumari",
+            department: r.majorCourse || "Computer Science",
+            academicYear: `${r.academicYear} Year`,
+            budgetRange: `NPR ${r.budgetMin} - ${r.budgetMax} / mo`,
+            smokingStatus: r.matchingPreferences?.smoking === 1 ? "Non-Smoker" : (r.matchingPreferences?.smoking === 5 ? "Regular Smoker" : "Social Smoker"),
+            drinkingHabit: r.matchingPreferences?.drinking === 1 ? "Never" : "Socially",
+            studyStyle: "Quiet library study",
+            sleepSchedule: r.matchingPreferences?.sleepSchedule === 2 ? "Early Bird" : "Late Owl",
+            cleanlinessLevel: r.matchingPreferences?.cleanliness === 5 ? "High Cleanliness" : (r.matchingPreferences?.cleanliness === 3 ? "Moderate Cleanliness" : "Low Cleanliness"),
+            guestPreference: "No overnight guests",
+            hometown: r.hometownDistrict || "Kathmandu",
+            bio: r.bio || "Student matching partner on Sahavas",
+            avatarUrl: r.avatarUrl || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=200",
+            interests: ["Football", "Guitar", "Gaming"],
+            compatibilityBreakdown: {
+              lifestyle: Math.round(80 + Math.random() * 20),
+              study: Math.round(80 + Math.random() * 20),
+              budget: Math.round(80 + Math.random() * 20),
+              cleanliness: Math.round(80 + Math.random() * 20),
+              location: Math.round(80 + Math.random() * 20)
+            }
+          }));
+          setRoommates(mapped.sort((a: any, b: any) => b.compatibilityScore - a.compatibilityScore));
+        } else {
+          setRoommates([]);
+        }
+      } catch (err) {
+        console.error("Could not fetch backend roommate suggestions", err);
+        setRoommates([]);
+      }
+    };
+
+    loadSuggestions();
   }, []);
 
   const handleSkip = (id: string, e: React.MouseEvent) => {
@@ -114,7 +153,8 @@ const MatchResults: React.FC = () => {
           <div className="text-center py-16 bg-paper border border-ink/10 rounded-[32px] max-w-md mx-auto p-8 shadow-sm space-y-4">
             <h3 className="text-lg font-bold font-display text-ink">No Matches Found</h3>
             <p className="text-ink-soft text-xs leading-relaxed font-semibold">
-              No compatible roommates found yet. Adjust your preference settings to expand matches.
+              No compatible roommates found yet. Adjust your preference settings to expand matches.<br/>
+              <span className="text-[10px] text-marigold block mt-3 font-bold uppercase tracking-wider">Find your room. Find your perfect roommate.</span>
             </p>
             <button 
               onClick={() => navigate('/roommates')}
@@ -127,7 +167,8 @@ const MatchResults: React.FC = () => {
           <div className="text-center py-16 bg-paper border border-ink/10 rounded-[32px] max-w-md mx-auto p-8 shadow-sm space-y-4">
             <h3 className="text-lg font-bold font-display text-ink">Matches Completed</h3>
             <p className="text-ink-soft text-xs leading-relaxed font-semibold">
-              You have viewed all available roommate matches in the system.
+              You have viewed all available roommate matches in the system.<br/>
+              <span className="text-[10px] text-marigold block mt-3 font-bold uppercase tracking-wider">Find your room. Find your perfect roommate.</span>
             </p>
             <button 
               onClick={handleRefresh}
@@ -145,7 +186,7 @@ const MatchResults: React.FC = () => {
               return (
                 <div 
                   key={roommate.id}
-                  onClick={() => navigate(`/matches/${roommate.id}`)}
+                  onClick={() => navigate(`/matches/${roommate.id}`, { state: { roommate } })}
                   className="dashboard-card p-5 bg-paper flex flex-col justify-between hover:shadow-md transition cursor-pointer border border-ink/5 relative overflow-hidden group"
                 >
                   {/* Top Header Card Info */}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
-import { MOCK_ROOMMATES } from '../services/roommatesData';
+import api from '../services/api';
 
 const RoommateDiscovery: React.FC = () => {
   const navigate = useNavigate();
@@ -19,15 +19,17 @@ const RoommateDiscovery: React.FC = () => {
   const [progress, setProgress] = useState(0);
   const [loaderMessage, setLoaderMessage] = useState('Analyzing Lifestyle Preferences...');
 
+  const [matches, setMatches] = useState<any[]>([]);
+
   // Dashboard Stats States
   const [stats, setStats] = useState({
-    compatibleMatches: 8,
-    pendingRequests: 3,
-    savedProfiles: 4,
+    compatibleMatches: 0,
+    pendingRequests: 0,
+    savedProfiles: 0,
     acceptedConnections: 2
   });
 
-  // Load Saved Stats
+  // Load Saved Stats & Matches preview
   useEffect(() => {
     const savedPending = localStorage.getItem('pendingRequestsCount');
     if (savedPending) {
@@ -37,12 +39,66 @@ const RoommateDiscovery: React.FC = () => {
     if (savedBookmarks) {
       setStats(prev => ({ ...prev, savedProfiles: parseInt(savedBookmarks, 10) }));
     }
+
+    const fetchPreviewMatches = async () => {
+      try {
+        const res = await api.get('/matching/suggestions');
+        if (res.data) {
+          const mapped = res.data.map((r: any) => ({
+            id: r.studentId,
+            name: r.fullName,
+            college: r.collegeName || "NCIT Balkumari",
+            compatibilityScore: Math.round(r.matchScorePercentage || 85),
+            bio: r.bio || "Student matching partner on Sahavas",
+            avatarUrl: r.avatarUrl || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=200",
+            sleepSchedule: r.matchingPreferences?.sleepSchedule === 2 ? "Early Bird" : "Late Owl",
+            smokingStatus: r.matchingPreferences?.smoking === 1 ? "Non-Smoker" : "Smoker"
+          }));
+          setMatches(mapped.slice(0, 3));
+          setStats(prev => ({ ...prev, compatibleMatches: res.data.length }));
+        }
+      } catch (err) {
+        console.error("Failed to load suggested roommate matches", err);
+      }
+    };
+    fetchPreviewMatches();
   }, [step]);
 
   // Handle quiz submit & matching animation
-  const handleSubmitQuiz = () => {
+  const handleSubmitQuiz = async () => {
     setStep('PROCESSING');
     setProgress(0);
+
+    // Map quiz values to database expected integer scales (1..5)
+    const sleepVal = sleep === 'EARLY' ? 2 : 4;
+    const smokingVal = smoking === 'NON_SMOKER' ? 1 : (smoking === 'SOCIAL' ? 3 : 5);
+    const cleanlinessVal = cleanliness === 'HIGH' ? 5 : (cleanliness === 'MODERATE' ? 3 : 1);
+    const drinkingVal = drinking === 'NEVER' ? 1 : 3;
+
+    let bMin = 6000;
+    let bMax = 8000;
+    if (budget === '4k-6k') { bMin = 4000; bMax = 6000; }
+    else if (budget === '8k-10k') { bMin = 8000; bMax = 10000; }
+    else if (budget === '10k-12k') { bMin = 10000; bMax = 12000; }
+
+    const payload = {
+      sleepSchedule: sleepVal,
+      smoking: smokingVal,
+      cleanliness: cleanlinessVal,
+      drinking: drinkingVal,
+      budgetMin: bMin,
+      budgetMax: bMax,
+      studyHabits: 3,
+      foodPreference: 3,
+      socialLevel: 3,
+      noiseTolerance: 3
+    };
+
+    try {
+      await api.post('/matching/preferences', payload);
+    } catch (err) {
+      console.warn("Failed to post roommate preferences to backend", err);
+    }
   };
 
   useEffect(() => {
@@ -157,39 +213,45 @@ const RoommateDiscovery: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {MOCK_ROOMMATES.slice(0, 3).map((match) => (
-                  <div 
-                    key={match.id}
-                    onClick={() => navigate(`/matches/${match.id}`)}
-                    className="dashboard-card p-5 bg-paper flex flex-col justify-between hover:-translate-y-0.5 hover:shadow-md transition cursor-pointer"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <img src={match.avatarUrl} alt={match.name} className="w-12 h-12 rounded-full object-cover border border-ink/10" />
-                        <div>
-                          <h4 className="text-xs font-black text-ink">{match.name}</h4>
-                          <span className="text-[10px] text-ink-soft block font-semibold">{match.college}</span>
-                        </div>
-                      </div>
-                      <span className="text-xs font-bold text-pine bg-pine-light px-2.5 py-1 rounded-full font-mono">
-                        {match.compatibilityScore}%
-                      </span>
-                    </div>
-
-                    <p className="text-xs text-ink-soft line-clamp-2 mt-4 font-medium italic">
-                      "{match.bio}"
-                    </p>
-
-                    <div className="flex flex-wrap gap-1.5 mt-4 pt-4 border-t border-ink/5">
-                      <span className="text-[8px] bg-clay text-ink-soft font-bold px-2 py-0.5 rounded uppercase">
-                        {match.sleepSchedule}
-                      </span>
-                      <span className="text-[8px] bg-clay text-ink-soft font-bold px-2 py-0.5 rounded uppercase">
-                        {match.smokingStatus}
-                      </span>
-                    </div>
+                {matches.length === 0 ? (
+                  <div className="md:col-span-3 text-center py-10 bg-paper border border-ink/5 rounded-2xl text-xs font-bold text-ink-soft">
+                    No compatible roommate matches found. Take the quiz to see matches!
                   </div>
-                ))}
+                ) : (
+                  matches.map((match) => (
+                    <div 
+                      key={match.id}
+                      onClick={() => navigate(`/matches/${match.id}`, { state: { roommate: match } })}
+                      className="dashboard-card p-5 bg-paper flex flex-col justify-between hover:-translate-y-0.5 hover:shadow-md transition cursor-pointer"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <img src={match.avatarUrl} alt={match.name} className="w-12 h-12 rounded-full object-cover border border-ink/10" />
+                          <div>
+                            <h4 className="text-xs font-black text-ink">{match.name}</h4>
+                            <span className="text-[10px] text-ink-soft block font-semibold">{match.college}</span>
+                          </div>
+                        </div>
+                        <span className="text-xs font-bold text-pine bg-pine-light px-2.5 py-1 rounded-full font-mono">
+                          {match.compatibilityScore}%
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-ink-soft line-clamp-2 mt-4 font-medium italic">
+                        "{match.bio}"
+                      </p>
+
+                      <div className="flex flex-wrap gap-1.5 mt-4 pt-4 border-t border-ink/5">
+                        <span className="text-[8px] bg-clay text-ink-soft font-bold px-2 py-0.5 rounded uppercase">
+                          {match.sleepSchedule}
+                        </span>
+                        <span className="text-[8px] bg-clay text-ink-soft font-bold px-2 py-0.5 rounded uppercase">
+                          {match.smokingStatus}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </section>
 

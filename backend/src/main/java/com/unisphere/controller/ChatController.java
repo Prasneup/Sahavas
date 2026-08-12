@@ -110,6 +110,56 @@ public class ChatController {
         return ResponseEntity.ok(msgs);
     }
 
+    @PostMapping("/conversations/{id}/messages")
+    public ResponseEntity<Message> postMessage(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable("id") UUID conversationId,
+            @RequestBody Map<String, String> body) {
+
+        UUID senderId = principal.getId();
+        String content = body.get("content");
+
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
+
+        Message message = Message.builder()
+                .conversationId(conversationId)
+                .senderId(senderId)
+                .content(content)
+                .messageType(Message.MessageType.TEXT)
+                .build();
+
+        Message saved = messageRepository.save(message);
+        conversationRepository.save(conversation);
+
+        try {
+            User peer = conversation.getParticipants().stream()
+                    .filter(p -> !p.getId().equals(senderId))
+                    .findFirst()
+                    .orElse(null);
+            if (peer != null) {
+                ChatPayload payload = ChatPayload.builder()
+                        .id(saved.getId())
+                        .conversationId(conversationId)
+                        .senderId(senderId)
+                        .recipientId(peer.getId())
+                        .content(content)
+                        .messageType("TEXT")
+                        .createdAt(saved.getCreatedAt().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME))
+                        .build();
+                messagingTemplate.convertAndSendToUser(
+                        peer.getId().toString(),
+                        "/queue/messages",
+                        payload
+                );
+            }
+        } catch (Exception e) {
+            // Socket fallback logs
+        }
+
+        return ResponseEntity.ok(saved);
+    }
+
     @PostMapping("/conversations")
     public ResponseEntity<Map<String, Object>> createConversation(
             @AuthenticationPrincipal UserPrincipal principal,

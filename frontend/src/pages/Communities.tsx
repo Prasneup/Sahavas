@@ -95,35 +95,8 @@ const Communities: React.FC = () => {
         setSelectedCommunity(res.data[0]);
       }
     } catch (err) {
-      console.warn("API communities failed, using mock data");
-      const mockComs: Community[] = [
-        {
-          id: "com1",
-          name: "Pulchowk Campus Hub",
-          description: "Official discussion forum for Pulchowk Engineering Campus, Lalitpur.",
-          type: 'COLLEGE'
-        },
-        {
-          id: "com2",
-          name: "Kaski District Union",
-          description: "Student union forum for all residents relocating from Pokhara/Kaski.",
-          type: 'DISTRICT'
-        },
-        {
-          id: "com3",
-          name: "BBA Students Network",
-          description: "Academic support and housing listings for BBA students across Nepal.",
-          type: 'COURSE'
-        },
-        {
-          id: "com4",
-          name: "Thapathali campus",
-          description: "Official discussion for Thapathali campus, Thapathali",
-          type: 'COLLEGE'
-        }
-      ];
-      setCommunities(mockComs);
-      setSelectedCommunity(mockComs[0]);
+      console.error("Failed to load communities", err);
+      setCommunities([]);
     } finally {
       setLoading(false);
     }
@@ -134,66 +107,8 @@ const Communities: React.FC = () => {
       const res = await api.get(`/communities/${communityId}/posts`);
       setPosts(res.data);
     } catch (err) {
-      console.warn("API posts failed, using mock items");
-      const mockPosts: Post[] = [
-        {
-          id: "p1",
-          communityId: "com1",
-          authorId: "user1",
-          authorName: "Suman Thapa",
-          authorAvatar: "https://www.shutterstock.com/image-photo/nepali-bag-boy-model-people-260nw-2458102951.jpg",
-          authorVerification: "VERIFIED",
-          title: "Looking for flat replacement near Pulchowk Gate",
-          content: "We have one spare room in a 2BHK flat. Looking for a neat Pulchowk student to join us. Rent is around NPR 6,500. Message me for photos!",
-          postType: "TEXT",
-          likesCount: 12,
-          commentsCount: 3,
-          likedByMe: false,
-          createdAt: new Date(Date.now() - 3600000).toISOString()
-        },
-        {
-          id: "p2",
-          communityId: "com1",
-          authorId: "user2",
-          authorName: "Alok Prasai",
-          authorAvatar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT-3u_VaB3cULFaAZjUQ4IKfniEnTLJsqkTETb9CDT4SA&s",
-          authorVerification: "VERIFIED",
-          title: "Quick Poll: Sleep habits of engineering students",
-          content: "Curious to know when most engineering roommates prefer to sleep during exam periods.",
-          postType: "POLL",
-          likesCount: 8,
-          commentsCount: 1,
-          likedByMe: true,
-          createdAt: new Date(Date.now() - 7200000).toISOString(),
-          pollOptions: [
-            { id: "o1", optionText: "Early Bird (sleeps before 10 PM)", votesCount: 5 },
-            { id: "o2", optionText: "Night Owl (stays awake after 1 AM)", votesCount: 22 },
-            { id: "o3", optionText: "All-nighter study schedule", votesCount: 14 }
-          ]
-        },
-        {
-          id: "p3",
-          communityId: "com1",
-          authorId: "user3",
-          authorName: "Shristi Shrestha",
-          authorAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150",
-          authorVerification: "VERIFIED",
-          title: "Flat Hunting & Networking Meetup",
-          content: "Let's gather near the Pulchowk playground to discuss room sharing options and pool transport costs for district movers.",
-          postType: "EVENT",
-          likesCount: 19,
-          commentsCount: 5,
-          likedByMe: false,
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-          eventDetails: {
-            eventDate: new Date(Date.now() + 86400000 * 2).toISOString(),
-            location: "Pulchowk Playground, Lalitpur",
-            rsvpsCount: 14
-          }
-        }
-      ];
-
-      setPosts(mockPosts.filter(p => p.communityId === communityId));
+      console.error("Failed to load posts", err);
+      setPosts([]);
     }
   };
 
@@ -232,23 +147,8 @@ const Communities: React.FC = () => {
       const res = await api.get(`/communities/posts/${postId}/comments`);
       setCommentsMap(prev => ({ ...prev, [postId]: res.data }));
     } catch (err) {
-      const mockComments: Comment[] = [
-        {
-          id: "c1",
-          postId,
-          authorName: "Suman Thapa",
-          content: "Is this flat room still available?",
-          createdAt: new Date(Date.now() - 1800000).toISOString()
-        },
-        {
-          id: "c2",
-          postId,
-          authorName: "Prasanna Neupane",
-          content: "Looks like a great location, highly compatible!",
-          createdAt: new Date(Date.now() - 900000).toISOString()
-        }
-      ];
-      setCommentsMap(prev => ({ ...prev, [postId]: mockComments }));
+      console.error("Failed to load comments", err);
+      setCommentsMap(prev => ({ ...prev, [postId]: [] }));
     }
   };
 
@@ -280,9 +180,23 @@ const Communities: React.FC = () => {
     }));
 
     try {
-      await api.post(`/communities/posts/${postId}/comments`, { content: commentContent });
+      const res = await api.post(`/communities/posts/${postId}/comments`, { content: commentContent });
+      setCommentsMap(prev => ({
+        ...prev,
+        [postId]: (prev[postId] || []).map(c => c.id === newCommentObj.id ? { ...c, id: res.data.id } : c)
+      }));
     } catch (err) {
-      console.warn("API comment post failed, using local simulated state");
+      alert("Failed to submit comment to server.");
+      setCommentsMap(prev => ({
+        ...prev,
+        [postId]: (prev[postId] || []).filter(c => c.id !== newCommentObj.id)
+      }));
+      setPosts(prev => prev.map(p => {
+        if (p.id === postId) {
+          return { ...p, commentsCount: Math.max(0, p.commentsCount - 1) };
+        }
+        return p;
+      }));
     }
   };
 
@@ -391,14 +305,14 @@ const Communities: React.FC = () => {
           </button>
 
           <div className="flex items-center gap-1.5">
-            {/* Sahavas Mandala Logo */}
+            {/* Nivaro Mandala Logo */}
             <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'var(--marigold)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)' }}>
               <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <circle cx="12" cy="12" r="4" />
                 <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
               </svg>
             </div>
-            <h1 className="text-xl font-bold tracking-tight" style={{ fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>सहवास Community</h1>
+            <h1 className="text-xl font-bold tracking-tight" style={{ fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>Nivaro Community</h1>
           </div>
         </div>
 

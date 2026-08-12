@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Home, Search, Users, MessageSquare, User, Bell } from 'lucide-react';
+import Footer from './Footer';
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -23,7 +24,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           
           {/* Header Row */}
           <div className="flex justify-between items-center py-3.5 border-b border-ink/5">
-            {/* Sahavas Logo */}
+            {/* Nivaro Logo */}
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/dashboard')}>
               <div className="w-8 h-8 rounded-full bg-marigold flex items-center justify-center text-ink shadow-sm">
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -31,7 +32,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                   <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
                 </svg>
               </div>
-              <h1 className="text-xl font-black text-ink font-display tracking-tight">सहवास</h1>
+              <h1 className="text-xl font-black text-ink font-display tracking-tight">NIVARO</h1>
             </div>
 
             {/* Notification and Profile icons */}
@@ -75,9 +76,9 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </div>
       </nav>
 
-      {/* Main Page Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {children}
+        <Footer />
       </div>
 
       {/* Mobile Bottom Navigation (fixed at bottom, hidden on desktop) */}

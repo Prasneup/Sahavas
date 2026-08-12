@@ -12,6 +12,7 @@ const RoomSearch: React.FC = () => {
 
   useEffect(() => {
     loadListings();
+    loadWishlist();
   }, []);
 
   const loadListings = async () => {
@@ -28,19 +29,38 @@ const RoomSearch: React.FC = () => {
     }
   };
 
-  const toggleWishlist = (id: string, e: React.MouseEvent) => {
+  const loadWishlist = async () => {
+    try {
+      const res = await api.get('/listings/saved');
+      if (res.data) {
+        setWishlist(res.data.map((item: any) => item.id));
+      }
+    } catch (err) {
+      console.warn("API wishlist load failed", err);
+    }
+  };
+
+  const toggleWishlist = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation(); // Avoid triggering card navigation
-    if (wishlist.includes(id)) {
-      setWishlist(wishlist.filter(wId => wId !== id));
-    } else {
-      setWishlist([...wishlist, id]);
+    const isSaved = wishlist.includes(id);
+    try {
+      if (isSaved) {
+        await api.delete(`/listings/${id}/save`);
+        setWishlist(wishlist.filter(wId => wId !== id));
+      } else {
+        await api.post(`/listings/${id}/save`);
+        setWishlist([...wishlist, id]);
+      }
+    } catch (err) {
+      console.error("Failed to toggle wishlist status", err);
     }
   };
 
   const filteredListings = listings.filter(room => 
-    room.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    room.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    room.collegeName.toLowerCase().includes(searchQuery.toLowerCase())
+    (room.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (room.description || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (room.collegeName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (room.distanceFromCollegeText || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -57,14 +77,14 @@ const RoomSearch: React.FC = () => {
           </button>
           
           <div className="flex items-center gap-1.5">
-            {/* Sahavas Mandala Logo */}
+            {/* Nivaro Mandala Logo */}
             <div className="w-7 h-7 rounded-full bg-paper flex items-center justify-center border border-ink/10">
               <svg className="w-4.5 h-4.5 text-marigold" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <circle cx="12" cy="12" r="4" />
                 <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
               </svg>
             </div>
-            <h1 className="text-xl font-black text-ink tracking-tight font-display">सहवास Rooms</h1>
+            <h1 className="text-xl font-black text-ink tracking-tight font-display">Nivaro Rooms</h1>
           </div>
         </div>
 
@@ -95,7 +115,10 @@ const RoomSearch: React.FC = () => {
         {filteredListings.length === 0 ? (
           <div className="text-center py-16 bg-paper border border-ink/10 rounded-[32px] max-w-md mx-auto p-8 shadow-sm">
             <h3 className="text-lg font-bold mb-2 font-display">No Listings Found</h3>
-            <p className="text-ink-soft text-sm mb-6">We couldn't find any rooms matching your search. Try searching for other colleges or districts.</p>
+            <p className="text-ink-soft text-xs mb-6 font-semibold leading-relaxed">
+              We couldn't find any rooms matching your search. Try searching for other colleges or districts.<br/>
+              <span className="text-[10px] text-marigold block mt-3 font-bold uppercase tracking-wider">Find your room. Find your perfect roommate.</span>
+            </p>
             <button 
               onClick={() => setSearchQuery('')}
               className="bg-marigold hover:bg-marigold-dark text-paper font-black py-2.5 px-6 rounded-xl text-xs uppercase tracking-wider transition shadow-sm"

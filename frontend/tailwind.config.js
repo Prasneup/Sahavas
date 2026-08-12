@@ -20,9 +20,9 @@ export default {
           cyan: '#0D9488', // Sagarmatha Cyan
           crimson: '#E11D48', // Crimson Rhododendron
           slate: '#1E293B', // Deep Slate
-          gold: '#D49D55', // Sahavas Gold/Ochre
-          cream: '#FAF8F5', // Sahavas Off-white/Cream
-          dark: '#1E1E1E', // Sahavas Deep Charcoal
+          gold: '#D49D55', // Nivaro Gold/Ochre
+          cream: '#FAF8F5', // Nivaro Off-white/Cream
+          dark: '#1E1E1E', // Nivaro Deep Charcoal
           greenbg: '#E6F4EA', // Light Green Badge
           greentxt: '#137333' // Dark Green Badge Text
         }

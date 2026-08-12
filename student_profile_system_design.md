@@ -1,4 +1,4 @@
-# System Design: Student Profile System (Sahavas / UniSphere Nepal)
+# System Design: Student Profile System (Nivaro / UniSphere Nepal)
 
 This document presents the Product Design and Software Architecture for the **Student Profile System** of UniSphere Nepal. The system adopts a **LinkedIn + Bumble** hybrid philosophy: combining strict, verified academic credentials (from LinkedIn) with lifestyle compatibility, interests, and matching vectors (from Bumble) to solve roommate and housing search struggles.
 

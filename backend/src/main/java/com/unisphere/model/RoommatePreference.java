@@ -66,4 +66,23 @@ public class RoommatePreference {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private ZonedDateTime updatedAt;
+
+    @PrePersist
+    @PreUpdate
+    protected void clampPreferences() {
+        smoking = clampValue(smoking);
+        drinking = clampValue(drinking);
+        sleepSchedule = clampValue(sleepSchedule);
+        cleanliness = clampValue(cleanliness);
+        studyHabits = clampValue(studyHabits);
+        foodPreference = clampValue(foodPreference);
+        socialLevel = clampValue(socialLevel);
+        noiseTolerance = clampValue(noiseTolerance);
+    }
+
+    private Integer clampValue(Integer val) {
+        if (val == null) return 1;
+        // Clamp to 1..5 range
+        return Math.max(1, Math.min(5, val));
+    }
 }

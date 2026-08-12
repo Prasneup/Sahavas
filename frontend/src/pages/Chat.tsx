@@ -3,8 +3,6 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Send, ArrowLeft, Paperclip, CheckCheck, Home, User, MessageCircle, Compass } from 'lucide-react';
-import { MOCK_ROOMMATES } from '../services/roommatesData';
-
 interface PeerProfile {
   id: string;
   fullName: string;
@@ -69,37 +67,22 @@ const Chat: React.FC = () => {
 
   const loadConversations = async () => {
     try {
-      const res = await api.get('/chats/conversations');
-      let list = res.data || [];
-      
+      // If id is present, first create/retrieve conversation with that peer ID
       if (id) {
-        const alreadyExists = list.some((c: any) => c.peerProfile.id === id);
-        if (!alreadyExists) {
-          const r = MOCK_ROOMMATES.find(item => item.id === id);
-          if (r) {
-            const newConv: Conversation = {
-              conversationId: `c_${r.id}`,
-              peerProfile: {
-                id: r.id,
-                fullName: r.name,
-                collegeName: r.college,
-                majorCourse: r.department,
-                avatarUrl: r.avatarUrl,
-                completenessPercentage: r.compatibilityScore
-              },
-              lastMessage: "Hi, I saw we have a high compatibility score. Would you like to discuss accommodation options?",
-              lastMessageTime: new Date().toISOString(),
-              unreadCount: 0
-            };
-            list = [newConv, ...list];
-          }
+        try {
+          await api.post('/chats/conversations', { recipientUserId: id });
+        } catch (err) {
+          console.warn("Failed to create conversation via API", err);
         }
       }
 
+      const res = await api.get('/chats/conversations');
+      let list = res.data || [];
+      
       setConversations(list);
       
       if (id) {
-        const found = list.find((c: any) => c.peerProfile.id === id);
+        const found = list.find((c: any) => c.peerProfile?.id === id);
         if (found) {
           setActiveConversation(found);
         } else if (list.length > 0) {
@@ -109,144 +92,20 @@ const Chat: React.FC = () => {
         setActiveConversation(list[0]);
       }
     } catch (err) {
-      console.warn("API conversations failed, loading mock chats");
-      let mockConversations: Conversation[] = [
-        {
-          conversationId: "c1",
-          peerProfile: {
-            id: "1",
-            fullName: "Suman Thapa",
-            collegeName: "Pulchowk Campus",
-            majorCourse: "Mechanical Engineering",
-            avatarUrl: "/src/assets/roommates/media__1785942064373.png",
-            completenessPercentage: 81
-          },
-          lastMessage: "I'll visit the Pulchowk flat tomorrow morning, want to join?",
-          lastMessageTime: new Date().toISOString(),
-          unreadCount: 2
-        },
-        {
-          conversationId: "c2",
-          peerProfile: {
-            id: "2",
-            fullName: "Rohan Basnet",
-            collegeName: "Apex College",
-            majorCourse: "BBA student",
-            avatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=150",
-            completenessPercentage: 74
-          },
-          lastMessage: "Are you fine with non-vegetarian kitchen rules?",
-          lastMessageTime: new Date(Date.now() - 3600000).toISOString(),
-          unreadCount: 0
-        }
-      ];
-
-      if (id) {
-        const alreadyExists = mockConversations.some(c => c.peerProfile.id === id);
-        if (!alreadyExists) {
-          const r = MOCK_ROOMMATES.find(item => item.id === id);
-          if (r) {
-            const newConv: Conversation = {
-              conversationId: `c_${r.id}`,
-              peerProfile: {
-                id: r.id,
-                fullName: r.name,
-                collegeName: r.college,
-                majorCourse: r.department,
-                avatarUrl: r.avatarUrl,
-                completenessPercentage: r.compatibilityScore
-              },
-              lastMessage: "Hi, I saw we have a high compatibility score. Would you like to discuss accommodation options?",
-              lastMessageTime: new Date().toISOString(),
-              unreadCount: 0
-            };
-            mockConversations = [newConv, ...mockConversations];
-          }
-        }
-      }
-
-      setConversations(mockConversations);
-      
-      if (id) {
-        const found = mockConversations.find(c => c.peerProfile.id === id);
-        if (found) {
-          setActiveConversation(found);
-        } else if (mockConversations.length > 0) {
-          setActiveConversation(mockConversations[0]);
-        }
-      } else if (mockConversations.length > 0) {
-        setActiveConversation(mockConversations[0]);
-      }
+      console.error("Failed to fetch conversations", err);
+      setConversations([]);
     } finally {
       setLoading(false);
     }
   };
 
   const loadMessages = async (convId: string) => {
-    if (convId.startsWith('c_')) {
-      const peerId = convId.replace('c_', '');
-      setMessages([
-        {
-          id: `m_start_${peerId}`,
-          conversationId: convId,
-          senderId: peerId,
-          content: "Hi, I saw we have a high compatibility score. Would you like to discuss accommodation options?",
-          messageType: "TEXT",
-          isRead: true,
-          createdAt: new Date(Date.now() - 300000).toISOString()
-        }
-      ]);
-      return;
-    }
-
     try {
       const res = await api.get(`/chats/conversations/${convId}/messages`);
-      setMessages(res.data);
+      setMessages(res.data || []);
     } catch (err) {
-      console.warn("API messages failed, loading mock history");
-      if (convId === "c1") {
-        setMessages([
-          {
-            id: "m1",
-            conversationId: convId,
-            senderId: "1",
-            content: "Hey, saw your roommate profile match! We got 81% compatibility score.",
-            messageType: "TEXT",
-            isRead: true,
-            createdAt: new Date(Date.now() - 7200000).toISOString()
-          },
-          {
-            id: "m2",
-            conversationId: convId,
-            senderId: user?.id || "my-id",
-            content: "Hey Suman! Yes, mechanical engineering sounds great. Where are you planning to lease?",
-            messageType: "TEXT",
-            isRead: true,
-            createdAt: new Date(Date.now() - 3600000).toISOString()
-          },
-          {
-            id: "m3",
-            conversationId: convId,
-            senderId: "1",
-            content: "I'll visit the Pulchowk flat tomorrow morning, want to join?",
-            messageType: "TEXT",
-            isRead: false,
-            createdAt: new Date(Date.now() - 600000).toISOString()
-          }
-        ]);
-      } else {
-        setMessages([
-          {
-            id: "m4",
-            conversationId: convId,
-            senderId: "2",
-            content: "Are you fine with non-vegetarian kitchen rules?",
-            messageType: "TEXT",
-            isRead: true,
-            createdAt: new Date(Date.now() - 3600000).toISOString()
-          }
-        ]);
-      }
+      console.error("Failed to load messages", err);
+      setMessages([]);
     }
   };
 
@@ -305,34 +164,22 @@ const Chat: React.FC = () => {
 
     setMessages(prev => [...prev, newMsg]);
 
+    try {
+      await api.post(`/chats/conversations/${activeConversation.conversationId}/messages`, { content: text });
+    } catch (err) {
+      console.warn("Failed to send message via REST API", err);
+    }
+
     // Send payload via socket or fallbacks
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       socketRef.current.send(JSON.stringify({
         conversationId: activeConversation.conversationId,
         senderId: user?.id,
-        recipientId: activeConversation.peerProfile.id,
+        recipientId: activeConversation.peerProfile?.id,
         content: text,
         type: 'CHAT',
         messageType: 'TEXT'
       }));
-    } else {
-      // Simulation simulated response after 2 seconds
-      setTimeout(() => {
-        setIsTyping(true);
-        setTimeout(() => {
-          setIsTyping(false);
-          const reply: Message = {
-            id: Math.random().toString(),
-            conversationId: activeConversation.conversationId,
-            senderId: activeConversation.peerProfile.id,
-            content: `Replied: "Sounds good, let's keep details updated."`,
-            messageType: "TEXT",
-            isRead: false,
-            createdAt: new Date().toISOString()
-          };
-          setMessages(prev => [...prev, reply]);
-        }, 1500);
-      }, 1000);
     }
   };
 
@@ -397,14 +244,14 @@ const Chat: React.FC = () => {
             </button>
             
             <div className="flex items-center gap-1.5">
-              {/* Sahavas Mandala Logo */}
+              {/* Nivaro Mandala Logo */}
               <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'var(--marigold)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)' }}>
                 <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <circle cx="12" cy="12" r="4" />
                   <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
                 </svg>
               </div>
-              <h1 className="text-xl font-bold tracking-tight" style={{ fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>सहवास Messages</h1>
+              <h1 className="text-xl font-bold tracking-tight" style={{ fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>Nivaro Messages</h1>
             </div>
           </div>
 
@@ -424,7 +271,12 @@ const Chat: React.FC = () => {
             </div>
 
             <div className="flex-1 overflow-y-auto divide-y" style={{ borderColor: 'var(--line)' }}>
-              {conversations.map(conv => {
+              {conversations.length === 0 ? (
+                <div className="p-6 text-center text-xs font-semibold text-ink-soft/75">
+                  No conversations yet.
+                  <span className="text-[10px] text-marigold block mt-2 font-bold uppercase tracking-wider">Find your room. Find your perfect roommate.</span>
+                </div>
+              ) : conversations.map(conv => {
                 const isActive = activeConversation?.conversationId === conv.conversationId;
                 return (
                   <div
@@ -642,6 +494,7 @@ const Chat: React.FC = () => {
               <p className="text-xs max-w-xs leading-relaxed mt-2">
                 Click on one of your roommate matches on the left to start coordinating housing search plans!
               </p>
+              <span className="text-[10px] text-marigold block mt-4 font-bold uppercase tracking-wider">Find your room. Find your perfect roommate.</span>
             </div>
           )}
         </main>

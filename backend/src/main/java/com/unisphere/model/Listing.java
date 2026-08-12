@@ -100,4 +100,38 @@ public class Listing {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private ZonedDateTime updatedAt;
+
+    @PrePersist
+    @PreUpdate
+    protected void normalizeFields() {
+        if (roomType != null) {
+            String clean = roomType.toLowerCase().trim();
+            if (clean.contains("single")) {
+                roomType = "single_room";
+            } else if (clean.contains("shared")) {
+                roomType = "shared_room";
+            } else if (clean.contains("flat")) {
+                roomType = "full_flat";
+            } else if (clean.contains("annex")) {
+                roomType = "annex";
+            } else {
+                roomType = "single_room";
+            }
+        } else {
+            roomType = "single_room";
+        }
+
+        if (genderPreference != null) {
+            String clean = genderPreference.toLowerCase().trim();
+            if (clean.contains("boy") || clean.contains("male")) {
+                genderPreference = "male";
+            } else if (clean.contains("girl") || clean.contains("female")) {
+                genderPreference = "female";
+            } else {
+                genderPreference = "any";
+            }
+        } else {
+            genderPreference = "any";
+        }
+    }
 }

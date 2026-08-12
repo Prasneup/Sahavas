@@ -56,18 +56,10 @@ public class TrustController {
         StudentProfile profile = studentProfileRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Profile not found"));
 
-        // Set college registration and verification tier
         profile.setCollegeRegistrationNumber(request.getRegistrationNumber());
         profile.setDocumentImageUrl(request.getImageUrl());
-        
-        // Auto transition to STUDENT_VERIFIED or COLLEGE_VERIFIED depending on document type
-        if ("STUDENT_ID".equalsIgnoreCase(request.getDocumentType())) {
-            profile.setVerificationLevel(VerificationLevel.COLLEGE_VERIFIED);
-            profile.setVerificationStatus("VERIFIED");
-        } else {
-            profile.setVerificationLevel(VerificationLevel.STUDENT_VERIFIED);
-            profile.setVerificationStatus("VERIFIED");
-        }
+        profile.setVerificationStatus("PENDING_VERIFICATION");
+        profile.setVerificationLevel(VerificationLevel.PHONE_VERIFIED);
 
         studentProfileRepository.save(profile);
         int newScore = trustService.calculateTrustScore(userId);
@@ -75,6 +67,7 @@ public class TrustController {
         Map<String, Object> res = new HashMap<>();
         res.put("success", true);
         res.put("newVerificationLevel", profile.getVerificationLevel().toString());
+        res.put("newVerificationStatus", profile.getVerificationStatus());
         res.put("newTrustScore", newScore);
 
         return ResponseEntity.ok(res);

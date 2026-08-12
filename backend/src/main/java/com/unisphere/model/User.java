@@ -1,5 +1,6 @@
 package com.unisphere.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -18,6 +19,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class User {
 
     @Id
@@ -50,4 +52,27 @@ public class User {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private ZonedDateTime updatedAt;
+
+    @PrePersist
+    @PreUpdate
+    protected void normalizeFields() {
+        if (role != null) {
+            String clean = role.toLowerCase();
+            if (clean.contains("admin")) {
+                role = "admin";
+            } else if (clean.contains("landlord") || clean.contains("owner")) {
+                role = "owner";
+            } else {
+                role = "student";
+            }
+        } else {
+            role = "student";
+        }
+
+        if (status != null) {
+            status = status.toLowerCase();
+        } else {
+            status = "pending_verification";
+        }
+    }
 }

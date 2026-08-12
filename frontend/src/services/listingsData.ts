@@ -24,6 +24,12 @@ export interface Listing {
   hostPhone: string;
   hostAvatarUrl: string;
   isAvailable: boolean;
+  owner?: {
+    id: string;
+    email: string;
+    role: string;
+    status: string;
+  };
 }
 
 export const MOCK_LISTINGS: Listing[] = [
