@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 
 const Login: React.FC = () => {
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -15,8 +15,14 @@ const Login: React.FC = () => {
     setError('');
     setIsSubmitting(true);
     try {
-      await login(phoneNumber, password);
-      navigate('/dashboard');
+      const loggedInUser = await login(email, password);
+      if (loggedInUser.role === 'admin') {
+        navigate('/admin');
+      } else if (loggedInUser.role === 'owner') {
+        navigate('/landlord');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed. Please check credentials.');
     } finally {
@@ -52,14 +58,14 @@ const Login: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-ink-soft text-xs font-bold uppercase tracking-wider mb-2">
-              Phone Number
+              Email Address
             </label>
             <input
-              type="text"
+              type="email"
               required
-              placeholder="e.g. 9841234567"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
+              placeholder="student@college.edu.np"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-3.5 focus:outline-none focus:border-marigold transition text-sm font-semibold"
             />
           </div>

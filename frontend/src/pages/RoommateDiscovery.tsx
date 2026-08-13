@@ -31,17 +31,20 @@ const RoommateDiscovery: React.FC = () => {
 
   // Load Saved Stats & Matches preview
   useEffect(() => {
-    const savedPending = localStorage.getItem('pendingRequestsCount');
-    if (savedPending) {
-      setStats(prev => ({ ...prev, pendingRequests: parseInt(savedPending, 10) }));
-    }
-    const savedBookmarks = localStorage.getItem('savedProfilesCount');
-    if (savedBookmarks) {
-      setStats(prev => ({ ...prev, savedProfiles: parseInt(savedBookmarks, 10) }));
-    }
-
-    const fetchPreviewMatches = async () => {
+    const fetchStatsAndMatches = async () => {
       try {
+        // Fetch stats first
+        const statsRes = await api.get('/roommates/stats');
+        if (statsRes.data) {
+          setStats({
+            compatibleMatches: statsRes.data.compatibleMatches || 0,
+            pendingRequests: statsRes.data.pendingRequests || 0,
+            savedProfiles: statsRes.data.savedProfiles || 0,
+            acceptedConnections: statsRes.data.acceptedConnections || 0
+          });
+        }
+
+        // Fetch matches preview
         const res = await api.get('/matching/suggestions');
         if (res.data) {
           const mapped = res.data.map((r: any) => ({
@@ -55,13 +58,12 @@ const RoommateDiscovery: React.FC = () => {
             smokingStatus: r.matchingPreferences?.smoking === 1 ? "Non-Smoker" : "Smoker"
           }));
           setMatches(mapped.slice(0, 3));
-          setStats(prev => ({ ...prev, compatibleMatches: res.data.length }));
         }
       } catch (err) {
-        console.error("Failed to load suggested roommate matches", err);
+        console.error("Failed to load suggested roommate details", err);
       }
     };
-    fetchPreviewMatches();
+    fetchStatsAndMatches();
   }, [step]);
 
   // Handle quiz submit & matching animation

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Shield, AlertTriangle, Upload, FileText, Lock, Loader2 } from 'lucide-react';
 
 interface TrustData {
@@ -12,20 +13,21 @@ interface TrustData {
 }
 
 const Verification: React.FC = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   const [trust, setTrust] = useState<TrustData>({
-    trustScore: 30,
-    verificationLevel: 'PHONE_VERIFIED',
+    trustScore: 10,
+    verificationLevel: 'UNVERIFIED',
     activeReportsCount: 0
   });
 
-  const [documentType, setDocumentType] = useState('STUDENT_ID');
+  const [documentType, setDocumentType] = useState(user?.role === 'owner' ? 'CITIZENSHIP' : 'STUDENT_ID');
   const [registrationNumber, setRegistrationNumber] = useState('');
   const [uploadedFile, setUploadedFile] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-
-  const navigate = useNavigate();
 
   useEffect(() => {
     loadTrustData();
@@ -42,8 +44,7 @@ const Verification: React.FC = () => {
         setUploadedFile(res.data.documentImageUrl);
       }
     } catch (err) {
-      console.warn("API trust details failed, using mock profile state");
-      // Keep mock initial state
+      console.warn("API trust details failed, initializing base states");
     } finally {
       setLoading(false);
     }
@@ -64,7 +65,7 @@ const Verification: React.FC = () => {
         setUploadedFile(res.data.url);
       }
     } catch (err) {
-      alert("Failed to upload scan file to Cloudinary.");
+      alert("Failed to upload scan file to Cloudinary. Please verify connection/credentials.");
     } finally {
       setUploading(false);
     }
@@ -89,7 +90,8 @@ const Verification: React.FC = () => {
         verificationLevel: res.data.newVerificationLevel,
         trustScore: res.data.newTrustScore
       }));
-      alert("🎉 Verification submitted! Your document has been sent to administrators for vetting. Status is now PENDING VERIFICATION.");
+      alert("🎉 Verification submitted! Your document has been sent to administrators for vetting. Status is now PENDING.");
+      navigate(user?.role === 'owner' ? '/landlord' : '/dashboard');
     } catch (err) {
       alert("Failed to submit verification request. Please verify inputs or permissions.");
     } finally {
@@ -129,7 +131,7 @@ const Verification: React.FC = () => {
       {/* Header Bar */}
       <header className="w-full bg-paper border-b border-ink/5 px-6 py-4 flex justify-between items-center sticky top-0 z-20 shadow-sm w-full max-w-md mx-auto">
         <button 
-          onClick={() => navigate('/dashboard')} 
+          onClick={() => navigate(user?.role === 'owner' ? '/landlord' : '/dashboard')} 
           className="w-9 h-9 rounded-full bg-paper border border-ink/10 flex items-center justify-center shadow-sm"
         >
           <ArrowLeft size={18} className="text-ink-soft" />
@@ -144,7 +146,7 @@ const Verification: React.FC = () => {
         <div>
           <h1 className="text-2xl font-black text-ink tracking-tight font-display">Trust Center</h1>
           <p className="text-xs text-ink-soft mt-1 font-semibold leading-relaxed">
-            Manage your credentials, upload academic IDs, and monitor trust metrics.
+            Manage your credentials, upload verification documents, and monitor trust metrics.
           </p>
         </div>
 
@@ -204,7 +206,7 @@ const Verification: React.FC = () => {
             <div className="flex justify-between items-center">
               <span className="font-sans">Verified Identity bonus</span>
               <span className="text-ink font-bold">
-                +{trust.verificationLevel !== 'UNVERIFIED' && trust.verificationLevel !== 'PHONE_VERIFIED' ? 10 : 0} pts
+                +{trust.verificationLevel !== 'UNVERIFIED' && trust.verificationLevel !== 'PHONE_VERIFIED' ? 15 : 0} pts
               </span>
             </div>
             {trust.activeReportsCount > 0 && (
@@ -232,19 +234,31 @@ const Verification: React.FC = () => {
                 onChange={(e) => setDocumentType(e.target.value)}
                 className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-3 focus:outline-none focus:border-marigold text-xs font-bold"
               >
-                <option value="STUDENT_ID">College Student ID Card</option>
-                <option value="CITIZENSHIP">Citizenship Card (Nagariukta)</option>
-                <option value="ADMISSION_RECEIPT">Official Admission Receipt</option>
+                {user?.role === 'owner' ? (
+                  <>
+                    <option value="CITIZENSHIP">Citizenship Card (Nagariukta)</option>
+                    <option value="LALPURJA">Land Ownership Certificate (Lalpurja)</option>
+                    <option value="TAX_RECEIPT">Property Tax Receipt</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="STUDENT_ID">College Student ID Card</option>
+                    <option value="CITIZENSHIP">Citizenship Card (Nagariukta)</option>
+                    <option value="ADMISSION_RECEIPT">Official Admission Receipt</option>
+                  </>
+                )}
               </select>
             </div>
 
             {/* Registration Input */}
             <div className="space-y-1">
-              <label className="block text-xs font-bold text-ink">Registration / Roll Number</label>
+              <label className="block text-xs font-bold text-ink">
+                {user?.role === 'owner' ? 'Document / Certificate Number' : 'Registration / Roll Number'}
+              </label>
               <input
                 type="text"
                 required
-                placeholder="e.g. PUL077BCT045 or Citizenship No."
+                placeholder={user?.role === 'owner' ? 'e.g. 12-34-56789 or Plot Number' : 'e.g. PUL077BCT045 or Citizenship No.'}
                 value={registrationNumber}
                 onChange={(e) => setRegistrationNumber(e.target.value)}
                 className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-3 focus:outline-none focus:border-marigold text-xs font-semibold"
@@ -297,7 +311,7 @@ const Verification: React.FC = () => {
               disabled={submitting || !registrationNumber.trim() || !uploadedFile}
               className="w-full bg-marigold hover:bg-marigold-dark text-paper font-black py-4 rounded-xl shadow-md transition disabled:opacity-50 text-xs tracking-wider uppercase"
             >
-              {submitting ? 'Authenticating and calculating score...' : 'Submit Verification'}
+              {submitting ? 'Submitting Vetting details...' : 'Submit Verification'}
             </button>
 
           </form>

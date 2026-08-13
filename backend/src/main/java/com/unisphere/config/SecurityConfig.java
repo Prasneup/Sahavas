@@ -49,9 +49,21 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/colleges").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/listings/**").permitAll()
+                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/v1/listings/**").hasAnyRole("OWNER", "ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/v1/listings/**").hasAnyRole("OWNER", "ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/v1/listings/**").hasAnyRole("OWNER", "ADMIN")
                 .requestMatchers("/error").permitAll()
                 .anyRequest().authenticated()
+            )
+            .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint((request, response, authException) -> {
+                    response.setContentType("application/json");
+                    response.setStatus(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED);
+                    response.getWriter().write("{\"message\": \"Unauthorized access or token expired.\"}");
+                })
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

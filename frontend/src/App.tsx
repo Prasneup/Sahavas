@@ -7,6 +7,7 @@ import {
 } from 'react-router-dom';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { Loader2 } from 'lucide-react';
 
 import Login from './pages/Login';
 import Signup from './pages/Signup';
@@ -27,6 +28,20 @@ import LandlordDashboard from './pages/LandlordDashboard';
 
 
 // ===============================
+// Loading Spinner Overlay Component
+// ===============================
+
+const LoadingSpinner: React.FC = () => (
+  <div className="min-h-screen bg-clay text-ink flex flex-col font-sans items-center justify-center">
+    <div className="flex flex-col items-center gap-3">
+      <Loader2 className="animate-spin text-marigold" size={32} />
+      <span className="text-xs font-bold text-ink-soft uppercase tracking-wider">Loading Nivaro...</span>
+    </div>
+  </div>
+);
+
+
+// ===============================
 // Protected Route
 // ===============================
 
@@ -36,7 +51,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
   const { token, loading } = useAuth();
 
   if (loading) {
-    return <div>Loading User Context...</div>;
+    return <LoadingSpinner />;
   }
 
   if (!token) {
@@ -57,7 +72,7 @@ const LandlordRoute: React.FC<{ children: React.ReactNode }> = ({
   const { token, user, loading } = useAuth();
 
   if (loading) {
-    return <div>Loading Landlord Context...</div>;
+    return <LoadingSpinner />;
   }
 
   if (!token || user?.role !== 'owner') {
@@ -78,11 +93,40 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({
   const { token, user, loading } = useAuth();
 
   if (loading) {
-    return <div>Loading Admin Context...</div>;
+    return <LoadingSpinner />;
   }
 
   if (!token || user?.role !== 'admin') {
     return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+
+// ===============================
+// Student Route
+// ===============================
+
+const StudentRoute: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const { token, user, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user?.role === 'admin') {
+    return <Navigate to="/admin" replace />;
+  }
+
+  if (user?.role === 'owner') {
+    return <Navigate to="/landlord" replace />;
   }
 
   return <>{children}</>;
@@ -97,7 +141,7 @@ function AppRoutes() {
   const { token, user, loading } = useAuth();
 
   if (loading) {
-    return <div>Loading Sahavas...</div>;
+    return <LoadingSpinner />;
   }
 
   const getRootTarget = () => {
@@ -155,72 +199,72 @@ function AppRoutes() {
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute>
+          <StudentRoute>
             <Dashboard />
-          </ProtectedRoute>
+          </StudentRoute>
         }
       />
 
       <Route
         path="/rooms"
         element={
-          <ProtectedRoute>
+          <StudentRoute>
             <RoomSearch />
-          </ProtectedRoute>
+          </StudentRoute>
         }
       />
 
       <Route
         path="/rooms/:id"
         element={
-          <ProtectedRoute>
+          <StudentRoute>
             <RoomDetails />
-          </ProtectedRoute>
+          </StudentRoute>
         }
       />
 
       <Route
         path="/rooms/:id/route"
         element={
-          <ProtectedRoute>
+          <StudentRoute>
             <RouteMap />
-          </ProtectedRoute>
+          </StudentRoute>
         }
       />
 
       <Route
         path="/roommates"
         element={
-          <ProtectedRoute>
+          <StudentRoute>
             <RoommateDiscovery />
-          </ProtectedRoute>
+          </StudentRoute>
         }
       />
 
       <Route
         path="/matches/results"
         element={
-          <ProtectedRoute>
+          <StudentRoute>
             <MatchResults />
-          </ProtectedRoute>
+          </StudentRoute>
         }
       />
 
       <Route
         path="/matches/:id"
         element={
-          <ProtectedRoute>
+          <StudentRoute>
             <RoommateProfile />
-          </ProtectedRoute>
+          </StudentRoute>
         }
       />
 
       <Route
         path="/profile"
         element={
-          <ProtectedRoute>
+          <StudentRoute>
             <ProfileEdit />
-          </ProtectedRoute>
+          </StudentRoute>
         }
       />
 
@@ -245,18 +289,18 @@ function AppRoutes() {
       <Route
         path="/communities"
         element={
-          <ProtectedRoute>
+          <StudentRoute>
             <Communities />
-          </ProtectedRoute>
+          </StudentRoute>
         }
       />
 
       <Route
         path="/relocation"
         element={
-          <ProtectedRoute>
+          <StudentRoute>
             <RelocationDashboard />
-          </ProtectedRoute>
+          </StudentRoute>
         }
       />
 

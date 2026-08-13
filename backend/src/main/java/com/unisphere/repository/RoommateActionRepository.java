@@ -22,4 +22,11 @@ public interface RoommateActionRepository extends JpaRepository<RoommateAction, 
     @Query("SELECT a.target FROM RoommateAction a WHERE a.actor.id = :userId AND a.actionType = 'INTERESTED' " +
            "AND EXISTS (SELECT b FROM RoommateAction b WHERE b.actor.id = a.target.id AND b.target.id = :userId AND b.actionType = 'INTERESTED')")
     List<User> findMutualMatches(@Param("userId") UUID userId);
+
+    @Query("SELECT COUNT(a) FROM RoommateAction a WHERE a.actor.id = :userId AND a.actionType = 'INTERESTED' " +
+           "AND NOT EXISTS (SELECT b FROM RoommateAction b WHERE b.actor.id = a.target.id AND b.target.id = :userId AND b.actionType = 'INTERESTED')")
+    long countPendingRequests(@Param("userId") UUID userId);
+
+    @Query("SELECT COUNT(a) FROM RoommateAction a WHERE a.actor.id = :userId AND a.actionType = 'SAVE'")
+    long countSavedRoommates(@Param("userId") UUID userId);
 }

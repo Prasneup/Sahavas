@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.stream.Collectors;
 
 @RestController
@@ -28,6 +30,7 @@ public class RoommateActionController {
     private final RoommateActionRepository roommateActionRepository;
     private final UserRepository userRepository;
     private final StudentProfileRepository studentProfileRepository;
+    private final com.unisphere.service.MatchingService matchingService;
 
     @PostMapping("/swipe")
     public ResponseEntity<RoommateActionResponse> swipe(
@@ -122,7 +125,7 @@ public class RoommateActionController {
                 .majorCourse(profile.getMajorCourse())
                 .academicYear(profile.getAcademicYear())
                 .currentSemester(profile.getCurrentSemester())
-                .avatarUrl(profile.getAvatarUrl())
+                 .avatarUrl(profile.getAvatarUrl())
                 .bio(profile.getBio())
                 .hometownDistrict(profile.getHometownDistrict())
                 .currentCity(profile.getCurrentCity())
@@ -135,5 +138,29 @@ public class RoommateActionController {
                 .skills(profile.getSkills())
                 .languages(profile.getLanguages())
                 .build();
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Object>> getStats(@AuthenticationPrincipal UserPrincipal principal) {
+        UUID userId = principal.getId();
+        
+        long compatibleMatches = 0;
+        try {
+            compatibleMatches = matchingService.getSuggestions(userId).size();
+        } catch (Exception e) {
+            // If quiz not completed yet, suggestion calculation might fail; default to 0
+        }
+        
+        long pendingRequests = roommateActionRepository.countPendingRequests(userId);
+        long savedProfiles = roommateActionRepository.countSavedRoommates(userId);
+        long acceptedConnections = roommateActionRepository.findMutualMatches(userId).size();
+        
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("compatibleMatches", compatibleMatches);
+        stats.put("pendingRequests", pendingRequests);
+        stats.put("savedProfiles", savedProfiles);
+        stats.put("acceptedConnections", acceptedConnections);
+        
+        return ResponseEntity.ok(stats);
     }
 }

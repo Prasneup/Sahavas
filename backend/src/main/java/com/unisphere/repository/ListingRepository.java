@@ -14,7 +14,7 @@ public interface ListingRepository extends JpaRepository<Listing, UUID> {
 
     @Query(value = "SELECT * FROM listings l " +
            "WHERE ST_DWithin(l.geom, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :distanceMeters) " +
-           "AND l.is_available = TRUE " +
+           "AND l.is_available = TRUE AND l.verification_status = 'APPROVED' " +
            "ORDER BY ST_Distance(l.geom, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography) ASC", 
            nativeQuery = true)
     List<Listing> findListingsNear(

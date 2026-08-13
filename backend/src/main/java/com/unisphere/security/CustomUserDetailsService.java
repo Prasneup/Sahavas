@@ -17,9 +17,9 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     @Transactional(readOnly = true)
-    public UserDetails loadUserByUsername(String phoneNumber) throws UsernameNotFoundException {
-        User user = userRepository.findByPhoneNumber(phoneNumber)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with phone number: " + phoneNumber));
+    public UserDetails loadUserByUsername(String input) throws UsernameNotFoundException {
+        User user = userRepository.findByPhoneNumberOrEmail(input, input)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with credentials: " + input));
         return new UserPrincipal(user);
     }
 }

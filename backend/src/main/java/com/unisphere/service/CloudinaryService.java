@@ -13,11 +13,13 @@ import java.util.Map;
 public class CloudinaryService {
 
     private final Cloudinary cloudinary;
+    private final String cloudName;
 
     public CloudinaryService(
             @Value("${app.cloudinary.cloud-name}") String cloudName,
             @Value("${app.cloudinary.api-key}") String apiKey,
             @Value("${app.cloudinary.api-secret}") String apiSecret) {
+        this.cloudName = cloudName;
         this.cloudinary = new Cloudinary(ObjectUtils.asMap(
                 "cloud_name", cloudName,
                 "api_key", apiKey,
@@ -26,6 +28,9 @@ public class CloudinaryService {
     }
 
     public String uploadFile(MultipartFile file) throws IOException {
+        if (this.cloudName == null || this.cloudName.contains("mock")) {
+            return "https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg";
+        }
         Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
         return uploadResult.get("secure_url").toString();
     }

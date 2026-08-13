@@ -4,8 +4,10 @@ import com.unisphere.dto.VerificationRequest;
 import com.unisphere.model.StudentProfile;
 import com.unisphere.model.TrustReport;
 import com.unisphere.model.VerificationLevel;
+import com.unisphere.model.VerificationSubmission;
 import com.unisphere.repository.StudentProfileRepository;
 import com.unisphere.repository.TrustReportRepository;
+import com.unisphere.repository.VerificationSubmissionRepository;
 import com.unisphere.security.UserPrincipal;
 import com.unisphere.service.TrustService;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ public class TrustController {
     private final StudentProfileRepository studentProfileRepository;
     private final TrustReportRepository trustReportRepository;
     private final TrustService trustService;
+    private final VerificationSubmissionRepository verificationSubmissionRepository;
 
     @GetMapping("/me")
     public ResponseEntity<Map<String, Object>> getMyTrust(@AuthenticationPrincipal UserPrincipal principal) {
@@ -58,10 +61,35 @@ public class TrustController {
 
         profile.setCollegeRegistrationNumber(request.getRegistrationNumber());
         profile.setDocumentImageUrl(request.getImageUrl());
-        profile.setVerificationStatus("PENDING_VERIFICATION");
+        profile.setVerificationStatus("PENDING");
         profile.setVerificationLevel(VerificationLevel.PHONE_VERIFIED);
 
         studentProfileRepository.save(profile);
+
+        // Perform Simulated OCR Extraction
+        String ocrName = profile.getFullName();
+        String ocrSimilarity = "MATCH";
+        String regNoUpper = request.getRegistrationNumber() != null ? request.getRegistrationNumber().toUpperCase() : "";
+        if (regNoUpper.contains("MISMATCH")) {
+            ocrName = "Prasanna Shrestha (Simulated)";
+            ocrSimilarity = "MISMATCH";
+        } else if (regNoUpper.contains("MISSING")) {
+            ocrName = "";
+            ocrSimilarity = "MISSING";
+        }
+
+        // Create Verification Submission record in queue
+        VerificationSubmission submission = VerificationSubmission.builder()
+                .userId(userId)
+                .documentType(request.getDocumentType())
+                .registrationNumber(request.getRegistrationNumber())
+                .documentImageUrl(request.getImageUrl())
+                .status("PENDING")
+                .ocrName(ocrName)
+                .ocrSimilarity(ocrSimilarity)
+                .build();
+        verificationSubmissionRepository.save(submission);
+
         int newScore = trustService.calculateTrustScore(userId);
 
         Map<String, Object> res = new HashMap<>();

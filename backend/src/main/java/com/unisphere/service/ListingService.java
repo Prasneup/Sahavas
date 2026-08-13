@@ -25,7 +25,12 @@ public class ListingService {
     public Listing createListing(UUID ownerId, Listing listing) {
         User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        if (!"owner".equals(owner.getRole()) && !"admin".equals(owner.getRole())) {
+            throw new IllegalStateException("Only house owners or landlords can create listings");
+        }
         listing.setOwner(owner);
+        listing.setVerificationStatus("PENDING");
+        listing.setIsVerified(false);
         if (listing.getImages() != null) {
             listing.getImages().forEach(img -> img.setListing(listing));
         }
@@ -39,14 +44,16 @@ public class ListingService {
         } catch (Exception e) {
             log.warn("PostGIS spatial query failed (H2 database in use). Falling back to in-memory Haversine distance calculations.");
             return listingRepository.findAll().stream()
-                    .filter(l -> calculateDistance(lat, lng, l.getLocationLat(), l.getLocationLng()) <= distanceMeters)
+                    .filter(l -> "APPROVED".equals(l.getVerificationStatus()) && calculateDistance(lat, lng, l.getLocationLat(), l.getLocationLng()) <= distanceMeters)
                     .collect(Collectors.toList());
         }
     }
 
     @Transactional(readOnly = true)
     public List<Listing> getAll() {
-        return listingRepository.findAll();
+        return listingRepository.findAll().stream()
+                .filter(l -> "APPROVED".equals(l.getVerificationStatus()))
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)

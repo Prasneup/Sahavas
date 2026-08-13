@@ -352,3 +352,50 @@ CREATE INDEX idx_roommate_budget ON public.roommate_preferences(budget_min, budg
 CREATE INDEX idx_messaging_thread ON public.messages(conversation_id, created_at DESC);
 CREATE INDEX idx_notifications_recipient ON public.notifications(user_id, is_read);
 CREATE INDEX idx_saved_rooms_user ON public.saved_rooms(user_id);
+
+-- ---------------------------------------------------------
+-- EXPANDED SCHEMAS FOR ROLE/VERIFICATION REDESIGN
+-- ---------------------------------------------------------
+ALTER TABLE public.listings ADD COLUMN IF NOT EXISTS verification_status VARCHAR(30) DEFAULT 'PENDING';
+ALTER TABLE public.listings ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
+ALTER TABLE public.listings ADD COLUMN IF NOT EXISTS geom geography(Point, 4326);
+
+CREATE OR REPLACE FUNCTION update_listings_geom()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.geom = ST_SetSRID(ST_MakePoint(NEW.location_lng, NEW.location_lat), 4326)::geography;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER trigger_update_listings_geom
+    BEFORE INSERT OR UPDATE ON public.listings
+    FOR EACH ROW EXECUTE FUNCTION update_listings_geom();
+
+CREATE TABLE IF NOT EXISTS public.verification_submissions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    document_type VARCHAR(50) NOT NULL,
+    registration_number VARCHAR(100) NOT NULL,
+    document_image_url VARCHAR(250) NOT NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'PENDING',
+    rejection_reason TEXT,
+    ocr_name VARCHAR(100),
+    ocr_similarity VARCHAR(20),
+    submitted_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
+    reviewed_at TIMESTAMP WITH TIME ZONE,
+    reviewed_by UUID REFERENCES public.users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.admin_audit_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    admin_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    affected_user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+    affected_listing_id UUID REFERENCES public.listings(id) ON DELETE SET NULL,
+    action VARCHAR(50) NOT NULL,
+    reason TEXT,
+    previous_status VARCHAR(30),
+    new_status VARCHAR(30),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL
+);
+

@@ -33,11 +33,16 @@ public class AuthService {
 
     @Transactional
     public User registerStudent(SignupRequest request) {
+        if (request.getPhoneNumber() == null || !request.getPhoneNumber().matches("^(98|97)\\d{8}$")) {
+            throw new IllegalArgumentException("Phone number must contain exactly 10 digits and start with 97 or 98");
+        }
         if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
             throw new IllegalArgumentException("Phone number is already in use");
         }
-        if (request.getEmail() != null && !request.getEmail().isBlank() && userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("Email is already in use");
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            if (userRepository.existsByEmail(request.getEmail())) {
+                throw new IllegalArgumentException("Email is already in use");
+            }
         }
 
         String rawRole = request.getRole() != null ? request.getRole() : "student";
@@ -48,18 +53,31 @@ public class AuthService {
             dbRole = "owner";
         }
 
+        // Validate student specific fields
+        if ("student".equals(dbRole)) {
+            if (request.getCollegeId() == null) {
+                throw new IllegalArgumentException("College selection is required for students");
+            }
+            if (request.getMajorCourse() == null || request.getMajorCourse().isBlank()) {
+                throw new IllegalArgumentException("Major course is required for students");
+            }
+            if (request.getAcademicYear() == null) {
+                throw new IllegalArgumentException("Academic year is required for students");
+            }
+        }
+
         User user = User.builder()
                 .phoneNumber(request.getPhoneNumber())
                 .email(request.getEmail())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .role(dbRole)
-                .status("PENDING_VERIFICATION")
+                .status("pending_verification")
                 .build();
 
         User savedUser = userRepository.save(user);
 
         College college = null;
-        if (request.getCollegeId() != null) {
+        if ("student".equals(dbRole) && request.getCollegeId() != null) {
             college = collegeRepository.findById(request.getCollegeId())
                     .orElseThrow(() -> new IllegalArgumentException("Invalid college selection"));
         }
@@ -69,10 +87,11 @@ public class AuthService {
                 .fullName(request.getFullName())
                 .gender(request.getGender())
                 .college(college)
-                .majorCourse(request.getMajorCourse())
-                .academicYear(request.getAcademicYear())
+                .majorCourse("student".equals(dbRole) ? request.getMajorCourse() : "Landlord")
+                .academicYear("student".equals(dbRole) ? request.getAcademicYear() : 1)
                 .hometownDistrict(request.getHometownDistrict())
                 .currentCity(request.getCurrentCity())
+                .verificationStatus("pending_verification")
                 .build();
 
         studentProfileRepository.save(profile);

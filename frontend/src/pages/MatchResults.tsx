@@ -76,17 +76,24 @@ const MatchResults: React.FC = () => {
     localStorage.setItem('skippedRoommates', JSON.stringify(updated));
   };
 
-  const handleSaveToggle = (id: string, e: React.MouseEvent) => {
+  const handleSaveToggle = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     let updated: string[];
-    if (savedIds.includes(id)) {
-      updated = savedIds.filter(savedId => savedId !== id);
-    } else {
-      updated = [...savedIds, id];
+    const isSaved = savedIds.includes(id);
+    try {
+      if (isSaved) {
+        await api.post('/roommates/swipe', { targetUserId: id, actionType: 'PASS' });
+        updated = savedIds.filter(savedId => savedId !== id);
+      } else {
+        await api.post('/roommates/swipe', { targetUserId: id, actionType: 'SAVE' });
+        updated = [...savedIds, id];
+      }
+      setSavedIds(updated);
+      localStorage.setItem('savedRoommates', JSON.stringify(updated));
+      localStorage.setItem('savedProfilesCount', updated.length.toString());
+    } catch (err) {
+      console.error("Failed to toggle save roommate", err);
     }
-    setSavedIds(updated);
-    localStorage.setItem('savedRoommates', JSON.stringify(updated));
-    localStorage.setItem('savedProfilesCount', updated.length.toString());
   };
 
   const handleOpenInterestModal = (roommate: Roommate, e: React.MouseEvent) => {
@@ -95,14 +102,21 @@ const MatchResults: React.FC = () => {
     setShowConfirmModal(true);
   };
 
-  const handleConfirmInterest = () => {
+  const handleConfirmInterest = async () => {
     if (!selectedRoommate) return;
-    const updated = [...interestedIds, selectedRoommate.id];
-    setInterestedIds(updated);
-    localStorage.setItem('interestedRoommates', JSON.stringify(updated));
-    localStorage.setItem('pendingRequestsCount', updated.length.toString());
-    setShowConfirmModal(false);
-    setSelectedRoommate(null);
+    try {
+      await api.post('/roommates/swipe', { targetUserId: selectedRoommate.id, actionType: 'INTERESTED' });
+      const updated = [...interestedIds, selectedRoommate.id];
+      setInterestedIds(updated);
+      localStorage.setItem('interestedRoommates', JSON.stringify(updated));
+      localStorage.setItem('pendingRequestsCount', updated.length.toString());
+      setShowConfirmModal(false);
+      setSelectedRoommate(null);
+      alert(`🎉 Connection request sent to ${selectedRoommate.name}!`);
+    } catch (err) {
+      console.error("Failed to send interest request", err);
+      alert("Failed to send connection request. Please try again.");
+    }
   };
 
   const handleRefresh = () => {

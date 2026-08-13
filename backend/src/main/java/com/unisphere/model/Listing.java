@@ -89,6 +89,13 @@ public class Listing {
     @Builder.Default
     private Boolean isVerified = false;
 
+    @Column(name = "verification_status", length = 30)
+    @Builder.Default
+    private String verificationStatus = "PENDING"; // PENDING, APPROVED, REJECTED, CORRECTION_REQUIRED, SUSPENDED
+
+    @Column(name = "rejection_reason")
+    private String rejectionReason;
+
     @OneToMany(mappedBy = "listing", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @Builder.Default
     private List<ListingImage> images = new ArrayList<>();

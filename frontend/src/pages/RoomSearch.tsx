@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { Search, CheckCircle, Star, MapPin, Heart, ArrowLeft } from 'lucide-react';
-import { Listing, MOCK_LISTINGS } from '../services/listingsData';
+import { Listing } from '../services/listingsData';
 
 const RoomSearch: React.FC = () => {
   const [listings, setListings] = useState<Listing[]>([]);
@@ -18,14 +18,10 @@ const RoomSearch: React.FC = () => {
   const loadListings = async () => {
     try {
       const res = await api.get('/listings');
-      if (res.data && res.data.length > 0) {
-        setListings(res.data);
-      } else {
-        setListings(MOCK_LISTINGS);
-      }
+      setListings(res.data || []);
     } catch (err) {
-      console.warn("API listing fetch failed, using mock listings data", err);
-      setListings(MOCK_LISTINGS);
+      console.warn("API listing fetch failed", err);
+      setListings([]);
     }
   };
 

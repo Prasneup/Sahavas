@@ -23,6 +23,8 @@ const Dashboard: React.FC = () => {
   const [recommendedRooms, setRecommendedRooms] = useState<any[]>([]);
   const [savedRooms, setSavedRooms] = useState<any[]>([]);
   const [recommendedRoommates, setRecommendedRoommates] = useState<RoommateMatch[]>([]);
+  const [streakDays, setStreakDays] = useState(1);
+  const [totalXp, setTotalXp] = useState(0);
 
   // Relocation Journey Checklist
   const [checklist, setChecklist] = useState([
@@ -44,6 +46,8 @@ const Dashboard: React.FC = () => {
         setChecklist(prev => prev.map(item => 
           item.key === key ? { ...item, done: res.data[key] } : item
         ));
+        setStreakDays(res.data.streakDays || 1);
+        setTotalXp(res.data.totalXp || 0);
       }
     } catch (err) {
       console.error("Failed to toggle checklist task on backend", err);
@@ -75,6 +79,8 @@ const Dashboard: React.FC = () => {
             { key: 'internetSetup', text: 'Arrange Internet Setup', done: res.data.internetSetup },
             { key: 'transportationSetup', text: 'Arrange Transportation/Moving', done: res.data.transportationSetup },
           ]);
+          setStreakDays(res.data.streakDays || 1);
+          setTotalXp(res.data.totalXp || 0);
         }
       })
       .catch(() => {});
@@ -163,7 +169,7 @@ const Dashboard: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-3">
-            {user?.role === 'ROLE_ADMIN' && (
+            {user?.role === 'admin' && (
               <button 
                 onClick={() => navigate('/admin')}
                 className="bg-marigold hover:bg-marigold-dark text-paper text-xs font-bold px-4 py-2 rounded-xl shadow-sm transition"
@@ -233,9 +239,9 @@ const Dashboard: React.FC = () => {
             <span className="text-[10px] uppercase tracking-wider block font-bold" style={{ color: 'var(--ink-soft)' }}>Relocation Streak</span>
             <div className="flex items-center gap-1.5 mt-2 text-orange-600 font-bold">
               <Flame className="fill-orange-600 stroke-orange-600 animate-pulse" size={20} />
-              <span style={{ fontFamily: 'var(--font-mono)' }}>3 Days</span>
+              <span style={{ fontFamily: 'var(--font-mono)' }}>{streakDays} Days</span>
             </div>
-            <span className="text-[10px] block mt-1 font-semibold" style={{ color: 'var(--ink-soft)' }}>120 Total XP</span>
+            <span className="text-[10px] block mt-1 font-semibold" style={{ color: 'var(--ink-soft)' }}>{totalXp} Total XP</span>
           </div>
         </div>
 

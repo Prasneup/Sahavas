@@ -13,7 +13,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (phoneNumber: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   signup: (payload: any) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -42,33 +42,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   }, []);
 
-  const login = async (phoneNumber: string, password: string) => {
-    setLoading(true);
-    try {
-      const res = await api.post('/auth/login', { phoneNumber, password });
-      const { accessToken, user: userData } = res.data;
+  const login = async (email: string, password: string) => {
+    const res = await api.post('/auth/login', { phoneNumber: email, password });
+    const { accessToken, user: userData } = res.data;
 
-      localStorage.setItem('token', accessToken);
-      localStorage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem('token', accessToken);
+    localStorage.setItem('user', JSON.stringify(userData));
 
-      setToken(accessToken);
-      setUser(userData);
-    } finally {
-      setLoading(false);
-    }
+    setToken(accessToken);
+    setUser(userData);
+    return userData;
   };
 
   const signup = async (payload: any) => {
-    setLoading(true);
-    try {
-      await api.post('/auth/signup', payload);
-    } finally {
-      setLoading(false);
-    }
+    await api.post('/auth/signup', payload);
   };
 
   const logout = async () => {
-    setLoading(true);
     try {
       await api.post('/auth/logout');
     } catch (e) {
@@ -78,7 +68,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem('user');
       setToken(null);
       setUser(null);
-      setLoading(false);
     }
   };
 
