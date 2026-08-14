@@ -102,6 +102,7 @@ public class ProfileController {
                 .budgetMin(profile.getBudgetMin())
                 .budgetMax(profile.getBudgetMax())
                 .verificationStatus(profile.getVerificationStatus())
+                .rejectionReason(profile.getRejectionReason())
                 .completenessPercentage(Math.min(completeness, 100))
                 .interests(profile.getInterests())
                 .skills(profile.getSkills())

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Shield, CheckCircle, AlertTriangle, Users, Home, TrendingUp, FileText, Check, X } from 'lucide-react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 interface VerificationRequest {
   id: string;
@@ -77,6 +78,7 @@ interface AnalyticsStats {
 
 const AdminPortal: React.FC = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'VERIFICATIONS' | 'LISTINGS' | 'REPORTS' | 'AUDIT_LOGS' | 'USERS'>('OVERVIEW');
   const [verifications, setVerifications] = useState<VerificationRequest[]>([]);
   const [listings, setListings] = useState<ListingItem[]>([]);
@@ -219,6 +221,13 @@ const AdminPortal: React.FC = () => {
             <h1 className="text-lg font-black text-ink font-display">Administrator Portal</h1>
           </div>
         </div>
+
+        <button 
+          onClick={logout}
+          className="bg-paper hover:bg-[#FAF3E8] border border-ink/10 text-ink text-xs font-bold px-4 py-2 rounded-xl shadow-sm transition"
+        >
+          Logout
+        </button>
       </header>
 
       {/* Admin Modules Navigation */}

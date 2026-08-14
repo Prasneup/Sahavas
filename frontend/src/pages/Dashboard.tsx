@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Home as HomeIcon, Users, Flame, MapPin, Compass, Bookmark, Award, Sparkles, Activity, MessageCircle } from 'lucide-react';
+import { User, Home as HomeIcon, Users, Flame, MapPin, Compass, Bookmark, Award, Sparkles, Activity, MessageCircle, CheckCircle, AlertTriangle } from 'lucide-react';
 import api from '../services/api';
 
 interface RoommateMatch {
@@ -19,6 +19,7 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [profileCompleteness, setProfileCompleteness] = useState(60);
   const [vettingStatus, setVettingStatus] = useState('UNVERIFIED');
+  const [rejectionReason, setRejectionReason] = useState<string | null>(null);
   const [matchCount, setMatchCount] = useState(8);
   const [recommendedRooms, setRecommendedRooms] = useState<any[]>([]);
   const [savedRooms, setSavedRooms] = useState<any[]>([]);
@@ -91,6 +92,7 @@ const Dashboard: React.FC = () => {
         if (res.data) {
           setProfileCompleteness(res.data.completenessPercentage || 60);
           setVettingStatus(res.data.verificationStatus || 'UNVERIFIED');
+          setRejectionReason(res.data.rejectionReason || null);
         }
       })
       .catch(() => {});
@@ -205,6 +207,56 @@ const Dashboard: React.FC = () => {
             Find your room. Find your perfect roommate.
           </span>
         </section>
+
+        {/* Verification Notification Banner */}
+        {vettingStatus === 'VERIFIED' && localStorage.getItem('hide_verified_banner') !== 'VERIFIED' && (
+          <div className="bg-pine-light/80 border border-pine/20 text-pine rounded-2xl p-5 flex items-start justify-between shadow-sm relative w-full">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-full bg-paper flex items-center justify-center text-pine shadow-sm flex-shrink-0">
+                <CheckCircle size={20} className="stroke-[2.5]" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black font-display text-pine-dark">Your document has been approved!</h4>
+                <p className="text-xs opacity-95 mt-0.5 font-semibold">Your identity verification has been successfully completed.</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => {
+                localStorage.setItem('hide_verified_banner', 'VERIFIED');
+                setVettingStatus('VERIFIED_DISMISSED'); 
+              }}
+              className="text-pine-dark/50 hover:text-pine-dark text-lg font-bold absolute top-3 right-4"
+            >
+              &times;
+            </button>
+          </div>
+        )}
+
+        {vettingStatus === 'REJECTED' && localStorage.getItem('hide_rejected_banner') !== 'REJECTED' && (
+          <div className="bg-rose-50 border border-brick/20 text-brick rounded-2xl p-5 flex items-start justify-between shadow-sm relative w-full">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-full bg-paper flex items-center justify-center text-brick shadow-sm flex-shrink-0">
+                <AlertTriangle size={20} className="stroke-[2.5]" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black font-display">Your document verification was not approved.</h4>
+                <p className="text-xs opacity-95 mt-0.5 font-semibold">Reason: {rejectionReason || 'No reason provided.'}</p>
+                <Link to="/verify" className="text-xs font-black underline mt-2 block hover:opacity-80">
+                  Correct and Resubmit Document &rarr;
+                </Link>
+              </div>
+            </div>
+            <button 
+              onClick={() => {
+                localStorage.setItem('hide_rejected_banner', 'REJECTED');
+                setVettingStatus('REJECTED_DISMISSED');
+              }}
+              className="text-brick/50 hover:text-brick text-lg font-bold absolute top-3 right-4"
+            >
+              &times;
+            </button>
+          </div>
+        )}
 
         {/* Top 4 Stats Cards Banner */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 w-full">

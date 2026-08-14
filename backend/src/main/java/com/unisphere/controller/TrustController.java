@@ -43,6 +43,8 @@ public class TrustController {
         res.put("userId", userId);
         res.put("trustScore", score);
         res.put("verificationLevel", profile.getVerificationLevel().toString());
+        res.put("verificationStatus", profile.getVerificationStatus());
+        res.put("rejectionReason", profile.getRejectionReason());
         res.put("collegeRegistrationNumber", profile.getCollegeRegistrationNumber());
         res.put("documentImageUrl", profile.getDocumentImageUrl());
         res.put("activeReportsCount", trustReportRepository.countByReportedUserIdAndStatus(userId, TrustReport.ReportStatus.PENDING));
@@ -62,6 +64,7 @@ public class TrustController {
         profile.setCollegeRegistrationNumber(request.getRegistrationNumber());
         profile.setDocumentImageUrl(request.getImageUrl());
         profile.setVerificationStatus("PENDING");
+        profile.setRejectionReason(null);
         profile.setVerificationLevel(VerificationLevel.PHONE_VERIFIED);
 
         studentProfileRepository.save(profile);

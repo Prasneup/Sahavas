@@ -58,12 +58,12 @@ const Login: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-ink-soft text-xs font-bold uppercase tracking-wider mb-2">
-              Email Address
+              Email Address or Phone Number
             </label>
             <input
-              type="email"
+              type="text"
               required
-              placeholder="student@college.edu.np"
+              placeholder="Email or 10-digit Phone"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-3.5 focus:outline-none focus:border-marigold transition text-sm font-semibold"

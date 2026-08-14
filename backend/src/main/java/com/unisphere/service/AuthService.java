@@ -46,12 +46,14 @@ public class AuthService {
         }
 
         String rawRole = request.getRole() != null ? request.getRole() : "student";
-        String dbRole = "student";
         if (rawRole.toUpperCase().contains("ADMIN")) {
-            dbRole = "admin";
-        } else if (rawRole.toUpperCase().contains("LANDLORD") || rawRole.toUpperCase().contains("OWNER")) {
+            throw new IllegalArgumentException("Admin registration is not allowed.");
+        }
+        String dbRole = "student";
+        if (rawRole.toUpperCase().contains("LANDLORD") || rawRole.toUpperCase().contains("OWNER")) {
             dbRole = "owner";
         }
+
 
         // Validate student specific fields
         if ("student".equals(dbRole)) {
@@ -91,7 +93,7 @@ public class AuthService {
                 .academicYear("student".equals(dbRole) ? request.getAcademicYear() : 1)
                 .hometownDistrict(request.getHometownDistrict())
                 .currentCity(request.getCurrentCity())
-                .verificationStatus("pending_verification")
+                .verificationStatus("UNVERIFIED")
                 .build();
 
         studentProfileRepository.save(profile);

@@ -90,6 +90,7 @@ public class AdminController {
         if ("APPROVED".equalsIgnoreCase(status)) {
             user.setStatus("verified");
             profile.setVerificationStatus("VERIFIED");
+            profile.setRejectionReason(null);
             if ("owner".equals(user.getRole())) {
                 profile.setVerificationLevel(VerificationLevel.PREMIUM_VERIFIED);
             } else {
@@ -99,15 +100,18 @@ public class AdminController {
         } else if ("REJECTED".equalsIgnoreCase(status)) {
             user.setStatus("pending_verification");
             profile.setVerificationStatus("REJECTED");
+            profile.setRejectionReason(reason);
             profile.setVerificationLevel(VerificationLevel.UNVERIFIED);
             profile.setTrustScore(10);
         } else if ("CORRECTION_REQUIRED".equalsIgnoreCase(status)) {
             user.setStatus("pending_verification");
             profile.setVerificationStatus("CORRECTION_REQUIRED");
+            profile.setRejectionReason(reason);
             profile.setVerificationLevel(VerificationLevel.UNVERIFIED);
         } else if ("SUSPENDED".equalsIgnoreCase(status)) {
             user.setStatus("suspended");
             profile.setVerificationStatus("SUSPENDED");
+            profile.setRejectionReason(reason);
             profile.setVerificationLevel(VerificationLevel.UNVERIFIED);
             profile.setTrustScore(0);
         }

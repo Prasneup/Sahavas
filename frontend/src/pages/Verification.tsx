@@ -7,6 +7,8 @@ import { ArrowLeft, Shield, AlertTriangle, Upload, FileText, Lock, Loader2 } fro
 interface TrustData {
   trustScore: number;
   verificationLevel: 'UNVERIFIED' | 'PHONE_VERIFIED' | 'STUDENT_VERIFIED' | 'COLLEGE_VERIFIED' | 'PREMIUM_VERIFIED';
+  verificationStatus?: string;
+  rejectionReason?: string;
   collegeRegistrationNumber?: string;
   documentImageUrl?: string;
   activeReportsCount: number;
@@ -88,10 +90,11 @@ const Verification: React.FC = () => {
       setTrust(prev => ({
         ...prev,
         verificationLevel: res.data.newVerificationLevel,
-        trustScore: res.data.newTrustScore
+        trustScore: res.data.newTrustScore,
+        verificationStatus: res.data.newVerificationStatus || 'PENDING',
+        rejectionReason: undefined
       }));
-      alert("🎉 Verification submitted! Your document has been sent to administrators for vetting. Status is now PENDING.");
-      navigate(user?.role === 'owner' ? '/landlord' : '/dashboard');
+      alert("Verification submitted successfully. Your document is now under review.");
     } catch (err) {
       alert("Failed to submit verification request. Please verify inputs or permissions.");
     } finally {
@@ -218,104 +221,167 @@ const Verification: React.FC = () => {
           </div>
         </div>
 
-        {/* Verification Upload Vetting Form */}
-        <div className="bg-paper border border-ink/5 rounded-[16px] p-6 shadow-sm">
-          <h3 className="text-sm font-black text-ink font-display mb-4 flex items-center gap-1.5">
-            <Lock size={16} className="text-marigold" /> Submit Credentials ID
-          </h3>
+        {/* Verification Status Banner / Cards */}
+        {trust.verificationStatus === 'VERIFIED' && (
+          <div className="bg-pine-light/80 border border-pine/20 text-pine rounded-2xl p-6 text-center shadow-sm space-y-3">
+            <div className="w-12 h-12 rounded-full bg-paper flex items-center justify-center mx-auto text-pine shadow-sm">
+              <Shield size={24} className="stroke-[2.5] text-pine" />
+            </div>
+            <div>
+              <h3 className="text-base font-black font-display text-pine-dark">Your identity verification has been successfully completed!</h3>
+              <p className="text-xs opacity-90 mt-1 font-semibold">Your document has been approved! All premium and college features are now unlocked.</p>
+            </div>
+          </div>
+        )}
 
-          <form onSubmit={handleSubmitVerification} className="space-y-4">
+        {trust.verificationStatus === 'PENDING' && (
+          <div className="bg-marigold/10 border border-marigold/20 text-marigold-dark rounded-2xl p-6 text-center shadow-sm space-y-4">
+            <div className="w-12 h-12 rounded-full bg-paper flex items-center justify-center mx-auto text-marigold-dark shadow-sm">
+              <Loader2 size={24} className="animate-spin stroke-[2.5]" />
+            </div>
+            <div>
+              <h3 className="text-base font-black font-display">Verification submitted successfully.</h3>
+              <p className="text-xs text-ink-soft mt-1 font-semibold leading-relaxed">
+                Your document is now under review. Please wait while our team verifies your document.
+              </p>
+            </div>
             
-            {/* Document Select */}
-            <div className="space-y-1">
-              <label className="block text-xs font-bold text-ink">Document Type</label>
-              <select
-                value={documentType}
-                onChange={(e) => setDocumentType(e.target.value)}
-                className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-3 focus:outline-none focus:border-marigold text-xs font-bold"
-              >
-                {user?.role === 'owner' ? (
-                  <>
-                    <option value="CITIZENSHIP">Citizenship Card (Nagariukta)</option>
-                    <option value="LALPURJA">Land Ownership Certificate (Lalpurja)</option>
-                    <option value="TAX_RECEIPT">Property Tax Receipt</option>
-                  </>
-                ) : (
-                  <>
-                    <option value="STUDENT_ID">College Student ID Card</option>
-                    <option value="CITIZENSHIP">Citizenship Card (Nagariukta)</option>
-                    <option value="ADMISSION_RECEIPT">Official Admission Receipt</option>
-                  </>
-                )}
-              </select>
-            </div>
-
-            {/* Registration Input */}
-            <div className="space-y-1">
-              <label className="block text-xs font-bold text-ink">
-                {user?.role === 'owner' ? 'Document / Certificate Number' : 'Registration / Roll Number'}
-              </label>
-              <input
-                type="text"
-                required
-                placeholder={user?.role === 'owner' ? 'e.g. 12-34-56789 or Plot Number' : 'e.g. PUL077BCT045 or Citizenship No.'}
-                value={registrationNumber}
-                onChange={(e) => setRegistrationNumber(e.target.value)}
-                className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-3 focus:outline-none focus:border-marigold text-xs font-semibold"
-              />
-            </div>
-
-            {/* Upload Box Dropzone */}
-            <div className="space-y-1">
-              <label className="block text-xs font-bold text-ink">Scan / Photo upload</label>
-              
-              {uploadedFile ? (
-                <div className="border border-ink/10 rounded-xl p-3 flex items-center justify-between bg-[#FAF8F5]">
-                  <div className="flex items-center gap-2 text-xs font-bold text-ink-soft">
-                    <FileText size={16} className="text-marigold" />
-                    <span className="truncate max-w-[180px]">document_scan_preview.jpg</span>
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={() => setUploadedFile(null)}
-                    className="text-xs font-black text-rose-500 hover:underline"
-                  >
-                    Delete
-                  </button>
+            {/* Submitted Document Summary */}
+            <div className="bg-paper border border-ink/5 rounded-xl p-4 text-left space-y-2 text-xs font-semibold text-ink-soft">
+              <div className="flex justify-between">
+                <span>Document Type:</span>
+                <span className="text-ink">{documentType.replace('_', ' ')}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Reg / Roll Number:</span>
+                <span className="text-ink font-mono">{registrationNumber}</span>
+              </div>
+              {uploadedFile && (
+                <div className="mt-3 border border-ink/5 rounded-lg overflow-hidden h-24 flex items-center justify-center bg-clay">
+                  <img src={uploadedFile} alt="Uploaded Scan" className="h-full object-cover" />
                 </div>
-              ) : (
-                <label 
-                  className="border-2 border-dashed border-ink/10 hover:border-marigold/30 rounded-xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center bg-[#FAF8F5] text-ink-soft"
-                >
-                  {uploading ? (
-                    <Loader2 size={24} className="text-marigold animate-spin mb-2" />
-                  ) : (
-                    <Upload size={24} className="text-ink-soft/40 mb-2" />
-                  )}
-                  <span className="text-xs font-bold">{uploading ? 'Uploading document...' : 'Select scan file to upload'}</span>
-                  <span className="text-[10px] text-ink-soft/40 mt-0.5">Supports PNG, JPG (Max 5MB)</span>
-                  <input 
-                    type="file" 
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    disabled={uploading}
-                    className="hidden"
-                  />
-                </label>
               )}
             </div>
+          </div>
+        )}
 
-            {/* Submit Vetting details */}
-            <button
-              type="submit"
-              disabled={submitting || !registrationNumber.trim() || !uploadedFile}
-              className="w-full bg-marigold hover:bg-marigold-dark text-paper font-black py-4 rounded-xl shadow-md transition disabled:opacity-50 text-xs tracking-wider uppercase"
-            >
-              {submitting ? 'Submitting Vetting details...' : 'Submit Verification'}
-            </button>
+        {trust.verificationStatus === 'REJECTED' && (
+          <div className="bg-rose-50 border border-brick/20 text-brick rounded-2xl p-5 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-paper flex items-center justify-center text-brick shadow-sm flex-shrink-0">
+                <AlertTriangle size={20} className="stroke-[2.5]" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black font-display">Your document verification was not approved.</h4>
+                <p className="text-xs opacity-90 mt-0.5 font-semibold">Reason: {trust.rejectionReason || 'No reason provided.'}</p>
+              </div>
+            </div>
+            <p className="text-[11px] text-ink-soft font-semibold leading-relaxed pl-1">
+              Please review the feedback reason above, correct any errors, re-upload a clear copy of your document, and resubmit for approval.
+            </p>
+          </div>
+        )}
 
-          </form>
-        </div>
+        {/* Verification Form (only show if UNVERIFIED or REJECTED or empty) */}
+        {(trust.verificationStatus === 'UNVERIFIED' || trust.verificationStatus === 'REJECTED' || !trust.verificationStatus) && (
+          <div className="bg-paper border border-ink/5 rounded-[16px] p-6 shadow-sm">
+            <h3 className="text-sm font-black text-ink font-display mb-4 flex items-center gap-1.5">
+              <Lock size={16} className="text-marigold" /> Submit Credentials ID
+            </h3>
+
+            <form onSubmit={handleSubmitVerification} className="space-y-4">
+              
+              {/* Document Select */}
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-ink">Document Type</label>
+                <select
+                  value={documentType}
+                  onChange={(e) => setDocumentType(e.target.value)}
+                  className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-3 focus:outline-none focus:border-marigold text-xs font-bold"
+                >
+                  {user?.role === 'owner' ? (
+                    <>
+                      <option value="CITIZENSHIP">Citizenship Card (Nagariukta)</option>
+                      <option value="LALPURJA">Land Ownership Certificate (Lalpurja)</option>
+                      <option value="TAX_RECEIPT">Property Tax Receipt</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="STUDENT_ID">College Student ID Card</option>
+                      <option value="CITIZENSHIP">Citizenship Card (Nagariukta)</option>
+                      <option value="ADMISSION_RECEIPT">Official Admission Receipt</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              {/* Registration Input */}
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-ink">
+                  {user?.role === 'owner' ? 'Document / Certificate Number' : 'Registration / Roll Number'}
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder={user?.role === 'owner' ? 'e.g. 12-34-56789 or Plot Number' : 'e.g. PUL077BCT045 or Citizenship No.'}
+                  value={registrationNumber}
+                  onChange={(e) => setRegistrationNumber(e.target.value)}
+                  className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-3 focus:outline-none focus:border-marigold text-xs font-semibold"
+                />
+              </div>
+
+              {/* Upload Box Dropzone */}
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-ink">Scan / Photo upload</label>
+                
+                {uploadedFile ? (
+                  <div className="border border-ink/10 rounded-xl p-3 flex items-center justify-between bg-[#FAF8F5]">
+                    <div className="flex items-center gap-2 text-xs font-bold text-ink-soft">
+                      <FileText size={16} className="text-marigold" />
+                      <span className="truncate max-w-[180px]">document_scan_preview.jpg</span>
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => setUploadedFile(null)}
+                      className="text-xs font-black text-rose-500 hover:underline"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ) : (
+                  <label 
+                    className="border-2 border-dashed border-ink/10 hover:border-marigold/30 rounded-xl p-6 text-center cursor-pointer transition flex flex-col items-center justify-center bg-[#FAF8F5] text-ink-soft"
+                  >
+                    {uploading ? (
+                      <Loader2 size={24} className="text-marigold animate-spin mb-2" />
+                    ) : (
+                      <Upload size={24} className="text-ink-soft/40 mb-2" />
+                    )}
+                    <span className="text-xs font-bold">{uploading ? 'Uploading document...' : 'Select scan file to upload'}</span>
+                    <span className="text-[10px] text-ink-soft/40 mt-0.5">Supports PNG, JPG (Max 5MB)</span>
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      disabled={uploading}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+
+              {/* Submit Vetting details */}
+              <button
+                type="submit"
+                disabled={submitting || !registrationNumber.trim() || !uploadedFile}
+                className="w-full bg-marigold hover:bg-marigold-dark text-paper font-black py-4 rounded-xl shadow-md transition disabled:opacity-50 text-xs tracking-wider uppercase"
+              >
+                {submitting ? 'Submitting Vetting details...' : 'Submit Verification'}
+              </button>
+
+            </form>
+          </div>
+        )}
 
         {/* Nepal Specific Anti-Scam Safeguards Info Section */}
         <div className="bg-orange-50 border border-orange-500/10 rounded-[16px] p-5 space-y-3">

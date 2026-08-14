@@ -48,7 +48,7 @@ const LoadingSpinner: React.FC = () => (
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const { token, loading } = useAuth();
+  const { token, user, loading } = useAuth();
 
   if (loading) {
     return <LoadingSpinner />;
@@ -56,6 +56,10 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
 
   if (!token) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (user?.role === 'admin') {
+    return <Navigate to="/admin" replace />;
   }
 
   return <>{children}</>;
@@ -75,8 +79,20 @@ const LandlordRoute: React.FC<{ children: React.ReactNode }> = ({
     return <LoadingSpinner />;
   }
 
-  if (!token || user?.role !== 'owner') {
+  if (!token) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (user?.role === 'admin') {
+    return <Navigate to="/admin" replace />;
+  }
+
+  if (user?.role === 'student') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (user?.role !== 'owner') {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;
@@ -96,8 +112,20 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({
     return <LoadingSpinner />;
   }
 
-  if (!token || user?.role !== 'admin') {
+  if (!token) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (user?.role === 'owner') {
+    return <Navigate to="/landlord" replace />;
+  }
+
+  if (user?.role === 'student') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (user?.role !== 'admin') {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;
@@ -131,6 +159,7 @@ const StudentRoute: React.FC<{ children: React.ReactNode }> = ({
 
   return <>{children}</>;
 };
+
 
 
 // ===============================

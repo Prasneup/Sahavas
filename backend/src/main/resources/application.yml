@@ -4,6 +4,10 @@ spring:
   jackson:
     serialization:
       fail-on-empty-beans: false
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
   
   # Database Configuration (Neon PostgreSQL database connection setup)
   datasource:
@@ -54,6 +58,6 @@ app:
     expiration-ms: 900000        # 15 minutes (900,000 ms)
     refresh-expiration-ms: 604800000 # 7 days (604,800,000 ms)
   cloudinary:
-    cloud-name: ${CLOUDINARY_CLOUD_NAME:unisphere_mock_cloud}
-    api-key: ${CLOUDINARY_API_KEY:123456789}
-    api-secret: ${CLOUDINARY_API_SECRET:mock_secret}
+    cloud-name: ${CLOUDINARY_CLOUD_NAME:l7tiongt}
+    api-key: ${CLOUDINARY_API_KEY:179845855244329}
+    api-secret: ${CLOUDINARY_API_SECRET:C2stSn57VQCgYC56JcWRp55uTJg}

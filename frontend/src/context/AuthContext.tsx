@@ -66,6 +66,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      localStorage.removeItem('hide_verified_banner');
+      localStorage.removeItem('hide_rejected_banner');
       setToken(null);
       setUser(null);
     }

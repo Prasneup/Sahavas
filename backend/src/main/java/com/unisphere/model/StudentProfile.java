@@ -91,6 +91,9 @@ public class StudentProfile {
     @Column(name = "document_image_url", length = 250)
     private String documentImageUrl;
 
+    @Column(name = "rejection_reason", columnDefinition = "TEXT")
+    private String rejectionReason;
+
     @Column(name = "trust_score")
     @Builder.Default
     private int trustScore = 10; // Default base trust score for unverified accounts

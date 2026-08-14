@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
-import { User, Award, CheckCircle, Sparkles, BookOpen, ArrowLeft } from 'lucide-react';
+import { User, Award, CheckCircle, Sparkles, BookOpen, ArrowLeft, Upload, Loader2 } from 'lucide-react';
 
 interface ProfileData {
   fullName: string;
@@ -52,6 +52,7 @@ const ProfileEdit: React.FC = () => {
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
 
@@ -87,6 +88,27 @@ const ProfileEdit: React.FC = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setUploading(true);
+    try {
+      const res = await api.post('/media/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (res.data?.url) {
+        setProfile(prev => ({ ...prev, avatarUrl: res.data.url }));
+      }
+    } catch (err) {
+      alert("Failed to upload scan file to Cloudinary. Please verify connection/credentials.");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -312,13 +334,43 @@ const ProfileEdit: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Avatar Image URL</label>
-                <input
-                  type="text"
-                  value={profile.avatarUrl}
-                  onChange={(e) => setProfile({ ...profile, avatarUrl: e.target.value })}
-                  className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold text-xs"
-                />
+                <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Profile Picture (Avatar)</label>
+                {profile.avatarUrl ? (
+                  <div className="flex items-center gap-3 bg-[#FAF8F5] border border-ink/10 rounded-xl p-2 h-[46px]">
+                    <img src={profile.avatarUrl} alt="Avatar" className="w-9 h-9 rounded-full object-cover border border-ink/5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-bold text-ink-soft truncate font-mono">{profile.avatarUrl}</p>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => setProfile(prev => ({ ...prev, avatarUrl: '' }))}
+                      className="text-xs font-black text-rose-500 hover:underline pr-2 flex-shrink-0"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ) : (
+                  <label className="border border-dashed border-ink/15 hover:border-marigold/30 rounded-xl px-4 py-3 h-[46px] text-center cursor-pointer transition flex items-center justify-center gap-2 bg-[#FAF8F5] text-ink-soft text-xs font-bold">
+                    {uploading ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin text-marigold" />
+                        <span>Uploading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={14} className="text-ink-soft/55" />
+                        <span>Upload Photo</span>
+                      </>
+                    )}
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={handleAvatarUpload}
+                      disabled={uploading}
+                      className="hidden"
+                    />
+                  </label>
+                )}
               </div>
             </div>
 

@@ -27,6 +27,7 @@ public class ProfileResponse {
     private BigDecimal budgetMin;
     private BigDecimal budgetMax;
     private String verificationStatus;
+    private String rejectionReason;
     private Integer completenessPercentage;
     private List<String> interests;
     private List<String> skills;

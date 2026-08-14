@@ -29,6 +29,46 @@ public class DatabaseSeeder implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) throws Exception {
+        // Secure development/admin seed mechanism: always ensure admin account exists
+        String adminPhone = System.getenv("ADMIN_PHONE") != null ? System.getenv("ADMIN_PHONE") : "9800000000";
+        String adminEmail = System.getenv("ADMIN_EMAIL") != null ? System.getenv("ADMIN_EMAIL") : "admin@nivaro.com";
+        String adminPassword = System.getenv("ADMIN_PASSWORD") != null ? System.getenv("ADMIN_PASSWORD") : "password123";
+
+        User admin = userRepository.findByPhoneNumber(adminPhone).orElse(null);
+        if (admin == null) {
+            admin = User.builder()
+                    .phoneNumber(adminPhone)
+                    .email(adminEmail)
+                    .passwordHash(passwordEncoder.encode(adminPassword))
+                    .role("admin")
+                    .status("VERIFIED")
+                    .build();
+            admin = userRepository.save(admin);
+
+            StudentProfile adminProfile = StudentProfile.builder()
+                    .user(admin)
+                    .fullName("Admin Moderator")
+                    .gender("MALE")
+                    .majorCourse("Administrator")
+                    .academicYear(1)
+                    .currentSemester(1)
+                    .hometownDistrict("Kathmandu")
+                    .currentCity("Kathmandu")
+                    .verificationStatus("VERIFIED")
+                    .verificationLevel(VerificationLevel.PREMIUM_VERIFIED)
+                    .build();
+            studentProfileRepository.save(adminProfile);
+            log.info("Admin user seeded successfully with phone: {}", adminPhone);
+        } else {
+            // Update admin fields to match the current environment properties
+            admin.setEmail(adminEmail);
+            admin.setPasswordHash(passwordEncoder.encode(adminPassword));
+            admin.setRole("admin");
+            admin.setStatus("verified");
+            userRepository.save(admin);
+            log.info("Admin user credentials updated from environment/defaults.");
+        }
+
         if (collegeRepository.count() > 0) {
             log.info("Database already seeded. Skipping seeder execution.");
             return;
@@ -60,30 +100,6 @@ public class DatabaseSeeder implements CommandLineRunner {
 
         collegeRepository.saveAll(Arrays.asList(pulchowk, kec, ncit, patan));
 
-        // 2. Seed Admin User
-        User admin = User.builder()
-                .phoneNumber("9800000000")
-                .email("admin@nivaro.com")
-                .passwordHash(passwordEncoder.encode("password123"))
-                .role("admin")
-                .status("VERIFIED")
-                .build();
-        userRepository.save(admin);
-
-        // Seed Admin profile
-        StudentProfile adminProfile = StudentProfile.builder()
-                .user(admin)
-                .fullName("Admin Moderator")
-                .gender("MALE")
-                .majorCourse("Administrator")
-                .academicYear(1)
-                .currentSemester(1)
-                .hometownDistrict("Kathmandu")
-                .currentCity("Kathmandu")
-                .verificationStatus("VERIFIED")
-                .verificationLevel(VerificationLevel.PREMIUM_VERIFIED)
-                .build();
-        studentProfileRepository.save(adminProfile);
 
         // 3. Seed Landlord Users
         User landlord1 = User.builder()
