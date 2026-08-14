@@ -22,6 +22,7 @@ public class ListingImage {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "listing_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Listing listing;
 
     @Column(name = "image_url", nullable = false, length = 255)
