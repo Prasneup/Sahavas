@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, ArrowLeft } from 'lucide-react';
 import api from '../services/api';
 
 const RoommateDiscovery: React.FC = () => {
@@ -146,8 +146,21 @@ const RoommateDiscovery: React.FC = () => {
       <main className="flex-1 max-w-6xl mx-auto w-full p-6 space-y-8">
         
         {step === 'DASHBOARD' && (
-          <div className="space-y-8">
+          <div className="space-y-6">
             
+            {/* Back Navigation */}
+            <div className="flex items-center">
+              <button 
+                onClick={() => navigate('/dashboard')}
+                className="flex items-center gap-2.5 text-ink-soft hover:text-ink transition font-bold text-xs uppercase tracking-wider font-display"
+              >
+                <div className="w-9 h-9 rounded-full bg-paper border border-ink/10 flex items-center justify-center shadow-sm hover:bg-clay/50 transition">
+                  <ArrowLeft size={16} />
+                </div>
+                <span>Back to Dashboard</span>
+              </button>
+            </div>
+
             {/* Page Header */}
             <div>
               <h2 className="text-3xl font-black font-display text-ink">Roommate Matching Center</h2>
