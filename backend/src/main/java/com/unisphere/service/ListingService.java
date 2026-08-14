@@ -32,7 +32,13 @@ public class ListingService {
         listing.setVerificationStatus("PENDING");
         listing.setIsVerified(false);
         if (listing.getImages() != null) {
-            listing.getImages().forEach(img -> img.setListing(listing));
+            for (int i = 0; i < listing.getImages().size(); i++) {
+                var img = listing.getImages().get(i);
+                img.setListing(listing);
+                if (img.getIsPrimary() == null) {
+                    img.setIsPrimary(i == 0);
+                }
+            }
         }
         return listingRepository.save(listing);
     }
@@ -92,8 +98,12 @@ public class ListingService {
 
         if (listingDetails.getImages() != null) {
             listing.getImages().clear();
-            for (var img : listingDetails.getImages()) {
+            for (int i = 0; i < listingDetails.getImages().size(); i++) {
+                var img = listingDetails.getImages().get(i);
                 img.setListing(listing);
+                if (img.getIsPrimary() == null) {
+                    img.setIsPrimary(i == 0);
+                }
                 listing.getImages().add(img);
             }
         }
