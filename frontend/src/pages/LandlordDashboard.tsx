@@ -548,33 +548,6 @@ const LandlordDashboard: React.FC = () => {
                 </div>
               </div>
 
-              {/* Coordinates Map Position */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-ink-soft mb-1.5">Latitude coordinate</label>
-                  <input 
-                    type="number" 
-                    step="0.000001"
-                    name="locationLat" 
-                    required
-                    value={listingForm.locationLat}
-                    onChange={handleInputChange}
-                    className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-ink-soft mb-1.5">Longitude coordinate</label>
-                  <input 
-                    type="number" 
-                    step="0.000001"
-                    name="locationLng" 
-                    required
-                    value={listingForm.locationLng}
-                    onChange={handleInputChange}
-                    className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold font-mono"
-                  />
-                </div>
-              </div>
 
               {/* Amenities Grid checklist */}
               <div>

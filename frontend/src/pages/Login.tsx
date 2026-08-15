@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { NivaroLogo } from '../components/NivaroLogo';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -15,7 +16,7 @@ const Login: React.FC = () => {
     setError('');
     setIsSubmitting(true);
     try {
-      const loggedInUser = await login(email, password);
+      const loggedInUser = await login(email.trim(), password);
       if (loggedInUser.role === 'admin') {
         navigate('/admin');
       } else if (loggedInUser.role === 'owner') {
@@ -38,10 +39,7 @@ const Login: React.FC = () => {
         <div className="text-center mb-8 flex flex-col items-center">
           {/* Nivaro Mandala/Sun Logo Icon */}
           <div className="w-10 h-10 rounded-full bg-paper flex items-center justify-center border border-ink/10 shadow-sm mb-3">
-            <svg className="w-6 h-6 text-marigold" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <circle cx="12" cy="12" r="4" />
-              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-            </svg>
+            <NivaroLogo className="w-6 h-6 text-marigold" />
           </div>
           <h2 className="text-3xl font-black text-ink font-display">NIVARO</h2>
           <p className="text-xs text-ink-soft font-semibold mt-2">

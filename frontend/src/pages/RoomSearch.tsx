@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { Search, CheckCircle, Star, MapPin, Heart, ArrowLeft } from 'lucide-react';
+import { NivaroLogo } from '../components/NivaroLogo';
 import { Listing } from '../services/listingsData';
 
 const RoomSearch: React.FC = () => {
@@ -73,12 +74,8 @@ const RoomSearch: React.FC = () => {
           </button>
           
           <div className="flex items-center gap-1.5">
-            {/* Nivaro Mandala Logo */}
             <div className="w-7 h-7 rounded-full bg-paper flex items-center justify-center border border-ink/10">
-              <svg className="w-4.5 h-4.5 text-marigold" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <circle cx="12" cy="12" r="4" />
-                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-              </svg>
+              <NivaroLogo className="w-4.5 h-4.5 text-marigold" />
             </div>
             <h1 className="text-xl font-black text-ink tracking-tight font-display">Nivaro Rooms</h1>
           </div>

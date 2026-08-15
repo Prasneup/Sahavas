@@ -32,12 +32,21 @@ public class ListingService {
         listing.setVerificationStatus("PENDING");
         listing.setIsVerified(false);
         if (listing.getImages() != null) {
-            for (int i = 0; i < listing.getImages().size(); i++) {
-                var img = listing.getImages().get(i);
+            java.util.List<com.unisphere.model.ListingImage> uniqueImages = new java.util.ArrayList<>();
+            java.util.Set<String> urls = new java.util.HashSet<>();
+            for (var img : listing.getImages()) {
+                if (img.getImageUrl() != null && urls.add(img.getImageUrl())) {
+                    uniqueImages.add(img);
+                }
+            }
+            listing.getImages().clear();
+            for (int i = 0; i < uniqueImages.size(); i++) {
+                var img = uniqueImages.get(i);
                 img.setListing(listing);
                 if (img.getIsPrimary() == null) {
                     img.setIsPrimary(i == 0);
                 }
+                listing.getImages().add(img);
             }
         }
         return listingRepository.save(listing);
@@ -98,8 +107,15 @@ public class ListingService {
 
         if (listingDetails.getImages() != null) {
             listing.getImages().clear();
-            for (int i = 0; i < listingDetails.getImages().size(); i++) {
-                var img = listingDetails.getImages().get(i);
+            java.util.List<com.unisphere.model.ListingImage> uniqueImages = new java.util.ArrayList<>();
+            java.util.Set<String> urls = new java.util.HashSet<>();
+            for (var img : listingDetails.getImages()) {
+                if (img.getImageUrl() != null && urls.add(img.getImageUrl())) {
+                    uniqueImages.add(img);
+                }
+            }
+            for (int i = 0; i < uniqueImages.size(); i++) {
+                var img = uniqueImages.get(i);
                 img.setListing(listing);
                 if (img.getIsPrimary() == null) {
                     img.setIsPrimary(i == 0);
