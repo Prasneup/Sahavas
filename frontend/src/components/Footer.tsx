@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Phone, BookOpen, MessageSquare, Bug, X, ChevronDown, ChevronUp, CheckCircle, Send } from 'lucide-react';
+import { Bug, X, ChevronDown, ChevronUp, CheckCircle, Send } from 'lucide-react';
+import { NivaroLogo } from './NivaroLogo';
 
 type ModalType = 'support' | 'faq' | 'bug' | null;
 
@@ -54,155 +55,131 @@ const Footer: React.FC = () => {
 
   return (
     <footer className="w-full bg-[#FAF6EC] border-t border-ink/10 relative z-10 pt-12 pb-24 md:pb-12 mt-auto">
-      <div className="max-w-6xl mx-auto px-6 space-y-12">
+      <div className="max-w-6xl mx-auto px-6 space-y-10">
         
-        {/* Brand Header */}
-        <div className="text-center md:text-left border-b border-ink/5 pb-6">
-          <h2 className="text-xl font-black text-ink font-display tracking-tight">Nivaro</h2>
-          <p className="text-xs text-marigold font-bold mt-1">
-            Find your room. Find your perfect roommate.
-          </p>
-        </div>
-
-        {/* Section 1: Support Cards */}
-        <div className="space-y-6">
-          <div className="text-center md:text-left">
-            <h3 className="text-lg font-bold text-ink font-display">Need Help?</h3>
-            <p className="text-xs text-ink-soft/75 font-semibold mt-1">
-              Have questions or need assistance? We are here to support your housing journey.
+        {/* Main Footer Columns */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-8 md:gap-12">
+          
+          {/* Column 1: Brand (spans 2 columns on tablet/desktop) */}
+          <div className="sm:col-span-2 space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-marigold flex items-center justify-center text-ink shadow-sm">
+                <NivaroLogo className="w-5 h-5" />
+              </div>
+              <h1 className="text-lg font-black text-ink font-display tracking-tight">NIVARO</h1>
+            </div>
+            <p className="text-xs text-marigold font-bold italic">
+              "Find your room. Find your perfect roommate."
+            </p>
+            <p className="text-[11px] text-ink-soft/85 font-medium leading-relaxed max-w-sm">
+              Nivaro helps students find trusted rooms, compatible roommates, and student communities — all in one place.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            
-            {/* Contact Support */}
-            <div 
-              onClick={() => setActiveModal('support')}
-              className="group p-5 bg-white border border-ink/10 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between"
-            >
-              <div className="space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-marigold/10 flex items-center justify-center text-marigold group-hover:scale-110 transition-transform duration-300">
-                  <Phone size={20} className="stroke-[2.5]" />
-                </div>
-                <h4 className="font-bold text-sm text-ink group-hover:text-marigold transition-colors duration-200">Contact Support</h4>
-                <p className="text-xs text-ink-soft/80 leading-relaxed font-medium">
-                  Get assistance from our dedicated support team.
-                </p>
-              </div>
-              <div className="text-[10px] text-marigold font-black uppercase tracking-wider mt-4 group-hover:translate-x-1 transition-transform duration-200">
-                Get Help &rarr;
-              </div>
-            </div>
-
-            {/* FAQ */}
-            <div 
-              onClick={() => setActiveModal('faq')}
-              className="group p-5 bg-white border border-ink/10 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between"
-            >
-              <div className="space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-marigold/10 flex items-center justify-center text-marigold group-hover:scale-110 transition-transform duration-300">
-                  <BookOpen size={20} className="stroke-[2.5]" />
-                </div>
-                <h4 className="font-bold text-sm text-ink group-hover:text-marigold transition-colors duration-200">FAQ</h4>
-                <p className="text-xs text-ink-soft/80 leading-relaxed font-medium">
-                  Find answers to common questions.
-                </p>
-              </div>
-              <div className="text-[10px] text-marigold font-black uppercase tracking-wider mt-4 group-hover:translate-x-1 transition-transform duration-200">
-                Browse FAQs &rarr;
-              </div>
-            </div>
-
-            {/* Community Forum */}
-            <Link 
-              to="/communities"
-              className="group p-5 bg-white border border-ink/10 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between text-left"
-            >
-              <div className="space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-marigold/10 flex items-center justify-center text-marigold group-hover:scale-110 transition-transform duration-300">
-                  <MessageSquare size={20} className="stroke-[2.5]" />
-                </div>
-                <h4 className="font-bold text-sm text-ink group-hover:text-marigold transition-colors duration-200">Community Forum</h4>
-                <p className="text-xs text-ink-soft/80 leading-relaxed font-medium">
-                  Connect with fellow students and share experiences.
-                </p>
-              </div>
-              <div className="text-[10px] text-marigold font-black uppercase tracking-wider mt-4 group-hover:translate-x-1 transition-transform duration-200">
-                Join Forum &rarr;
-              </div>
-            </Link>
-
-            {/* Report a Bug */}
-            <div 
-              onClick={() => setActiveModal('bug')}
-              className="group p-5 bg-white border border-ink/10 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col justify-between"
-            >
-              <div className="space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-marigold/10 flex items-center justify-center text-marigold group-hover:scale-110 transition-transform duration-300">
-                  <Bug size={20} className="stroke-[2.5]" />
-                </div>
-                <h4 className="font-bold text-sm text-ink group-hover:text-marigold transition-colors duration-200">Report a Bug</h4>
-                <p className="text-xs text-ink-soft/80 leading-relaxed font-medium">
-                  Help us improve Nivaro by reporting issues.
-                </p>
-              </div>
-              <div className="text-[10px] text-marigold font-black uppercase tracking-wider mt-4 group-hover:translate-x-1 transition-transform duration-200">
-                File Report &rarr;
-              </div>
-            </div>
-
+          {/* Column 2: Explore */}
+          <div className="space-y-3.5">
+            <h4 className="text-xs font-black text-ink uppercase tracking-wider">Explore</h4>
+            <ul className="space-y-2 text-xs font-bold text-ink-soft">
+              <li>
+                <Link to="/rooms" className="hover:text-marigold transition-all duration-150 focus:outline-none focus:ring-1 focus:ring-marigold rounded px-1 -mx-1 block w-fit">
+                  Find Rooms
+                </Link>
+              </li>
+              <li>
+                <Link to="/roommates" className="hover:text-marigold transition-all duration-150 focus:outline-none focus:ring-1 focus:ring-marigold rounded px-1 -mx-1 block w-fit">
+                  Find Roommates
+                </Link>
+              </li>
+              <li>
+                <Link to="/communities" className="hover:text-marigold transition-all duration-150 focus:outline-none focus:ring-1 focus:ring-marigold rounded px-1 -mx-1 block w-fit">
+                  Student Communities
+                </Link>
+              </li>
+              <li>
+                <Link to="/relocation" className="hover:text-marigold transition-all duration-150 focus:outline-none focus:ring-1 focus:ring-marigold rounded px-1 -mx-1 block w-fit">
+                  Move-In Journey
+                </Link>
+              </li>
+              <li>
+                <Link to="/rooms#saved" className="hover:text-marigold transition-all duration-150 focus:outline-none focus:ring-1 focus:ring-marigold rounded px-1 -mx-1 block w-fit">
+                  Saved Rooms
+                </Link>
+              </li>
+            </ul>
           </div>
+
+          {/* Column 3: Support */}
+          <div className="space-y-3.5">
+            <h4 className="text-xs font-black text-ink uppercase tracking-wider">Support</h4>
+            <ul className="space-y-2 text-xs font-bold text-ink-soft">
+              <li>
+                <button 
+                  onClick={() => setActiveModal('faq')}
+                  className="hover:text-marigold transition-all duration-150 text-left focus:outline-none focus:ring-1 focus:ring-marigold rounded px-1 -mx-1 block w-fit"
+                >
+                  Help Center
+                </button>
+              </li>
+              <li>
+                <button 
+                  onClick={() => setActiveModal('support')}
+                  className="hover:text-marigold transition-all duration-150 text-left focus:outline-none focus:ring-1 focus:ring-marigold rounded px-1 -mx-1 block w-fit"
+                >
+                  Contact Us
+                </button>
+              </li>
+              <li>
+                <button 
+                  onClick={() => setActiveModal('bug')}
+                  className="hover:text-marigold transition-all duration-150 text-left focus:outline-none focus:ring-1 focus:ring-marigold rounded px-1 -mx-1 block w-fit"
+                >
+                  Report an Issue
+                </button>
+              </li>
+              <li>
+                <Link to="/verify" className="hover:text-marigold transition-all duration-150 focus:outline-none focus:ring-1 focus:ring-marigold rounded px-1 -mx-1 block w-fit">
+                  Safety & Verification
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Column 4: Legal */}
+          <div className="space-y-3.5">
+            <h4 className="text-xs font-black text-ink uppercase tracking-wider">Legal</h4>
+            <ul className="space-y-2 text-xs font-bold text-ink-soft">
+              <li>
+                <a href="#privacy" className="hover:text-marigold transition-all duration-150 focus:outline-none focus:ring-1 focus:ring-marigold rounded px-1 -mx-1 block w-fit">
+                  Privacy Policy
+                </a>
+              </li>
+              <li>
+                <a href="#terms" className="hover:text-marigold transition-all duration-150 focus:outline-none focus:ring-1 focus:ring-marigold rounded px-1 -mx-1 block w-fit">
+                  Terms of Service
+                </a>
+              </li>
+              <li>
+                <a href="#community-guidelines" className="hover:text-marigold transition-all duration-150 focus:outline-none focus:ring-1 focus:ring-marigold rounded px-1 -mx-1 block w-fit">
+                  Community Guidelines
+                </a>
+              </li>
+              <li>
+                <a href="#safety-guidelines" className="hover:text-marigold transition-all duration-150 focus:outline-none focus:ring-1 focus:ring-marigold rounded px-1 -mx-1 block w-fit">
+                  Safety Guidelines
+                </a>
+              </li>
+            </ul>
+          </div>
+
         </div>
 
-        {/* Section 2: Horizontal Navigation */}
-        <div className="border-t border-ink/5 pt-8 flex justify-center">
-          <nav className="flex flex-wrap justify-center gap-x-8 gap-y-4 text-xs font-bold text-ink-soft">
-            <a href="#privacy" className="hover:text-marigold transition-colors duration-200 relative group py-1">
-              Privacy
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-marigold scale-x-0 group-hover:scale-x-100 transition-transform duration-200 origin-left"></span>
-            </a>
-            <a href="#terms" className="hover:text-marigold transition-colors duration-200 relative group py-1">
-              Terms
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-marigold scale-x-0 group-hover:scale-x-100 transition-transform duration-200 origin-left"></span>
-            </a>
-            <a 
-              href="#help" 
-              onClick={(e) => { e.preventDefault(); setActiveModal('faq'); }}
-              className="hover:text-marigold transition-colors duration-200 relative group py-1"
-            >
-              Help
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-marigold scale-x-0 group-hover:scale-x-100 transition-transform duration-200 origin-left"></span>
-            </a>
-            <a 
-              href="#contact" 
-              onClick={(e) => { e.preventDefault(); setActiveModal('support'); }}
-              className="hover:text-marigold transition-colors duration-200 relative group py-1"
-            >
-              Contact
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-marigold scale-x-0 group-hover:scale-x-100 transition-transform duration-200 origin-left"></span>
-            </a>
-            <a 
-              href="#feedback" 
-              onClick={(e) => { e.preventDefault(); setActiveModal('support'); }}
-              className="hover:text-marigold transition-colors duration-200 relative group py-1"
-            >
-              Feedback
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-marigold scale-x-0 group-hover:scale-x-100 transition-transform duration-200 origin-left"></span>
-            </a>
-          </nav>
-        </div>
-
-        {/* Section 3: Bottom Footer */}
-        <div className="border-t border-ink/5 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-semibold text-ink-soft/75">
-          <div className="flex flex-col sm:flex-row items-center gap-2 text-center sm:text-left">
-            <span>&copy; 2026 Nivaro.</span>
-            <span className="hidden sm:inline text-ink-soft/30">|</span>
-            <span className="flex items-center gap-1.5 justify-center">
-              Built for Students in Nepal <span aria-label="Nepal Flag">🇳🇵</span>
-            </span>
+        {/* Bottom copyright bar */}
+        <div className="border-t border-ink/5 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-bold text-ink-soft/70">
+          <div>
+            © 2026 Nivaro. All rights reserved.
           </div>
-          <div className="bg-ink/5 px-2.5 py-1 rounded-full font-mono text-[10px] tracking-wider text-ink-soft/80">
-            Version 1.2.0
+          <div className="flex items-center gap-1.5 justify-center">
+            Built for students, by students. <span className="text-[10px] text-ink-soft/45 font-mono">v1.2.0</span>
           </div>
         </div>
 
