@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Home, Plus, Edit, Trash2, CheckCircle, Clock, Eye, Sparkles, Loader2, ArrowRight } from 'lucide-react';
+import { Home, Plus, Edit, Trash2, CheckCircle, Clock, Eye, Sparkles, Loader2, Bell } from 'lucide-react';
 import api from '../services/api';
 
 interface ListingImage {
@@ -27,14 +27,34 @@ interface Listing {
 }
 
 interface Conversation {
+  conversationId: string;
   peerProfile: {
     id: string;
     fullName: string;
     avatarUrl: string;
     collegeName?: string;
   };
-  lastMessageText: string;
+  lastMessage: string;
   lastMessageTime: string;
+  unreadCount?: number;
+  listing?: {
+    id: string;
+    title: string;
+    rentAmount: number;
+    distanceFromCollegeText?: string;
+  };
+}
+
+interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  content: string;
+  type: 'NEW_MESSAGE' | 'NEW_ENQUIRY' | 'VERIFICATION_APPROVED' | 'VERIFICATION_REJECTED';
+  conversationId?: string;
+  roomId?: string;
+  isRead: boolean;
+  createdAt: string;
 }
 
 const LandlordDashboard: React.FC = () => {
@@ -44,6 +64,11 @@ const LandlordDashboard: React.FC = () => {
   const [inquiries, setInquiries] = useState<Conversation[]>([]);
   const [vettingStatus, setVettingStatus] = useState('UNVERIFIED');
   const [loading, setLoading] = useState(true);
+
+  // Notifications states
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   // Form Modal state
   const [showModal, setShowModal] = useState(false);
@@ -87,12 +112,65 @@ const LandlordDashboard: React.FC = () => {
       setVettingStatus(profileRes.data?.verificationStatus || 'UNVERIFIED');
 
       // 3. Fetch recent conversations
-      const chatRes = await api.get('/chat/conversations');
+      const chatRes = await api.get('/chats/conversations');
       setInquiries(chatRes.data?.slice(0, 5) || []);
+
+      // 4. Fetch notifications
+      const notifRes = await api.get('/notifications');
+      setNotifications(notifRes.data || []);
+
+      // 5. Fetch unread count
+      const countRes = await api.get('/notifications/unread/count');
+      setUnreadCount(countRes.data?.unreadCount || 0);
     } catch (err) {
       console.error("Failed to load landlord metrics", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleNotificationClick = async (notif: Notification) => {
+    try {
+      await api.put(`/notifications/${notif.id}/read`);
+      setUnreadCount(prev => Math.max(0, prev - 1));
+      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
+    } catch (err) {
+      console.error("Failed to mark notification as read", err);
+    }
+
+    setShowNotifications(false);
+
+    if (notif.type === 'NEW_MESSAGE' || notif.type === 'NEW_ENQUIRY') {
+      let peerId = '';
+      try {
+        const chatRes = await api.get('/chats/conversations');
+        const match = chatRes.data?.find((c: any) => c.conversationId === notif.conversationId);
+        if (match) {
+          peerId = match.peerProfile?.id;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+
+      if (peerId) {
+        navigate(`/chat/${peerId}${notif.roomId ? `?listingId=${notif.roomId}` : ''}`);
+      } else {
+        navigate('/messages');
+      }
+    } else if (notif.type === 'VERIFICATION_APPROVED' || notif.type === 'VERIFICATION_REJECTED') {
+      navigate('/landlord');
+      loadData();
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      const unreads = notifications.filter(n => !n.isRead);
+      await Promise.all(unreads.map(n => api.put(`/notifications/${n.id}/read`)));
+      setUnreadCount(0);
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    } catch (err) {
+      console.error("Failed to mark all notifications as read", err);
     }
   };
 
@@ -230,12 +308,78 @@ const LandlordDashboard: React.FC = () => {
           </div>
         </div>
 
-        <button 
-          onClick={logout}
-          className="bg-paper hover:bg-[#FAF3E8] border border-ink/10 text-ink text-xs font-bold px-4 py-2 rounded-xl shadow-sm transition"
-        >
-          Logout
-        </button>
+        <div className="flex items-center gap-4">
+          {/* Notification Bell Dropdown */}
+          <div className="relative">
+            <button 
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="bg-paper hover:bg-[#FAF3E8] border border-ink/10 text-ink p-2.5 rounded-xl shadow-sm transition relative"
+            >
+              <Bell size={16} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-600 text-paper text-[8px] font-black flex items-center justify-center shadow-md animate-pulse">
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+
+            {showNotifications && (
+              <div className="absolute right-0 mt-2 w-80 bg-paper border border-ink/10 rounded-[20px] shadow-xl z-50 p-4 space-y-3 animate-scale-up">
+                <div className="flex justify-between items-center border-b border-ink/5 pb-2">
+                  <h4 className="text-xs font-black text-ink font-display">Notifications</h4>
+                  {unreadCount > 0 && (
+                    <button 
+                      onClick={handleMarkAllRead}
+                      className="text-[10px] text-marigold font-black hover:underline"
+                    >
+                      Mark all as read
+                    </button>
+                  )}
+                </div>
+
+                <div className="max-h-60 overflow-y-auto divide-y divide-ink/5 space-y-2.5">
+                  {notifications.length === 0 ? (
+                    <div className="text-center py-6 text-[10px] font-bold text-ink-soft/75">
+                      No notifications yet.
+                    </div>
+                  ) : (
+                    notifications.map((notif) => (
+                      <div 
+                        key={notif.id}
+                        onClick={() => handleNotificationClick(notif)}
+                        className={`pt-2.5 pb-1 flex gap-2.5 cursor-pointer group hover:bg-[#FAF8F5] rounded-lg px-2 transition ${!notif.isRead ? 'bg-clay/10' : ''}`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 justify-between">
+                            <span className={`text-[10px] font-black truncate ${!notif.isRead ? 'text-marigold-dark' : 'text-ink'}`}>
+                              {notif.title}
+                            </span>
+                            {!notif.isRead && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-[10px] text-ink-soft/80 line-clamp-2 mt-0.5 font-medium leading-normal">
+                            {notif.content}
+                          </p>
+                          <span className="text-[8px] text-ink-soft/45 font-mono mt-1 block">
+                            {new Date(notif.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <button 
+            onClick={logout}
+            className="bg-paper hover:bg-[#FAF3E8] border border-ink/10 text-ink text-xs font-bold px-4 py-2 rounded-xl shadow-sm transition"
+          >
+            Logout
+          </button>
+        </div>
       </header>
 
       {/* Main Workspace */}
@@ -391,41 +535,68 @@ const LandlordDashboard: React.FC = () => {
               💬 Prospective Student Inquiries
             </h3>
             
-            <div className="bg-paper border border-ink/5 rounded-[24px] p-5 space-y-4 shadow-sm">
+            <div className="space-y-4">
               {inquiries.length === 0 ? (
-                <div className="text-center py-8 text-xs font-bold text-ink-soft leading-relaxed">
+                <div className="bg-paper border border-ink/5 rounded-[24px] p-5 text-center py-8 text-xs font-bold text-ink-soft leading-relaxed shadow-sm">
                   No active conversations with students yet. Listings that are verified show up on student maps to receive messages.
                 </div>
               ) : (
-                <div className="space-y-3.5 divide-y divide-ink/5">
-                  {inquiries.map((conv, idx) => (
-                    <div 
-                      key={conv.peerProfile.id} 
-                      onClick={() => navigate(`/chat/${conv.peerProfile.id}`)}
-                      className={`flex gap-3 items-center cursor-pointer group hover:bg-[#FAF8F5] p-2 rounded-xl transition ${idx > 0 ? 'pt-3.5' : ''}`}
-                    >
-                      <img 
-                        src={conv.peerProfile.avatarUrl || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=100"} 
-                        alt={conv.peerProfile.fullName} 
-                        className="w-10 h-10 rounded-xl object-cover border border-ink/10" 
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex justify-between items-center">
-                          <h4 className="text-xs font-black text-ink truncate group-hover:text-marigold transition">
-                            {conv.peerProfile.fullName}
-                          </h4>
-                          <span className="text-[9px] text-ink-soft/60 font-mono font-semibold">
-                            {conv.lastMessageTime}
-                          </span>
+                inquiries.map((conv) => (
+                  <div 
+                    key={conv.conversationId} 
+                    className="bg-paper border border-ink/10 rounded-[20px] p-4 space-y-3 shadow-sm hover:shadow-md transition flex flex-col"
+                  >
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="flex gap-2.5 items-center">
+                        <div className="w-9 h-9 rounded-full bg-clay/35 text-marigold flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden">
+                          {conv.peerProfile.avatarUrl && conv.peerProfile.avatarUrl.trim().length > 0 ? (
+                            <img src={conv.peerProfile.avatarUrl} alt={conv.peerProfile.fullName} className="w-full h-full object-cover" />
+                          ) : (
+                            conv.peerProfile.fullName.split(' ').map(n => n[0]).join('').toUpperCase()
+                          )}
                         </div>
-                        <p className="text-[10px] text-ink-soft/75 truncate mt-0.5 font-medium">
-                          {conv.lastMessageText}
-                        </p>
+                        <div>
+                          <h4 className="text-xs font-black text-ink flex items-center gap-1.5">
+                            {conv.peerProfile.fullName}
+                            {conv.unreadCount && conv.unreadCount > 0 ? (
+                              <span className="bg-[#D9A25A] text-paper text-[8px] font-black px-1.5 py-0.5 rounded-md animate-pulse">NEW</span>
+                            ) : null}
+                          </h4>
+                          <span className="text-[9px] text-ink-soft/70 font-semibold block">{conv.peerProfile.collegeName || 'Nivaro Student'}</span>
+                        </div>
                       </div>
-                      <ArrowRight size={12} className="text-ink-soft/40 group-hover:text-marigold transition shrink-0" />
+                      <span className="text-[8px] text-ink-soft/50 font-mono font-bold">
+                        {conv.lastMessageTime ? new Date(conv.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                      </span>
                     </div>
-                  ))}
-                </div>
+
+                    <div className="bg-[#FAF8F5] border border-ink/5 rounded-xl p-2.5">
+                      <p className="text-[10px] text-ink-soft italic font-medium line-clamp-2">
+                        "{conv.lastMessage || 'No messages yet'}"
+                      </p>
+                    </div>
+
+                    {conv.listing && (
+                      <div className="border-t border-ink/5 pt-2.5 space-y-1">
+                        <span className="text-[8px] text-ink-soft font-bold uppercase tracking-wider block">Interested in:</span>
+                        <span className="text-[10px] font-bold text-ink block truncate">{conv.listing.title}</span>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-[9px] font-bold text-marigold-dark">NPR {conv.listing.rentAmount.toLocaleString()}/month</span>
+                          {conv.listing.distanceFromCollegeText && (
+                            <span className="text-[9px] text-pine font-bold uppercase tracking-wider">{conv.listing.distanceFromCollegeText}</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      onClick={() => navigate(`/chat/${conv.peerProfile.id}${conv.listing ? `?listingId=${conv.listing.id}` : ''}`)}
+                      className="w-full mt-2 bg-ink hover:bg-ink-soft text-paper text-[10px] font-black py-2.5 rounded-xl transition text-center flex items-center justify-center gap-1"
+                    >
+                      Open Conversation
+                    </button>
+                  </div>
+                ))
               )}
             </div>
           </div>

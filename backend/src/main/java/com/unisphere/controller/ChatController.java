@@ -6,10 +6,14 @@ import com.unisphere.model.Conversation;
 import com.unisphere.model.Message;
 import com.unisphere.model.StudentProfile;
 import com.unisphere.model.User;
+import com.unisphere.model.Listing;
+import com.unisphere.model.Notification;
 import com.unisphere.repository.ConversationRepository;
 import com.unisphere.repository.MessageRepository;
 import com.unisphere.repository.StudentProfileRepository;
 import com.unisphere.repository.UserRepository;
+import com.unisphere.repository.ListingRepository;
+import com.unisphere.repository.NotificationRepository;
 import com.unisphere.security.UserPrincipal;
 import lombok.Builder;
 import lombok.Data;
@@ -34,9 +38,20 @@ public class ChatController {
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
     private final StudentProfileRepository studentProfileRepository;
+    private final ListingRepository listingRepository;
+    private final NotificationRepository notificationRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
     // Direct Conversation List DTO
+    @Data
+    @Builder
+    public static class ListingDto {
+        private UUID id;
+        private String title;
+        private java.math.BigDecimal rentAmount;
+        private String distanceFromCollegeText;
+    }
+
     @Data
     @Builder
     public static class ConversationResponse {
@@ -45,6 +60,7 @@ public class ChatController {
         private String lastMessage;
         private String lastMessageTime;
         private long unreadCount;
+        private ListingDto listing;
     }
 
     @GetMapping("/conversations")
@@ -64,6 +80,16 @@ public class ChatController {
                 StudentProfile studentProfile = studentProfileRepository.findById(peer.getId()).orElse(null);
                 if (studentProfile != null) {
                     peerProfile = mapProfile(studentProfile);
+                } else {
+                    // Fallback profile response for landlords/non-student users
+                    peerProfile = ProfileResponse.builder()
+                            .id(peer.getId())
+                            .fullName("Landlord")
+                            .role(peer.getRole())
+                            .collegeName("Nivaro User")
+                            .avatarUrl("")
+                            .completenessPercentage(100)
+                            .build();
                 }
             }
 
@@ -79,12 +105,23 @@ public class ChatController {
 
             long unread = messageRepository.countByConversationIdAndSenderIdNotAndIsReadFalse(c.getId(), userId);
 
+            ListingDto listingDto = null;
+            if (c.getListing() != null) {
+                listingDto = ListingDto.builder()
+                        .id(c.getListing().getId())
+                        .title(c.getListing().getTitle())
+                        .rentAmount(c.getListing().getRentAmount())
+                        .distanceFromCollegeText(c.getListing().getDistanceFromCollegeText())
+                        .build();
+            }
+
             return ConversationResponse.builder()
                     .conversationId(c.getId())
                     .peerProfile(peerProfile)
                     .lastMessage(lastMsg)
                     .lastMessageTime(lastMsgTime)
                     .unreadCount(unread)
+                    .listing(listingDto)
                     .build();
         }).collect(Collectors.toList());
 
@@ -151,6 +188,25 @@ public class ChatController {
         Message saved = messageRepository.save(message);
         conversationRepository.save(conversation);
 
+        // Save Notification to peer participant
+        try {
+            User peer = conversation.getParticipants().stream()
+                    .filter(p -> !p.getId().equals(senderId))
+                    .findFirst()
+                    .orElse(null);
+            if (peer != null) {
+                StudentProfile senderProf = studentProfileRepository.findById(senderId).orElse(null);
+                String senderName = senderProf != null ? senderProf.getFullName() : "User";
+                String type = "NEW_MESSAGE";
+                String title = "New message from " + senderName;
+                String preview = content.length() > 65 ? content.substring(0, 62) + "..." : content;
+                UUID roomId = conversation.getListing() != null ? conversation.getListing().getId() : null;
+                createNotification(peer.getId(), type, title, preview, conversationId, roomId);
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to trigger message notification: " + e.getMessage());
+        }
+
         try {
             User peer = conversation.getParticipants().stream()
                     .filter(p -> !p.getId().equals(senderId))
@@ -186,27 +242,72 @@ public class ChatController {
 
         UUID actorId = principal.getId();
         UUID recipientId = UUID.fromString(body.get("recipientUserId"));
+        String listingIdStr = body.get("listingId");
+        UUID listingId = (listingIdStr != null && !listingIdStr.trim().isEmpty()) ? UUID.fromString(listingIdStr) : null;
 
         User actor = userRepository.findById(actorId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         User recipient = userRepository.findById(recipientId)
                 .orElseThrow(() -> new IllegalArgumentException("Recipient not found"));
 
-        // Check if conversation already exists
-        Optional<Conversation> existingOpt = conversationRepository.findConversationBetweenUsers(actorId, recipientId);
         Conversation conversation;
-        if (existingOpt.isPresent()) {
-            conversation = existingOpt.get();
+        if (listingId != null) {
+            Optional<Conversation> existingOpt = conversationRepository.findConversationBetweenUsersAndListing(actorId, recipientId, listingId);
+            if (existingOpt.isPresent()) {
+                conversation = existingOpt.get();
+            } else {
+                Listing listing = listingRepository.findById(listingId)
+                        .orElseThrow(() -> new IllegalArgumentException("Listing not found"));
+                conversation = Conversation.builder()
+                        .participants(Arrays.asList(actor, recipient))
+                        .listing(listing)
+                        .build();
+                conversationRepository.save(conversation);
+
+                // Add "NEW_ENQUIRY" Notification to the recipient (the landlord)
+                try {
+                    String type = "NEW_ENQUIRY";
+                    String title = "New student enquiry";
+                    StudentProfile actorProf = studentProfileRepository.findById(actorId).orElse(null);
+                    String actorName = actorProf != null ? actorProf.getFullName() : "Student";
+                    String content = actorName + " has inquired about your room: " + listing.getTitle();
+                    createNotification(recipientId, type, title, content, conversation.getId(), listingId);
+                } catch (Exception e) {
+                    System.err.println("Failed to trigger enquiry notification: " + e.getMessage());
+                }
+            }
         } else {
-            conversation = Conversation.builder()
-                    .participants(Arrays.asList(actor, recipient))
-                    .build();
-            conversationRepository.save(conversation);
+            Optional<Conversation> existingOpt = conversationRepository.findConversationBetweenUsers(actorId, recipientId);
+            if (existingOpt.isPresent()) {
+                conversation = existingOpt.get();
+            } else {
+                conversation = Conversation.builder()
+                        .participants(Arrays.asList(actor, recipient))
+                        .build();
+                conversationRepository.save(conversation);
+            }
         }
 
         Map<String, Object> res = new HashMap<>();
         res.put("conversationId", conversation.getId());
         return ResponseEntity.ok(res);
+    }
+
+    private void createNotification(UUID recipientId, String type, String title, String content, UUID conversationId, UUID roomId) {
+        try {
+            Notification notification = Notification.builder()
+                    .userId(recipientId)
+                    .type(type)
+                    .title(title)
+                    .content(content)
+                    .conversationId(conversationId)
+                    .roomId(roomId)
+                    .isRead(false)
+                    .build();
+            notificationRepository.save(notification);
+        } catch (Exception e) {
+            System.err.println("Error saving notification: " + e.getMessage());
+        }
     }
 
     // --- WebSocket Message Mapping triggers ---
@@ -228,6 +329,19 @@ public class ChatController {
         Conversation c = conversationRepository.findById(payload.getConversationId()).orElse(null);
         if (c != null) {
             conversationRepository.save(c);
+        }
+
+        // Save Notification to peer participant
+        try {
+            StudentProfile senderProf = studentProfileRepository.findById(payload.getSenderId()).orElse(null);
+            String senderName = senderProf != null ? senderProf.getFullName() : "User";
+            String type = "NEW_MESSAGE";
+            String title = "New message from " + senderName;
+            String preview = payload.getContent().length() > 65 ? payload.getContent().substring(0, 62) + "..." : payload.getContent();
+            UUID roomId = c != null && c.getListing() != null ? c.getListing().getId() : null;
+            createNotification(payload.getRecipientId(), type, title, preview, payload.getConversationId(), roomId);
+        } catch (Exception e) {
+            System.err.println("Failed to trigger message notification (socket): " + e.getMessage());
         }
 
         payload.setId(message.getId());

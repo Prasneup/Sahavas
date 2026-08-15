@@ -295,7 +295,7 @@ const RoomDetails: React.FC = () => {
             </div>
 
             <button 
-              onClick={() => navigate(`/chat/${listing.owner?.id || 'rm1'}`)}
+              onClick={() => navigate(`/chat/${listing.owner?.id || 'rm1'}?listingId=${listing.id}`)}
               className="w-full bg-ink hover:bg-ink-soft text-paper font-black py-3 rounded-xl transition text-xs flex items-center justify-center gap-2"
             >
               <MessageSquare size={13} /> Contact Owner

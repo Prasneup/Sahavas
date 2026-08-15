@@ -26,6 +26,7 @@ public class AdminController {
     private final VerificationSubmissionRepository verificationSubmissionRepository;
     private final AdminAuditLogRepository adminAuditLogRepository;
     private final EmailService emailService;
+    private final NotificationRepository notificationRepository;
 
     // 1. Verifications list & review
     @GetMapping("/verifications")
@@ -183,6 +184,27 @@ public class AdminController {
 
         // Send Email Notice to Owner
         emailService.sendVerificationStatusEmail(owner.getEmail(), ownerName, "LISTING_" + status, "Listing Title: " + listing.getTitle() + "\nFeedback: " + reason);
+
+        // Save Verification Notification
+        try {
+            String notificationType = "APPROVED".equalsIgnoreCase(status) ? "VERIFICATION_APPROVED" : "VERIFICATION_REJECTED";
+            String title = "APPROVED".equalsIgnoreCase(status) ? "Listing Verification Approved" : "Listing Verification Rejected";
+            String content = "APPROVED".equalsIgnoreCase(status)
+                    ? "Your room '" + listing.getTitle() + "' has been verified and is now live."
+                    : "Your room '" + listing.getTitle() + "' needs attention. Reason: " + reason;
+
+            Notification notification = Notification.builder()
+                    .userId(owner.getId())
+                    .type(notificationType)
+                    .title(title)
+                    .content(content)
+                    .roomId(listingId)
+                    .isRead(false)
+                    .build();
+            notificationRepository.save(notification);
+        } catch (Exception e) {
+            // Log error
+        }
 
         return ResponseEntity.ok(Map.of("message", "Listing verification updated successfully"));
     }

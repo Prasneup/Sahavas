@@ -20,6 +20,12 @@ interface Conversation {
   lastMessage: string;
   lastMessageTime: string;
   unreadCount: number;
+  listing?: {
+    id: string;
+    title: string;
+    rentAmount: number;
+    distanceFromCollegeText?: string;
+  };
 }
 
 interface Message {
@@ -83,10 +89,16 @@ const Chat: React.FC = () => {
 
   const loadConversations = async () => {
     try {
+      const queryParams = new URLSearchParams(window.location.search);
+      const listingId = queryParams.get('listingId');
+
       // If id is present, first create/retrieve conversation with that peer ID
       if (id) {
         try {
-          await api.post('/chats/conversations', { recipientUserId: id });
+          await api.post('/chats/conversations', { 
+            recipientUserId: id,
+            listingId: listingId || undefined
+          });
         } catch (err) {
           console.warn("Failed to create conversation via API", err);
         }
@@ -98,7 +110,14 @@ const Chat: React.FC = () => {
       setConversations(list);
       
       if (id) {
-        const found = list.find((c: any) => c.peerProfile?.id === id);
+        const found = list.find((c: any) => {
+          const matchesPeer = c.peerProfile?.id === id;
+          if (!matchesPeer) return false;
+          if (listingId) {
+            return c.listing?.id === listingId;
+          }
+          return true;
+        });
         if (found) {
           setActiveConversation(found);
         } else if (list.length > 0) {
@@ -366,6 +385,27 @@ const Chat: React.FC = () => {
                     <span className="text-xs font-bold font-mono" style={{ color: 'var(--marigold-dark)' }}>{activeConversation.peerProfile.completenessPercentage}%</span>
                   </div>
                 </div>
+
+                {activeConversation.listing && (
+                  <div className="bg-[#FAF8F5] border-b px-6 py-3 flex items-center justify-between gap-4 flex-shrink-0" style={{ borderColor: 'var(--line)' }}>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[8px] text-ink-soft font-bold uppercase tracking-wider block">Interested in:</span>
+                      <h4 className="text-xs font-bold text-ink truncate font-display">
+                        {activeConversation.listing.title}
+                      </h4>
+                      <p className="text-[9px] text-ink-soft/75 mt-0.5 font-semibold">
+                        NPR {activeConversation.listing.rentAmount.toLocaleString()}/month 
+                        {activeConversation.listing.distanceFromCollegeText && ` • ${activeConversation.listing.distanceFromCollegeText}`}
+                      </p>
+                    </div>
+                    <button 
+                      onClick={() => navigate(`/rooms/${activeConversation.listing?.id}`)}
+                      className="bg-paper hover:bg-[#FAF3E8] border border-ink/10 text-ink text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-sm transition shrink-0"
+                    >
+                      View Room
+                    </button>
+                  </div>
+                )}
 
                 {/* Scrollable Message stream panel */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-4">

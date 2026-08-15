@@ -33,6 +33,15 @@ public class Notification {
     @Builder.Default
     private Boolean isRead = false;
 
+    @Column(name = "notification_type", length = 50)
+    private String type; // e.g. "NEW_MESSAGE", "NEW_ENQUIRY", "VERIFICATION_APPROVED", "VERIFICATION_REJECTED"
+
+    @Column(name = "conversation_id")
+    private UUID conversationId;
+
+    @Column(name = "room_id")
+    private UUID roomId;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private ZonedDateTime createdAt;

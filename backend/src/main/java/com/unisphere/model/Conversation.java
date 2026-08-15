@@ -25,6 +25,10 @@ public class Conversation {
     )
     private List<User> participants;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "listing_id")
+    private Listing listing;
+
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
