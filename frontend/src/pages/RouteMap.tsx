@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Navigation, Info } from 'lucide-react';
 import { Listing } from '../services/listingsData';
 import api from '../services/api';
-import L from 'leaflet';
+import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 // Kathmandu Valley bounds for validation
@@ -56,43 +56,43 @@ const fetchOSRMRoute = async (profile: 'driving' | 'foot' | 'bike', start: { lat
   return data.routes[0];
 };
 
-const collegeIcon = L.divIcon({
-  html: `
-    <div class="flex items-center justify-center w-8 h-8 bg-pine text-paper rounded-full border-2 border-paper shadow-md">
-      <span style="font-size: 14px; line-height: 1;">🏫</span>
-    </div>
-  `,
-  className: '',
-  iconSize: [32, 32],
-  iconAnchor: [16, 16],
-  popupAnchor: [0, -16]
-});
-
-const roomIcon = L.divIcon({
-  html: `
-    <div class="flex items-center justify-center w-8 h-8 bg-marigold text-paper rounded-full border-2 border-paper shadow-md">
-      <span style="font-size: 14px; line-height: 1;">🏠</span>
-    </div>
-  `,
-  className: '',
-  iconSize: [32, 32],
-  iconAnchor: [16, 16],
-  popupAnchor: [0, -16]
-});
-
-const userLocationIcon = L.divIcon({
-  html: `
-    <div class="flex items-center justify-center w-8 h-8 bg-[#D32F2F] text-paper rounded-full border-2 border-paper shadow-md animate-bounce">
-      <span style="font-size: 14px; line-height: 1;">📍</span>
-    </div>
-  `,
-  className: '',
-  iconSize: [32, 32],
-  iconAnchor: [16, 16],
-  popupAnchor: [0, -16]
-});
-
 const RouteMap: React.FC = () => {
+  // Custom Leaflet Icons (defined locally inside the component body to avoid load-time browser errors)
+  const collegeIcon = L.divIcon({
+    html: `
+      <div class="flex items-center justify-center w-8 h-8 bg-pine text-paper rounded-full border-2 border-paper shadow-md">
+        <span style="font-size: 14px; line-height: 1;">🏫</span>
+      </div>
+    `,
+    className: '',
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -16]
+  });
+
+  const roomIcon = L.divIcon({
+    html: `
+      <div class="flex items-center justify-center w-8 h-8 bg-marigold text-paper rounded-full border-2 border-paper shadow-md">
+        <span style="font-size: 14px; line-height: 1;">🏠</span>
+      </div>
+    `,
+    className: '',
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -16]
+  });
+
+  const userLocationIcon = L.divIcon({
+    html: `
+      <div class="flex items-center justify-center w-8 h-8 bg-[#D32F2F] text-paper rounded-full border-2 border-paper shadow-md animate-bounce">
+        <span style="font-size: 14px; line-height: 1;">📍</span>
+      </div>
+    `,
+    className: '',
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -16]
+  });
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [listing, setListing] = useState<Listing | null>(null);
