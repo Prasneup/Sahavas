@@ -96,9 +96,11 @@ const RoomDetails: React.FC = () => {
     );
   }
 
-  const galleryImages = listing.images && listing.images.length > 0 
+  const rawImages = listing.images && listing.images.length > 0 
     ? listing.images 
     : [{ id: 'fallback', imageUrl: '/src/assets/rooms/media__1785938361229.jpg' }];
+
+  const galleryImages = Array.from(new Map(rawImages.map((img: any) => [img.imageUrl, img])).values());
 
   // Calculate realistic travel metrics dynamically
   const bikeTime = `${Math.max(1, Math.round(listing.distanceKm * 2.5))} min`;

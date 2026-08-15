@@ -757,7 +757,7 @@ const AdminPortal: React.FC = () => {
               <label className="block text-xs font-bold text-ink">Room Scanned/Uploaded Images</label>
               <div className="grid grid-cols-3 gap-2">
                 {selectedListing.images && selectedListing.images.length > 0 ? (
-                  selectedListing.images.map((img: any, idx: number) => (
+                  Array.from(new Map(selectedListing.images.map((img: any) => [img.imageUrl, img])).values()).map((img: any, idx: number) => (
                     <div key={idx} className="h-28 rounded-xl overflow-hidden bg-clay border border-ink/5">
                       <img src={img.imageUrl} alt="Room scan" className="w-full h-full object-cover" />
                     </div>
