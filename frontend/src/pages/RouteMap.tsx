@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Navigation, Info } from 'lucide-react';
 import { Listing } from '../services/listingsData';
 import api from '../services/api';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
-// Coordinate Projection Map Boundaries for Lalitpur/Kathmandu Valley
+// Kathmandu Valley bounds for validation
 const MIN_LAT = 27.65;
 const MAX_LAT = 27.71;
 const MIN_LNG = 85.27;
@@ -28,20 +30,6 @@ const COLLEGE_COORDINATES: Record<string, { lat: number; lng: number }> = {
   "KEC": { lat: 27.6970, lng: 85.2970 },
 };
 
-const calculateDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-  const R = 6371; // Earth's radius in km
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return parseFloat((R * c).toFixed(2));
-};
-
 const isValidCoordinate = (lat: any, lng: any) => {
   const latNum = parseFloat(lat);
   const lngNum = parseFloat(lng);
@@ -55,27 +43,86 @@ const isValidCoordinate = (lat: any, lng: any) => {
   );
 };
 
+const fetchOSRMRoute = async (profile: 'driving' | 'foot' | 'bike', start: { lat: number; lng: number }, end: { lat: number; lng: number }) => {
+  const url = `https://router.project-osrm.org/route/v1/${profile}/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`OSRM route fetch failed: ${response.statusText}`);
+  }
+  const data = await response.json();
+  if (!data.routes || data.routes.length === 0) {
+    throw new Error("No routes found");
+  }
+  return data.routes[0];
+};
+
+const collegeIcon = L.divIcon({
+  html: `
+    <div class="flex items-center justify-center w-8 h-8 bg-pine text-paper rounded-full border-2 border-paper shadow-md">
+      <span style="font-size: 14px; line-height: 1;">🏫</span>
+    </div>
+  `,
+  className: '',
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
+  popupAnchor: [0, -16]
+});
+
+const roomIcon = L.divIcon({
+  html: `
+    <div class="flex items-center justify-center w-8 h-8 bg-marigold text-paper rounded-full border-2 border-paper shadow-md">
+      <span style="font-size: 14px; line-height: 1;">🏠</span>
+    </div>
+  `,
+  className: '',
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
+  popupAnchor: [0, -16]
+});
+
+const userLocationIcon = L.divIcon({
+  html: `
+    <div class="flex items-center justify-center w-8 h-8 bg-[#D32F2F] text-paper rounded-full border-2 border-paper shadow-md animate-bounce">
+      <span style="font-size: 14px; line-height: 1;">📍</span>
+    </div>
+  `,
+  className: '',
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
+  popupAnchor: [0, -16]
+});
+
 const RouteMap: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Map Refs
+  const mapRef = useRef<L.Map | null>(null);
+  const routeLayerRef = useRef<L.GeoJSON | null>(null);
+  const markersRef = useRef<L.Marker[]>([]);
+
   // Geolocation and navigation States: default to college
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'success' | 'error' | 'denied'>('idle');
   const [startLocationType, setStartLocationType] = useState<'geolocation' | 'college'>('college');
 
-  // SVG coordinate projections
-  const getSvgX = (lng: number) => {
-    const clampedLng = Math.max(MIN_LNG, Math.min(MAX_LNG, lng));
-    return ((clampedLng - MIN_LNG) / (MAX_LNG - MIN_LNG)) * 400;
-  };
-
-  const getSvgY = (lat: number) => {
-    const clampedLat = Math.max(MIN_LAT, Math.min(MAX_LAT, lat));
-    return (1 - (clampedLat - MIN_LAT) / (MAX_LAT - MIN_LAT)) * 400;
-  };
+  // Real OSRM Routing states
+  const [routeData, setRouteData] = useState<{
+    distanceKm: string;
+    walkingTime: string;
+    bikeTime: string;
+    drivingTime: string;
+    routeGeometry: any | null;
+  }>({
+    distanceKm: '...',
+    walkingTime: '...',
+    bikeTime: '...',
+    drivingTime: '...',
+    routeGeometry: null
+  });
+  const [routingError, setRoutingError] = useState<string | null>(null);
 
   // Lazy request browser geolocation permission
   const requestGeolocation = () => {
@@ -141,11 +188,6 @@ const RouteMap: React.FC = () => {
     fetchListing();
   }, [id]);
 
-  // Map initializing logging
-  useEffect(() => {
-    console.log("RouteMap - Map initialization started");
-  }, []);
-
   // Handle Loading State
   if (loading) {
     return (
@@ -188,8 +230,8 @@ const RouteMap: React.FC = () => {
     return (
       <div className="min-h-screen bg-clay text-ink flex flex-col font-sans items-center justify-center p-6">
         <div className="bg-paper border border-ink/10 rounded-[32px] p-8 text-center max-w-md shadow-lg font-sans">
-          <h2 className="text-xl font-bold mb-3 font-display">Room Location is Unavailable</h2>
-          <p className="text-ink-soft text-sm mb-6">The latitude and longitude for this room are missing or invalid.</p>
+          <h2 className="text-xl font-bold mb-3 font-display text-rose-600">Route unavailable</h2>
+          <p className="text-ink-soft text-sm mb-6 font-semibold">Route unavailable — this listing does not have a valid location.</p>
           <button 
             onClick={() => navigate(`/rooms/${id}`)}
             className="w-full bg-marigold hover:bg-marigold-dark text-paper font-black py-3 rounded-xl transition text-xs uppercase tracking-wider shadow-sm"
@@ -236,42 +278,16 @@ const RouteMap: React.FC = () => {
   const collegeLng = resolvedCollege.lng;
   const collegeName = resolvedCollege.name;
 
-  // Select current starting location with fallback logic
-  let startLat = collegeLat;
-  let startLng = collegeLng;
-  let startName = collegeName;
-  let isUsingUserLocation = false;
+  // Validate college coordinates
+  const hasValidCollegeCoords = isValidCoordinate(collegeLat, collegeLng);
 
-  if (startLocationType === 'geolocation') {
-    if (userLocation && isValidCoordinate(userLocation.lat, userLocation.lng)) {
-      const inBounds = userLocation.lat >= MIN_LAT && userLocation.lat <= MAX_LAT && userLocation.lng >= MIN_LNG && userLocation.lng <= MAX_LNG;
-      if (inBounds) {
-        startLat = userLocation.lat;
-        startLng = userLocation.lng;
-        startName = "Your Location";
-        isUsingUserLocation = true;
-      } else {
-        console.log("RouteMap - Geolocation is outside Kathmandu map boundaries. Using campus fallback for projection.");
-        // Use college location coordinates but keep startName as fallback indication
-        startName = `${collegeName} (Map Fallback)`;
-      }
-    } else {
-      // Geolocation is active but coordinates are not yet available or failed
-      // Fallback to college location so page is functional and does not show NaN
-      startName = `${collegeName} (Fallback)`;
-    }
-  }
-
-  // Validate starting coordinates
-  const hasValidStartCoords = isValidCoordinate(startLat, startLng);
-
-  if (!hasValidStartCoords) {
-    console.error(`RouteMap - Invalid start coordinates: Lat=${startLat}, Lng=${startLng}`);
+  if (!hasValidCollegeCoords) {
+    console.error(`RouteMap - Invalid college coordinates for: ${collegeName}`);
     return (
       <div className="min-h-screen bg-clay text-ink flex flex-col font-sans items-center justify-center p-6">
         <div className="bg-paper border border-ink/10 rounded-[32px] p-8 text-center max-w-md shadow-lg font-sans">
-          <h2 className="text-xl font-bold mb-3 font-display">Unable to load route</h2>
-          <p className="text-ink-soft text-sm mb-6">The starting location coordinates are missing or invalid.</p>
+          <h2 className="text-xl font-bold mb-3 font-display text-rose-600">Route unavailable</h2>
+          <p className="text-ink-soft text-sm mb-6 font-semibold">Route unavailable — this listing does not have valid college coordinates.</p>
           <button 
             onClick={() => navigate(`/rooms/${id}`)}
             className="w-full bg-marigold hover:bg-marigold-dark text-paper font-black py-3 rounded-xl transition text-xs uppercase tracking-wider shadow-sm"
@@ -283,17 +299,164 @@ const RouteMap: React.FC = () => {
     );
   }
 
-  // Log final map inputs
-  console.log(`RouteMap - Room coordinates: Lat=${roomLat}, Lng=${roomLng}`);
-  console.log(`RouteMap - Start coordinates (${startName}): Lat=${startLat}, Lng=${startLng}`);
+  // Select current starting location with fallback logic
+  let startLat = collegeLat;
+  let startLng = collegeLng;
+  let startName = collegeName;
+  let isUsingUserLocation = false;
 
-  // Compute dynamic distance
-  const distanceKm = calculateDistanceKm(startLat, startLng, roomLat, roomLng);
+  if (startLocationType === 'geolocation') {
+    if (userLocation && isValidCoordinate(userLocation.lat, userLocation.lng)) {
+      startLat = userLocation.lat;
+      startLng = userLocation.lng;
+      startName = "Your Location";
+      isUsingUserLocation = true;
+    }
+  }
 
-  // Compute dynamic travel times
-  const walkingTime = `${Math.max(1, Math.round(distanceKm * 12))} min`;
-  const bikeTime = `${Math.max(1, Math.round(distanceKm * 2.5))} min`;
-  const transitTime = `${Math.max(3, Math.round(distanceKm * 4.5 + 2))} min`;
+  // Map Initialization useEffect
+  useEffect(() => {
+    const mapContainer = document.getElementById('map-container');
+    if (!mapContainer || mapRef.current) return;
+
+    console.log("RouteMap - Map initialization started");
+    const map = L.map('map-container', {
+      center: [27.68, 85.32],
+      zoom: 14,
+      zoomControl: true
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    mapRef.current = map;
+
+    return () => {
+      if (mapRef.current) {
+        console.log("RouteMap - Cleaning up Leaflet map instance");
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, []);
+
+  // Compute live road route from OSRM
+  useEffect(() => {
+    const start = { lat: startLat, lng: startLng };
+    const calculateRoutes = async () => {
+      setRoutingError(null);
+      try {
+        console.log("RouteMap - Route API request sent for profiles from:", start, "to:", { lat: roomLat, lng: roomLng });
+        
+        // Fetch driving, biking, and walking paths in parallel from OSRM
+        const [footRoute, bikeRoute, driveRoute] = await Promise.all([
+          fetchOSRMRoute('foot', start, { lat: roomLat, lng: roomLng }).catch(e => { console.warn("OSRM walking route error:", e); return null; }),
+          fetchOSRMRoute('bike', start, { lat: roomLat, lng: roomLng }).catch(e => { console.warn("OSRM cycling route error:", e); return null; }),
+          fetchOSRMRoute('driving', start, { lat: roomLat, lng: roomLng }).catch(e => { console.warn("OSRM driving route error:", e); return null; })
+        ]);
+
+        const primaryRoute = driveRoute || footRoute || bikeRoute;
+        console.log("RouteMap - Route API response received:", { footRoute, bikeRoute, driveRoute });
+
+        if (!primaryRoute) {
+          throw new Error("Could not calculate any road route between these locations");
+        }
+
+        const formatDuration = (secs: number) => {
+          const mins = Math.round(secs / 60);
+          return mins > 0 ? `${mins} min` : "1 min";
+        };
+
+        const distance = primaryRoute.distance / 1000;
+
+        setRouteData({
+          distanceKm: `${distance.toFixed(2)}`,
+          walkingTime: footRoute ? formatDuration(footRoute.duration) : "Not available",
+          bikeTime: bikeRoute ? formatDuration(bikeRoute.duration) : "Not available",
+          drivingTime: driveRoute ? formatDuration(driveRoute.duration) : "Not available",
+          routeGeometry: primaryRoute.geometry
+        });
+
+      } catch (err: any) {
+        console.error("RouteMap - OSRM routing API failure:", err);
+        setRoutingError(err.message || "Failed to calculate road route");
+        setRouteData({
+          distanceKm: "Not available",
+          walkingTime: "Not available",
+          bikeTime: "Not available",
+          drivingTime: "Not available",
+          routeGeometry: null
+        });
+      }
+    };
+
+    calculateRoutes();
+  }, [startLat, startLng, roomLat, roomLng]);
+
+  // Update map markers and route geometry
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    let startIcon = collegeIcon;
+    let startMarkerName = collegeName;
+
+    if (startLocationType === 'geolocation' && isUsingUserLocation) {
+      startIcon = userLocationIcon;
+      startMarkerName = "Your Current Location";
+    }
+
+    // 1. Remove old markers
+    markersRef.current.forEach(m => m.remove());
+    markersRef.current = [];
+
+    // 2. Remove old route polyline
+    if (routeLayerRef.current) {
+      routeLayerRef.current.remove();
+      routeLayerRef.current = null;
+    }
+
+    // 3. Create real map markers with popup information
+    const startMarker = L.marker([startLat, startLng], { icon: startIcon })
+      .bindPopup(`
+        <div style="font-family: var(--font-sans); padding: 4px;">
+          <strong style="color: var(--ink); font-size: 12px;">🏫 ${startMarkerName}</strong>
+          <p style="margin: 4px 0 0 0; color: var(--ink-soft); font-size: 10px;">Starting location for route coordinates.</p>
+        </div>
+      `)
+      .addTo(map);
+
+    const roomMarker = L.marker([roomLat, roomLng], { icon: roomIcon })
+      .bindPopup(`
+        <div style="font-family: var(--font-sans); padding: 4px;">
+          <strong style="color: var(--ink); font-size: 12px;">🏠 ${listing.title}</strong>
+          <p style="margin: 4px 0 0 0; color: var(--ink-soft); font-size: 10px;">Rent: NPR ${listing.rentAmount}/mo</p>
+        </div>
+      `)
+      .addTo(map);
+
+    markersRef.current = [startMarker, roomMarker];
+
+    // 4. Draw route polyline from geojson
+    if (routeData.routeGeometry) {
+      const routeLayer = L.geoJSON(routeData.routeGeometry, {
+        style: {
+          color: 'var(--marigold)',
+          weight: 5,
+          opacity: 0.85
+        }
+      }).addTo(map);
+      routeLayerRef.current = routeLayer;
+
+      // Adjust map viewport to display both markers cleanly
+      map.fitBounds(routeLayer.getBounds(), { padding: [50, 50] });
+    } else {
+      const bounds = L.latLngBounds([startLat, startLng], [roomLat, roomLng]);
+      map.fitBounds(bounds, { padding: [50, 50] });
+    }
+  }, [startLat, startLng, roomLat, roomLng, routeData.routeGeometry, startLocationType, isUsingUserLocation, listing]);
 
   return (
     <div className="min-h-screen bg-clay text-ink flex flex-col font-sans">
@@ -330,44 +493,49 @@ const RouteMap: React.FC = () => {
             <span className="text-[9px] bg-pine-light border border-pine/20 text-pine px-2.5 py-1 rounded-full font-bold uppercase tracking-wider inline-block">
               Route Verified
             </span>
-            <h1 className="text-xl font-black text-ink font-display leading-tight">Campus Distance Details</h1>
+            <h1 className="text-xl font-black text-ink font-display leading-tight">Route from Campus to Room</h1>
             <div className="text-ink-soft text-xs font-medium">
-              {startLocationType === 'college' ? (
-                <p>Travel estimates from **{collegeName}** to this room.</p>
-              ) : (
-                <p>Travel estimates from **Your Location** to this room.</p>
-              )}
+              <p>Real-time route and travel information from **{startName}** to this room.</p>
             </div>
 
             {/* Travel breakdown stats panel */}
             <div className="space-y-3 pt-3 border-t border-ink/5">
               
               <div className="flex justify-between items-center bg-[#FAF8F5] border border-ink/5 p-3.5 rounded-2xl">
-                <span className="text-xs font-semibold text-ink-soft flex items-center gap-1.5">
-                  🚶 Walking Route:
+                <span className="text-xs font-semibold text-ink-soft flex items-center gap-1.5 font-sans">
+                  🚶 Walking Duration:
                 </span>
-                <span className="text-sm font-bold text-ink font-mono">{walkingTime}</span>
+                <span className="text-sm font-bold text-ink font-mono">{routeData.walkingTime}</span>
               </div>
 
               <div className="flex justify-between items-center bg-[#FAF8F5] border border-ink/5 p-3.5 rounded-2xl">
-                <span className="text-xs font-semibold text-ink-soft flex items-center gap-1.5">
-                  🚴 Biking Route:
+                <span className="text-xs font-semibold text-ink-soft flex items-center gap-1.5 font-sans">
+                  🚴 Biking Duration:
                 </span>
-                <span className="text-sm font-bold text-ink font-mono">{bikeTime}</span>
+                <span className="text-sm font-bold text-ink font-mono">{routeData.bikeTime}</span>
               </div>
 
               <div className="flex justify-between items-center bg-[#FAF8F5] border border-ink/5 p-3.5 rounded-2xl">
-                <span className="text-xs font-semibold text-ink-soft flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-ink-soft flex items-center gap-1.5 font-sans">
+                  🚗 Driving Duration:
+                </span>
+                <span className="text-sm font-bold text-ink font-mono">{routeData.drivingTime}</span>
+              </div>
+
+              <div className="flex justify-between items-center bg-[#FAF8F5] border border-ink/5 p-3.5 rounded-2xl">
+                <span className="text-xs font-semibold text-ink-soft flex items-center gap-1.5 font-sans">
                   🚌 Public Transit:
                 </span>
-                <span className="text-sm font-bold text-ink font-mono">{transitTime}</span>
+                <span className="text-sm font-bold text-ink font-mono">Not available</span>
               </div>
 
-              <div className="flex justify-between items-center bg-[#FAF8F5] border border-ink/5 p-3.5 rounded-2xl">
-                <span className="text-xs font-semibold text-ink-soft flex items-center gap-1.5">
-                  📍 Total Distance:
+              <div className="flex justify-between items-center bg-[#FAF8F5] border border-ink/5 p-3.5 rounded-2xl border-t-2">
+                <span className="text-xs font-bold text-ink-soft flex items-center gap-1.5 font-sans">
+                  📍 Total Road Distance:
                 </span>
-                <span className="text-sm font-bold text-ink font-mono">{distanceKm} km</span>
+                <span className="text-sm font-extrabold text-marigold font-mono">
+                  {routeData.distanceKm !== "Not available" ? `${routeData.distanceKm} km` : "Not available"}
+                </span>
               </div>
 
             </div>
@@ -461,7 +629,7 @@ const RouteMap: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Side: Expanded Vector Map Panel */}
+        {/* Right Side: Interactive Leaflet Map Panel */}
         <div className="md:col-span-2 space-y-6">
           <div className="bg-paper border border-ink/10 rounded-[32px] p-6 shadow-sm flex flex-col h-[520px]">
             
@@ -474,87 +642,15 @@ const RouteMap: React.FC = () => {
               <p className="text-[10px] text-ink-soft mt-0.5">Focused mapping coordinates from **{startName}** to room</p>
             </div>
 
-            {/* SVG Projected Route Map */}
-            <div className="flex-1 bg-[#FAF6EC] border border-ink/10 rounded-2xl relative overflow-hidden flex items-center justify-center shadow-inner">
-              <svg className="w-full h-full select-none" viewBox="0 0 400 400">
-                {/* Grid Lines */}
-                <defs>
-                  <pattern id="routeGrid" width="20" height="20" patternUnits="userSpaceOnUse">
-                    <rect width="20" height="20" fill="none" />
-                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="var(--ink)" strokeWidth="0.5" opacity="0.05" />
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#routeGrid)" />
-
-                {/* Stylized River (Bagmati) */}
-                <path 
-                  d="M 0,280 Q 150,230 200,210 T 400,250" 
-                  fill="none" 
-                  stroke="#A8D0E6" 
-                  strokeWidth="8" 
-                  opacity="0.5" 
-                  strokeLinecap="round" 
-                />
-                <text x="280" y="270" fill="var(--ink-soft)" fontSize="8" fontWeight="bold" opacity="0.3" className="italic font-sans">Bagmati River</text>
-
-                {/* Route drawing */}
-                <path 
-                  d={`M ${getSvgX(roomLng)},${getSvgY(roomLat)} L ${getSvgX(startLng)},${getSvgY(startLat)}`}
-                  fill="none"
-                  stroke="var(--marigold)"
-                  strokeWidth="4"
-                  opacity="0.2"
-                  strokeLinecap="round"
-                />
-                <path 
-                  d={`M ${getSvgX(roomLng)},${getSvgY(roomLat)} L ${getSvgX(startLng)},${getSvgY(startLat)}`}
-                  fill="none"
-                  stroke="var(--marigold)"
-                  strokeWidth="1.5"
-                  strokeDasharray="4 4"
-                  strokeLinecap="round"
-                  className="animate-dash"
-                />
-
-                {/* Room Location Pin */}
-                {(() => {
-                  const rx = getSvgX(roomLng);
-                  const ry = getSvgY(roomLat);
-                  return (
-                    <g>
-                      <circle cx={rx} cy={ry} r="16" fill="var(--marigold)" opacity="0.2" className="animate-pulse" />
-                      <path 
-                        d={`M ${rx},${ry} C ${rx-5},${ry-8} ${rx-8},${ry-15} ${rx-8},${ry-20} A 8,8 0 1,1 ${rx+8},${ry-20} C ${rx+8},${ry-15} ${rx+5},${ry-8} ${rx},${ry} Z`} 
-                        fill="var(--marigold)"
-                        stroke="var(--paper)"
-                        strokeWidth="1.5"
-                      />
-                      <circle cx={rx} cy={ry-20} r="2.5" fill="var(--paper)" />
-                    </g>
-                  );
-                })()}
-
-                {/* Start Location Marker */}
-                {(() => {
-                  const cx = getSvgX(startLng);
-                  const cy = getSvgY(startLat);
-                  const isCollege = startLocationType === 'college' || !isUsingUserLocation;
-                  const markerColor = isCollege ? "var(--pine)" : "#D32F2F";
-                  return (
-                    <g transform={`translate(${cx}, ${cy})`}>
-                      <circle cx="0" cy="0" r="12" fill={markerColor} opacity="0.2" className="animate-pulse" />
-                      <circle cx="0" cy="0" r="6" fill={markerColor} stroke="var(--paper)" strokeWidth="1.5" />
-                      
-                      <g transform="translate(0, -18)">
-                        <rect x="-45" y="-12" width="90" height="15" rx="4" fill={markerColor} />
-                        <text x="0" y="-2" fill="var(--paper)" fontSize="6" fontWeight="bold" textAnchor="middle">
-                          {startName}
-                        </text>
-                      </g>
-                    </g>
-                  );
-                })()}
-              </svg>
+            {/* Interactive Leaflet Map Container */}
+            <div className="flex-1 bg-[#FAF6EC] border border-ink/10 rounded-2xl relative overflow-hidden shadow-inner min-h-[400px]">
+              {routingError && (
+                <div className="absolute top-4 left-4 right-4 z-[1000] p-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold rounded-xl flex items-center gap-2 shadow-md">
+                  <Info size={16} className="text-amber-600 shrink-0" />
+                  <span>Route calculation warning: {routingError}. Displaying straight-line bounds.</span>
+                </div>
+              )}
+              <div id="map-container" className="w-full h-full" style={{ zIndex: 1 }} />
             </div>
             
           </div>
