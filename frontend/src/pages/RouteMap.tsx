@@ -56,8 +56,71 @@ const fetchOSRMRoute = async (profile: 'driving' | 'foot' | 'bike', start: { lat
   return data.routes[0];
 };
 
+const getCollegeCoordinatesAndName = (lst: any) => {
+  if (!lst) return { name: "IOE Pulchowk Campus", lat: 27.6812, lng: 85.3184 };
+  let name = lst.collegeName || "";
+  let coords = { lat: 27.6812, lng: 85.3184 }; // Default Pulchowk
+  
+  if (name) {
+    const matchedKey = Object.keys(COLLEGE_COORDINATES).find(key => 
+      name.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(name.toLowerCase())
+    );
+    if (matchedKey) {
+      coords = COLLEGE_COORDINATES[matchedKey];
+      return { name, ...coords };
+    }
+  }
+  
+  const textToSearch = `${lst.distanceFromCollegeText || ''} ${lst.title || ''}`;
+  const matchedKey = Object.keys(COLLEGE_COORDINATES).find(key => 
+    textToSearch.toLowerCase().includes(key.toLowerCase())
+  );
+  
+  if (matchedKey) {
+    name = matchedKey;
+    coords = COLLEGE_COORDINATES[matchedKey];
+  } else {
+    name = name || "IOE Pulchowk Campus";
+  }
+  
+  return { name, ...coords };
+};
+
 const RouteMap: React.FC = () => {
-  // Custom Leaflet Icons (defined locally inside the component body to avoid load-time browser errors)
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+
+  // All Hook Declarations (Declared at the absolute top of the component)
+  const [listing, setListing] = useState<Listing | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Map Refs
+  const mapRef = useRef<L.Map | null>(null);
+  const routeLayerRef = useRef<L.GeoJSON | null>(null);
+  const markersRef = useRef<L.Marker[]>([]);
+
+  // Geolocation and navigation States: default to college
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'success' | 'error' | 'denied'>('idle');
+  const [startLocationType, setStartLocationType] = useState<'geolocation' | 'college'>('college');
+
+  // Real OSRM Routing states
+  const [routeData, setRouteData] = useState<{
+    distanceKm: string;
+    walkingTime: string;
+    bikeTime: string;
+    drivingTime: string;
+    routeGeometry: any | null;
+  }>({
+    distanceKm: '...',
+    walkingTime: '...',
+    bikeTime: '...',
+    drivingTime: '...',
+    routeGeometry: null
+  });
+  const [routingError, setRoutingError] = useState<string | null>(null);
+
+  // Custom Leaflet Icons (instantiated inside component context)
   const collegeIcon = L.divIcon({
     html: `
       <div class="flex items-center justify-center w-8 h-8 bg-pine text-paper rounded-full border-2 border-paper shadow-md">
@@ -93,36 +156,58 @@ const RouteMap: React.FC = () => {
     iconAnchor: [16, 16],
     popupAnchor: [0, -16]
   });
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const [listing, setListing] = useState<Listing | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  // Map Refs
-  const mapRef = useRef<L.Map | null>(null);
-  const routeLayerRef = useRef<L.GeoJSON | null>(null);
-  const markersRef = useRef<L.Marker[]>([]);
+  // Safe Defensive Coordinates Calculations
+  const roomLat = listing ? parseFloat(listing.locationLat as any) : 27.68;
+  const roomLng = listing ? parseFloat(listing.locationLng as any) : 85.32;
+  const hasValidRoomCoords = listing ? isValidCoordinate(roomLat, roomLng) : false;
 
-  // Geolocation and navigation States: default to college
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'success' | 'error' | 'denied'>('idle');
-  const [startLocationType, setStartLocationType] = useState<'geolocation' | 'college'>('college');
+  const resolvedCollege = getCollegeCoordinatesAndName(listing);
+  const collegeLat = resolvedCollege.lat;
+  const collegeLng = resolvedCollege.lng;
+  const collegeName = resolvedCollege.name;
+  const hasValidCollegeCoords = listing ? isValidCoordinate(collegeLat, collegeLng) : false;
 
-  // Real OSRM Routing states
-  const [routeData, setRouteData] = useState<{
-    distanceKm: string;
-    walkingTime: string;
-    bikeTime: string;
-    drivingTime: string;
-    routeGeometry: any | null;
-  }>({
-    distanceKm: '...',
-    walkingTime: '...',
-    bikeTime: '...',
-    drivingTime: '...',
-    routeGeometry: null
-  });
-  const [routingError, setRoutingError] = useState<string | null>(null);
+  let startLat = collegeLat;
+  let startLng = collegeLng;
+  let startName = collegeName;
+  let isUsingUserLocation = false;
+
+  if (startLocationType === 'geolocation') {
+    if (userLocation && isValidCoordinate(userLocation.lat, userLocation.lng)) {
+      startLat = userLocation.lat;
+      startLng = userLocation.lng;
+      startName = "Your Location";
+      isUsingUserLocation = true;
+    }
+  }
+
+  // Fetch listing details
+  useEffect(() => {
+    console.log("RouteMap - Room ID:", id);
+    const fetchListing = async () => {
+      setLoading(true);
+      try {
+        console.log("RouteMap - Route API request sent for listing:", id);
+        const res = await api.get(`/listings/${id}`);
+        console.log("RouteMap - Fetched room data:", res.data);
+        if (res.data) {
+          setListing(res.data);
+        } else {
+          setListing(null);
+        }
+      } catch (err) {
+        console.error("RouteMap - Fetched room data error:", err);
+        setListing(null);
+      } finally {
+        setTimeout(() => {
+          setLoading(false);
+        }, 200);
+      }
+    };
+
+    fetchListing();
+  }, [id]);
 
   // Lazy request browser geolocation permission
   const requestGeolocation = () => {
@@ -161,161 +246,10 @@ const RouteMap: React.FC = () => {
     );
   };
 
-  // Fetch listing details
+  // Map Initialization useEffect: triggered only when loading completes and map-container is available
   useEffect(() => {
-    console.log("RouteMap - Room ID:", id);
-    const fetchListing = async () => {
-      setLoading(true);
-      try {
-        console.log("RouteMap - Route API request sent for listing:", id);
-        const res = await api.get(`/listings/${id}`);
-        console.log("RouteMap - Fetched room data:", res.data);
-        if (res.data) {
-          setListing(res.data);
-        } else {
-          setListing(null);
-        }
-      } catch (err) {
-        console.error("RouteMap - Fetched room data error:", err);
-        setListing(null);
-      } finally {
-        setTimeout(() => {
-          setLoading(false);
-        }, 200);
-      }
-    };
+    if (loading) return;
 
-    fetchListing();
-  }, [id]);
-
-  // Handle Loading State
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-clay text-ink flex flex-col font-sans p-8 items-center justify-center">
-        <div className="w-full max-w-4xl animate-pulse space-y-6">
-          <div className="h-8 w-1/4 bg-ink/10 rounded-xl"></div>
-          <div className="h-[520px] w-full bg-ink/10 rounded-[32px] flex items-center justify-center">
-            <span className="text-xs font-bold text-ink-soft uppercase tracking-wider animate-pulse">Loading map...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Handle Missing Listing State
-  if (!listing) {
-    return (
-      <div className="min-h-screen bg-clay text-ink flex flex-col font-sans items-center justify-center p-6">
-        <div className="bg-paper border border-ink/10 rounded-[32px] p-8 text-center max-w-md shadow-lg font-sans">
-          <h2 className="text-xl font-bold mb-3 font-display">Listing Not Found</h2>
-          <p className="text-ink-soft text-sm mb-6">The listing map coordinates could not be loaded.</p>
-          <button 
-            onClick={() => navigate('/rooms')}
-            className="w-full bg-marigold hover:bg-marigold-dark text-paper font-black py-3 rounded-xl transition text-xs uppercase tracking-wider shadow-sm"
-          >
-            Back to Room Search
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Validate room coordinates
-  const roomLat = parseFloat(listing.locationLat as any);
-  const roomLng = parseFloat(listing.locationLng as any);
-  const hasValidRoomCoords = isValidCoordinate(roomLat, roomLng);
-
-  if (!hasValidRoomCoords) {
-    console.error(`RouteMap - Invalid room coordinates: Lat=${listing.locationLat}, Lng=${listing.locationLng}`);
-    return (
-      <div className="min-h-screen bg-clay text-ink flex flex-col font-sans items-center justify-center p-6">
-        <div className="bg-paper border border-ink/10 rounded-[32px] p-8 text-center max-w-md shadow-lg font-sans">
-          <h2 className="text-xl font-bold mb-3 font-display text-rose-600">Route unavailable</h2>
-          <p className="text-ink-soft text-sm mb-6 font-semibold">Route unavailable — this listing does not have a valid location.</p>
-          <button 
-            onClick={() => navigate(`/rooms/${id}`)}
-            className="w-full bg-marigold hover:bg-marigold-dark text-paper font-black py-3 rounded-xl transition text-xs uppercase tracking-wider shadow-sm"
-          >
-            Back to Room Details
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Resolve college coordinates and name
-  const getCollegeCoordinatesAndName = (lst: any) => {
-    let name = lst.collegeName || "";
-    let coords = { lat: 27.6812, lng: 85.3184 }; // Default Pulchowk
-    
-    if (name) {
-      const matchedKey = Object.keys(COLLEGE_COORDINATES).find(key => 
-        name.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(name.toLowerCase())
-      );
-      if (matchedKey) {
-        coords = COLLEGE_COORDINATES[matchedKey];
-        return { name, ...coords };
-      }
-    }
-    
-    const textToSearch = `${lst.distanceFromCollegeText || ''} ${lst.title || ''}`;
-    const matchedKey = Object.keys(COLLEGE_COORDINATES).find(key => 
-      textToSearch.toLowerCase().includes(key.toLowerCase())
-    );
-    
-    if (matchedKey) {
-      name = matchedKey;
-      coords = COLLEGE_COORDINATES[matchedKey];
-    } else {
-      name = name || "IOE Pulchowk Campus";
-    }
-    
-    return { name, ...coords };
-  };
-
-  const resolvedCollege = getCollegeCoordinatesAndName(listing);
-  const collegeLat = resolvedCollege.lat;
-  const collegeLng = resolvedCollege.lng;
-  const collegeName = resolvedCollege.name;
-
-  // Validate college coordinates
-  const hasValidCollegeCoords = isValidCoordinate(collegeLat, collegeLng);
-
-  if (!hasValidCollegeCoords) {
-    console.error(`RouteMap - Invalid college coordinates for: ${collegeName}`);
-    return (
-      <div className="min-h-screen bg-clay text-ink flex flex-col font-sans items-center justify-center p-6">
-        <div className="bg-paper border border-ink/10 rounded-[32px] p-8 text-center max-w-md shadow-lg font-sans">
-          <h2 className="text-xl font-bold mb-3 font-display text-rose-600">Route unavailable</h2>
-          <p className="text-ink-soft text-sm mb-6 font-semibold">Route unavailable — this listing does not have valid college coordinates.</p>
-          <button 
-            onClick={() => navigate(`/rooms/${id}`)}
-            className="w-full bg-marigold hover:bg-marigold-dark text-paper font-black py-3 rounded-xl transition text-xs uppercase tracking-wider shadow-sm"
-          >
-            Back to Room Details
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Select current starting location with fallback logic
-  let startLat = collegeLat;
-  let startLng = collegeLng;
-  let startName = collegeName;
-  let isUsingUserLocation = false;
-
-  if (startLocationType === 'geolocation') {
-    if (userLocation && isValidCoordinate(userLocation.lat, userLocation.lng)) {
-      startLat = userLocation.lat;
-      startLng = userLocation.lng;
-      startName = "Your Location";
-      isUsingUserLocation = true;
-    }
-  }
-
-  // Map Initialization useEffect
-  useEffect(() => {
     const mapContainer = document.getElementById('map-container');
     if (!mapContainer || mapRef.current) return;
 
@@ -340,10 +274,12 @@ const RouteMap: React.FC = () => {
         mapRef.current = null;
       }
     };
-  }, []);
+  }, [loading]);
 
   // Compute live road route from OSRM
   useEffect(() => {
+    if (loading || !listing || !hasValidRoomCoords) return;
+
     const start = { lat: startLat, lng: startLng };
     const calculateRoutes = async () => {
       setRoutingError(null);
@@ -393,12 +329,12 @@ const RouteMap: React.FC = () => {
     };
 
     calculateRoutes();
-  }, [startLat, startLng, roomLat, roomLng]);
+  }, [loading, listing, startLat, startLng, roomLat, roomLng, hasValidRoomCoords]);
 
   // Update map markers and route geometry
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || loading || !listing || !hasValidRoomCoords) return;
 
     let startIcon = collegeIcon;
     let startMarkerName = collegeName;
@@ -456,7 +392,80 @@ const RouteMap: React.FC = () => {
       const bounds = L.latLngBounds([startLat, startLng], [roomLat, roomLng]);
       map.fitBounds(bounds, { padding: [50, 50] });
     }
-  }, [startLat, startLng, roomLat, roomLng, routeData.routeGeometry, startLocationType, isUsingUserLocation, listing]);
+  }, [loading, listing, startLat, startLng, roomLat, roomLng, routeData.routeGeometry, startLocationType, isUsingUserLocation, hasValidRoomCoords, collegeName]);
+
+
+  // Conditional Rendering Returns (Must be declared AFTER all Hook Declarations to comply with the Rules of Hooks)
+
+  // 1. Handle Loading State
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-clay text-ink flex flex-col font-sans p-8 items-center justify-center">
+        <div className="w-full max-w-4xl animate-pulse space-y-6">
+          <div className="h-8 w-1/4 bg-ink/10 rounded-xl"></div>
+          <div className="h-[520px] w-full bg-ink/10 rounded-[32px] flex items-center justify-center">
+            <span className="text-xs font-bold text-ink-soft uppercase tracking-wider animate-pulse">Loading map...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Handle Missing Listing State
+  if (!listing) {
+    return (
+      <div className="min-h-screen bg-clay text-ink flex flex-col font-sans items-center justify-center p-6">
+        <div className="bg-paper border border-ink/10 rounded-[32px] p-8 text-center max-w-md shadow-lg font-sans">
+          <h2 className="text-xl font-bold mb-3 font-display">Listing Not Found</h2>
+          <p className="text-ink-soft text-sm mb-6">The listing map coordinates could not be loaded.</p>
+          <button 
+            onClick={() => navigate('/rooms')}
+            className="w-full bg-marigold hover:bg-marigold-dark text-paper font-black py-3 rounded-xl transition text-xs uppercase tracking-wider shadow-sm"
+          >
+            Back to Room Search
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 3. Handle Invalid Room Coordinates State
+  if (!hasValidRoomCoords) {
+    console.error(`RouteMap - Invalid room coordinates: Lat=${listing.locationLat}, Lng=${listing.locationLng}`);
+    return (
+      <div className="min-h-screen bg-clay text-ink flex flex-col font-sans items-center justify-center p-6">
+        <div className="bg-paper border border-ink/10 rounded-[32px] p-8 text-center max-w-md shadow-lg font-sans">
+          <h2 className="text-xl font-bold mb-3 font-display text-rose-600">Route unavailable</h2>
+          <p className="text-ink-soft text-sm mb-6 font-semibold">Route unavailable — this listing does not have a valid location.</p>
+          <button 
+            onClick={() => navigate(`/rooms/${id}`)}
+            className="w-full bg-marigold hover:bg-marigold-dark text-paper font-black py-3 rounded-xl transition text-xs uppercase tracking-wider shadow-sm"
+          >
+            Back to Room Details
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 4. Handle Invalid College Coordinates State
+  if (!hasValidCollegeCoords) {
+    console.error(`RouteMap - Invalid college coordinates for: ${collegeName}`);
+    return (
+      <div className="min-h-screen bg-clay text-ink flex flex-col font-sans items-center justify-center p-6">
+        <div className="bg-paper border border-ink/10 rounded-[32px] p-8 text-center max-w-md shadow-lg font-sans">
+          <h2 className="text-xl font-bold mb-3 font-display text-rose-600">Route unavailable</h2>
+          <p className="text-ink-soft text-sm mb-6 font-semibold">Route unavailable — this listing does not have valid college coordinates.</p>
+          <button 
+            onClick={() => navigate(`/rooms/${id}`)}
+            className="w-full bg-marigold hover:bg-marigold-dark text-paper font-black py-3 rounded-xl transition text-xs uppercase tracking-wider shadow-sm"
+          >
+            Back to Room Details
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-clay text-ink flex flex-col font-sans">
