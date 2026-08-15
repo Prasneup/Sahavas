@@ -92,14 +92,25 @@ public class ChatController {
     }
 
     @GetMapping("/conversations/{id}/messages")
-    public ResponseEntity<List<Message>> getMessages(
+    public ResponseEntity<?> getMessages(
             @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable("id") UUID conversationId) {
+
+        Conversation conversation = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
+
+        UUID userId = principal.getId();
+        boolean isParticipant = conversation.getParticipants().stream()
+                .anyMatch(p -> p.getId().equals(userId));
+
+        if (!isParticipant) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "You are not a participant in this conversation"));
+        }
 
         List<Message> msgs = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
         
         // Mark all incoming messages as read
-        UUID userId = principal.getId();
         msgs.stream()
             .filter(m -> !m.getSenderId().equals(userId) && !m.isRead())
             .forEach(m -> {
@@ -111,7 +122,7 @@ public class ChatController {
     }
 
     @PostMapping("/conversations/{id}/messages")
-    public ResponseEntity<Message> postMessage(
+    public ResponseEntity<?> postMessage(
             @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable("id") UUID conversationId,
             @RequestBody Map<String, String> body) {
@@ -121,6 +132,14 @@ public class ChatController {
 
         Conversation conversation = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new IllegalArgumentException("Conversation not found"));
+
+        boolean isParticipant = conversation.getParticipants().stream()
+                .anyMatch(p -> p.getId().equals(senderId));
+
+        if (!isParticipant) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "You are not a participant in this conversation"));
+        }
 
         Message message = Message.builder()
                 .conversationId(conversationId)
@@ -174,7 +193,7 @@ public class ChatController {
                 .orElseThrow(() -> new IllegalArgumentException("Recipient not found"));
 
         // Check if conversation already exists
-        Optional<Conversation> existingOpt = conversationRepository.findConversationBetweenUsers(actor, recipient);
+        Optional<Conversation> existingOpt = conversationRepository.findConversationBetweenUsers(actorId, recipientId);
         Conversation conversation;
         if (existingOpt.isPresent()) {
             conversation = existingOpt.get();
@@ -236,6 +255,7 @@ public class ChatController {
         return ProfileResponse.builder()
                 .id(profile.getId())
                 .fullName(profile.getFullName())
+                .role(profile.getUser() != null ? profile.getUser().getRole() : "student")
                 .gender(profile.getGender())
                 .age(profile.getAge())
                 .collegeName(profile.getCollege() != null ? profile.getCollege().getName() : "UniSphere College")

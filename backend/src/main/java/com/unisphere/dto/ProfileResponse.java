@@ -13,6 +13,7 @@ import java.util.UUID;
 public class ProfileResponse {
     private UUID id;
     private String fullName;
+    private String role;
     private String gender;
     private Integer age;
     private String collegeName;

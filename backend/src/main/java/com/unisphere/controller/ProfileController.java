@@ -88,6 +88,7 @@ public class ProfileController {
         return ProfileResponse.builder()
                 .id(profile.getId())
                 .fullName(profile.getFullName())
+                .role(profile.getUser() != null ? profile.getUser().getRole() : "student")
                 .gender(profile.getGender())
                 .age(profile.getAge())
                 .collegeName(profile.getCollege() != null ? profile.getCollege().getName() : "UniSphere Affiliated College")
