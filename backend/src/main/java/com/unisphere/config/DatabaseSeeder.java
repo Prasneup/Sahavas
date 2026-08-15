@@ -41,7 +41,7 @@ public class DatabaseSeeder implements CommandLineRunner {
                     .email(adminEmail)
                     .passwordHash(passwordEncoder.encode(adminPassword))
                     .role("admin")
-                    .status("VERIFIED")
+                    .status("verified")
                     .build();
             admin = userRepository.save(admin);
 
@@ -62,11 +62,13 @@ public class DatabaseSeeder implements CommandLineRunner {
         } else {
             // Update admin fields to match the current environment properties
             admin.setEmail(adminEmail);
-            admin.setPasswordHash(passwordEncoder.encode(adminPassword));
             admin.setRole("admin");
             admin.setStatus("verified");
+            if (!passwordEncoder.matches(adminPassword, admin.getPasswordHash())) {
+                admin.setPasswordHash(passwordEncoder.encode(adminPassword));
+            }
             userRepository.save(admin);
-            log.info("Admin user credentials updated from environment/defaults.");
+            log.info("Admin user credentials updated from environment/defaults if changed.");
         }
 
         if (collegeRepository.count() > 0) {

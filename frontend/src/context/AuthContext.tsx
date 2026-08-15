@@ -44,9 +44,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     const res = await api.post('/auth/login', { phoneNumber: email, password });
-    const { accessToken, user: userData } = res.data;
+    const { accessToken, refreshToken, user: userData } = res.data;
 
     localStorage.setItem('token', accessToken);
+    if (refreshToken) {
+      localStorage.setItem('refreshToken', refreshToken);
+    }
     localStorage.setItem('user', JSON.stringify(userData));
 
     setToken(accessToken);
@@ -65,6 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error("Logout request error", e);
     } finally {
       localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
       localStorage.removeItem('hide_verified_banner');
       localStorage.removeItem('hide_rejected_banner');

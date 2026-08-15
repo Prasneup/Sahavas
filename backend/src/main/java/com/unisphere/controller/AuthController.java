@@ -43,6 +43,20 @@ public class AuthController {
         return ResponseEntity.ok("Logged out successfully");
     }
 
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshAccessToken(@RequestBody java.util.Map<String, String> body) {
+        String refreshToken = body.get("refreshToken");
+        if (!org.springframework.util.StringUtils.hasText(refreshToken)) {
+            return ResponseEntity.status(401).body(java.util.Map.of("message", "Refresh token is missing"));
+        }
+        try {
+            AuthResponse response = authService.refreshAccessToken(refreshToken);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body(java.util.Map.of("message", "Invalid or expired refresh token"));
+        }
+    }
+
     private String getJwtFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {

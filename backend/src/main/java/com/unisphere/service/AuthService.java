@@ -120,8 +120,11 @@ public class AuthService {
             fullName = profileOpt.get().getFullName();
         }
 
+        String refreshToken = tokenProvider.generateRefreshToken(user.getId());
+
         return AuthResponse.builder()
                 .accessToken(jwt)
+                .refreshToken(refreshToken)
                 .expiresInMs(900000) // 15 mins
                 .user(AuthResponse.UserDto.builder()
                         .id(user.getId())
@@ -131,5 +134,41 @@ public class AuthService {
                         .fullName(fullName)
                         .build())
                 .build();
+    }
+
+    public AuthResponse refreshAccessToken(String refreshToken) {
+        if (tokenProvider.validateToken(refreshToken)) {
+            java.util.UUID userId = tokenProvider.getUserIdFromJWT(refreshToken);
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
+            
+            UserPrincipal principal = new UserPrincipal(user);
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                    principal, null, principal.getAuthorities());
+            
+            String newAccessToken = tokenProvider.generateAccessToken(authentication);
+            String newRefreshToken = tokenProvider.generateRefreshToken(userId);
+            
+            String fullName = principal.getUsername();
+            var profileOpt = studentProfileRepository.findById(user.getId());
+            if (profileOpt.isPresent()) {
+                fullName = profileOpt.get().getFullName();
+            }
+            
+            return AuthResponse.builder()
+                    .accessToken(newAccessToken)
+                    .refreshToken(newRefreshToken)
+                    .expiresInMs(900000)
+                    .user(AuthResponse.UserDto.builder()
+                            .id(user.getId())
+                            .phoneNumber(user.getPhoneNumber())
+                            .role(user.getRole())
+                            .status(user.getStatus())
+                            .fullName(fullName)
+                            .build())
+                    .build();
+        } else {
+            throw new IllegalArgumentException("Invalid refresh token");
+        }
     }
 }
