@@ -125,62 +125,7 @@ public class DatabaseSeeder implements CommandLineRunner {
                 .build();
         studentProfileRepository.save(landlord1Profile);
 
-        // 4. Seed listings
-        Listing room1 = Listing.builder()
-                .owner(landlord1)
-                .title("Single Sunny Room near IOE Pulchowk Gate")
-                .description("Cozy single room with plenty of natural sunlight. Located just 2 minutes walking distance from the Pulchowk campus gate. Hot water geyser, high-speed fiber internet, and basic furniture included.")
-                .rentAmount(new BigDecimal("6500.00"))
-                .depositAmount(new BigDecimal("6500.00"))
-                .locationLat(27.6775)
-                .locationLng(85.3172)
-                .roomType("SINGLE_ROOM")
-                .genderPreference("ANY")
-                .distanceFromCollegeText("200m from IOE Pulchowk Gate")
-                .rating(4.8)
-                .reviewCount(5)
-                .amenities(Arrays.asList("Wifi", "Geyser", "Water Supply", "Power Backup"))
-                .isAvailable(true)
-                .isVerified(true)
-                .build();
-
-        Listing room2 = Listing.builder()
-                .owner(landlord1)
-                .title("Premium Shared Flat near NCIT Balkumari")
-                .description("Two large rooms available in a modern flat at Balkumari. Best suited for students studying at NCIT. Equipped kitchen, balcony, and bike parking included.")
-                .rentAmount(new BigDecimal("12000.00"))
-                .depositAmount(new BigDecimal("12000.00"))
-                .locationLat(27.6698)
-                .locationLng(85.3364)
-                .roomType("SHARED_ROOM")
-                .genderPreference("BOYS_ONLY")
-                .distanceFromCollegeText("450m from NCIT Balkumari")
-                .rating(4.5)
-                .reviewCount(8)
-                .amenities(Arrays.asList("Wifi", "Parking", "Kitchen Sharing", "Attached Bathroom"))
-                .isAvailable(true)
-                .isVerified(false)
-                .build();
-
-        Listing room3 = Listing.builder()
-                .owner(landlord1)
-                .title("Spacious Flat / Room near Patan Multiple Campus")
-                .description("Highly secure single room on the second floor. Ideal for female students. Shared dining room, laundry area, and fully filtered drinking water included.")
-                .rentAmount(new BigDecimal("8000.00"))
-                .depositAmount(new BigDecimal("8000.00"))
-                .locationLat(27.6762)
-                .locationLng(85.3114)
-                .roomType("SINGLE_ROOM")
-                .genderPreference("GIRLS_ONLY")
-                .distanceFromCollegeText("300m from Patan Campus")
-                .rating(4.9)
-                .reviewCount(12)
-                .amenities(Arrays.asList("Wifi", "Laundry", "Water Filter", "Terrace Access"))
-                .isAvailable(true)
-                .isVerified(true)
-                .build();
-
-        listingRepository.saveAll(Arrays.asList(room1, room2, room3));
+        // 4. Seed listings (Disabled to allow only real landlord user listings in DB)
 
         // 5. Seed Roommate Students (Candidates)
         // Candidate 1 (Male matching Prasanna)
