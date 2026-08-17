@@ -10,6 +10,50 @@
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
   </head>
   <body class="bg-brand-cream text-brand-dark antialiased">
+    <script>
+      window.addEventListener('error', function(event) {
+        var errDiv = document.getElementById('nivaro-error-overlay');
+        if (!errDiv) {
+          errDiv = document.createElement('div');
+          errDiv.id = 'nivaro-error-overlay';
+          errDiv.style.position = 'fixed';
+          errDiv.style.top = '0';
+          errDiv.style.left = '0';
+          errDiv.style.width = '100%';
+          errDiv.style.backgroundColor = '#fee2e2';
+          errDiv.style.color = '#991b1b';
+          errDiv.style.padding = '24px';
+          errDiv.style.zIndex = '999999';
+          errDiv.style.fontFamily = 'monospace';
+          errDiv.style.fontSize = '14px';
+          errDiv.style.whiteSpace = 'pre-wrap';
+          errDiv.style.borderBottom = '4px solid #ef4444';
+          document.body.appendChild(errDiv);
+        }
+        errDiv.innerHTML = '<strong>[Unhandled Error]</strong><br/>' + event.message + '<br/><br/><strong>Source:</strong> ' + event.filename + ':' + event.lineno + ':' + event.colno + '<br/><br/><strong>Stack:</strong><br/>' + (event.error ? event.error.stack : 'No stack available');
+      });
+      window.addEventListener('unhandledrejection', function(event) {
+        var errDiv = document.getElementById('nivaro-error-overlay');
+        if (!errDiv) {
+          errDiv = document.createElement('div');
+          errDiv.id = 'nivaro-error-overlay';
+          errDiv.style.position = 'fixed';
+          errDiv.style.top = '0';
+          errDiv.style.left = '0';
+          errDiv.style.width = '100%';
+          errDiv.style.backgroundColor = '#ffedd5';
+          errDiv.style.color = '#9a3412';
+          errDiv.style.padding = '24px';
+          errDiv.style.zIndex = '999999';
+          errDiv.style.fontFamily = 'monospace';
+          errDiv.style.fontSize = '14px';
+          errDiv.style.whiteSpace = 'pre-wrap';
+          errDiv.style.borderBottom = '4px solid #f97316';
+          document.body.appendChild(errDiv);
+        }
+        errDiv.innerHTML = '<strong>[Unhandled Rejection]</strong><br/>' + event.reason;
+      });
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
