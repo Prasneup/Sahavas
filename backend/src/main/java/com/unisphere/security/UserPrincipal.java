@@ -17,11 +17,13 @@ public class UserPrincipal implements UserDetails {
     private final String phoneNumber;
     private final String password;
     private final Collection<? extends GrantedAuthority> authorities;
+    private final boolean enabled;
 
     public UserPrincipal(User user) {
         this.id = user.getId();
         this.phoneNumber = user.getPhoneNumber();
         this.password = user.getPasswordHash();
+        this.enabled = user.getStatus() == null || !user.getStatus().equalsIgnoreCase("suspended");
         String securityRole = user.getRole();
         if (securityRole != null) {
             if (!securityRole.toUpperCase().startsWith("ROLE_")) {
@@ -65,6 +67,6 @@ public class UserPrincipal implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return enabled;
     }
 }

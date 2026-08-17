@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Sparkles, ArrowLeft } from 'lucide-react';
 import api from '../services/api';
 import { NivaroLogo } from '../components/NivaroLogo';
+import Footer from '../components/Footer';
 
 const RoommateDiscovery: React.FC = () => {
   const navigate = useNavigate();
@@ -467,6 +468,7 @@ const RoommateDiscovery: React.FC = () => {
         )}
 
       </main>
+      <Footer />
     </div>
   );
 };

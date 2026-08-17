@@ -252,17 +252,25 @@ public class ChatController {
 
         Conversation conversation;
         if (listingId != null) {
-            Optional<Conversation> existingOpt = conversationRepository.findConversationBetweenUsersAndListing(actorId, recipientId, listingId);
-            if (existingOpt.isPresent()) {
-                conversation = existingOpt.get();
+            List<Conversation> existing = conversationRepository.findConversationBetweenUsersAndListing(actorId, recipientId, listingId);
+            if (!existing.isEmpty()) {
+                conversation = existing.get(0);
             } else {
+                // Check if a general conversation exists to upgrade it
+                List<Conversation> general = conversationRepository.findConversationBetweenUsersAndListingIsNull(actorId, recipientId);
                 Listing listing = listingRepository.findById(listingId)
                         .orElseThrow(() -> new IllegalArgumentException("Listing not found"));
-                conversation = Conversation.builder()
-                        .participants(Arrays.asList(actor, recipient))
-                        .listing(listing)
-                        .build();
-                conversationRepository.save(conversation);
+                if (!general.isEmpty()) {
+                    conversation = general.get(0);
+                    conversation.setListing(listing);
+                    conversationRepository.save(conversation);
+                } else {
+                    conversation = Conversation.builder()
+                            .participants(Arrays.asList(actor, recipient))
+                            .listing(listing)
+                            .build();
+                    conversationRepository.save(conversation);
+                }
 
                 // Add "NEW_ENQUIRY" Notification to the recipient (the landlord)
                 try {
@@ -277,14 +285,23 @@ public class ChatController {
                 }
             }
         } else {
-            Optional<Conversation> existingOpt = conversationRepository.findConversationBetweenUsers(actorId, recipientId);
-            if (existingOpt.isPresent()) {
-                conversation = existingOpt.get();
+            List<Conversation> existing = conversationRepository.findConversationBetweenUsersAndListingIsNull(actorId, recipientId);
+            if (!existing.isEmpty()) {
+                conversation = existing.get(0);
             } else {
-                conversation = Conversation.builder()
-                        .participants(Arrays.asList(actor, recipient))
-                        .build();
-                conversationRepository.save(conversation);
+                // Reuse existing listing conversation if one exists
+                List<Conversation> allConvs = conversationRepository.findAllByParticipantId(actorId);
+                Optional<Conversation> anyWithPeer = allConvs.stream()
+                        .filter(c -> c.getParticipants().stream().anyMatch(p -> p.getId().equals(recipientId)))
+                        .findFirst();
+                if (anyWithPeer.isPresent()) {
+                    conversation = anyWithPeer.get();
+                } else {
+                    conversation = Conversation.builder()
+                            .participants(Arrays.asList(actor, recipient))
+                            .build();
+                    conversationRepository.save(conversation);
+                }
             }
         }
 

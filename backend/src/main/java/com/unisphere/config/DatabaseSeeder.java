@@ -10,8 +10,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.UUID;
+import java.util.*;
 
 @Component
 @RequiredArgsConstructor
@@ -25,10 +24,19 @@ public class DatabaseSeeder implements CommandLineRunner {
     private final ListingRepository listingRepository;
     private final NotificationRepository notificationRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ConversationRepository conversationRepository;
+    private final MessageRepository messageRepository;
 
     @Override
     @Transactional
     public void run(String... args) throws Exception {
+        // Run database-level deduplication of conversations on startup
+        try {
+            deduplicateConversations();
+        } catch (Exception e) {
+            log.error("Failed to run conversation deduplication: {}", e.getMessage(), e);
+        }
+
         // Secure development/admin seed mechanism: always ensure admin account exists
         String adminPhone = System.getenv("ADMIN_PHONE") != null ? System.getenv("ADMIN_PHONE") : "9800000000";
         String adminEmail = System.getenv("ADMIN_EMAIL") != null ? System.getenv("ADMIN_EMAIL") : "admin@nivaro.com";
@@ -235,5 +243,114 @@ public class DatabaseSeeder implements CommandLineRunner {
         notificationRepository.save(alert);
 
         log.info("Database seeding successfully completed.");
+    }
+
+    private void deduplicateConversations() {
+        log.info("Starting conversation deduplication check...");
+        List<Conversation> allConversations = conversationRepository.findAll();
+        
+        // Group all conversations by participant IDs (sorted)
+        Map<String, List<Conversation>> groupedByParticipants = new java.util.HashMap<>();
+        for (Conversation conv : allConversations) {
+            if (conv.getParticipants() == null || conv.getParticipants().size() < 2) {
+                continue;
+            }
+            List<UUID> participantIds = conv.getParticipants().stream()
+                    .map(User::getId)
+                    .sorted()
+                    .collect(java.util.stream.Collectors.toList());
+            String key = participantIds.toString();
+            groupedByParticipants.computeIfAbsent(key, k -> new java.util.ArrayList<>()).add(conv);
+        }
+        
+        for (java.util.Map.Entry<String, List<Conversation>> entry : groupedByParticipants.entrySet()) {
+            List<Conversation> convs = entry.getValue();
+            if (convs.size() <= 1) {
+                continue;
+            }
+            
+            log.info("Found {} conversations for participant group: {}", convs.size(), entry.getKey());
+            
+            // Separate into listing-specific and general conversations
+            List<Conversation> listingConvs = new java.util.ArrayList<>();
+            List<Conversation> generalConvs = new java.util.ArrayList<>();
+            for (Conversation c : convs) {
+                if (c.getListing() != null) {
+                    listingConvs.add(c);
+                } else {
+                    generalConvs.add(c);
+                }
+            }
+            
+            // 1. Group listing conversations by their listing ID and deduplicate
+            Map<UUID, List<Conversation>> groupedByListing = new java.util.HashMap<>();
+            for (Conversation c : listingConvs) {
+                groupedByListing.computeIfAbsent(c.getListing().getId(), k -> new java.util.ArrayList<>()).add(c);
+            }
+            
+            List<Conversation> canonicalListingConvs = new java.util.ArrayList<>();
+            for (java.util.Map.Entry<UUID, List<Conversation>> listEntry : groupedByListing.entrySet()) {
+                List<Conversation> listConvs = listEntry.getValue();
+                listConvs.sort((c1, c2) -> {
+                    if (c1.getCreatedAt() == null && c2.getCreatedAt() == null) return 0;
+                    if (c1.getCreatedAt() == null) return 1;
+                    if (c2.getCreatedAt() == null) return -1;
+                    return c1.getCreatedAt().compareTo(c2.getCreatedAt());
+                });
+                Conversation canonical = listConvs.get(0);
+                canonicalListingConvs.add(canonical);
+                
+                for (int i = 1; i < listConvs.size(); i++) {
+                    Conversation duplicate = listConvs.get(i);
+                    mergeConversations(duplicate, canonical);
+                }
+            }
+            
+            // 2. Process general conversations
+            if (!canonicalListingConvs.isEmpty()) {
+                // If listing conversations exist, merge all general conversations into the first listing-specific conversation
+                Conversation canonical = canonicalListingConvs.get(0);
+                for (Conversation general : generalConvs) {
+                    mergeConversations(general, canonical);
+                }
+            } else if (generalConvs.size() > 1) {
+                // If no listing conversations exist, deduplicate general conversations
+                generalConvs.sort((c1, c2) -> {
+                    if (c1.getCreatedAt() == null && c2.getCreatedAt() == null) return 0;
+                    if (c1.getCreatedAt() == null) return 1;
+                    if (c2.getCreatedAt() == null) return -1;
+                    return c1.getCreatedAt().compareTo(c2.getCreatedAt());
+                });
+                Conversation canonical = generalConvs.get(0);
+                for (int i = 1; i < generalConvs.size(); i++) {
+                    Conversation duplicate = generalConvs.get(i);
+                    mergeConversations(duplicate, canonical);
+                }
+            }
+        }
+        log.info("Conversation deduplication completed.");
+    }
+
+    private void mergeConversations(Conversation duplicate, Conversation canonical) {
+        log.info("Merging duplicate conversation {} into canonical {}", duplicate.getId(), canonical.getId());
+        
+        // 1. Move all messages to the canonical conversation
+        List<Message> messages = messageRepository.findByConversationIdOrderByCreatedAtAsc(duplicate.getId());
+        for (Message msg : messages) {
+            msg.setConversationId(canonical.getId());
+            messageRepository.save(msg);
+        }
+        
+        // 2. Update notifications referencing the duplicate conversation
+        List<Notification> notifications = notificationRepository.findAll();
+        for (Notification notif : notifications) {
+            if (duplicate.getId().equals(notif.getConversationId())) {
+                notif.setConversationId(canonical.getId());
+                notificationRepository.save(notif);
+            }
+        }
+        
+        // 3. Delete the duplicate conversation itself
+        conversationRepository.delete(duplicate);
     }
 }

@@ -85,6 +85,29 @@ public class CommunityController {
         private String location;
     }
 
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CreateCommunityRequest {
+        private String name;
+        private String description;
+        private String type; // COLLEGE, COURSE, LOCATION, HOUSING, INTEREST, DISTRICT
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CommentResponse {
+        private UUID id;
+        private UUID postId;
+        private UUID authorId;
+        private String authorName;
+        private String authorAvatar;
+        private String content;
+        private OffsetDateTime createdAt;
+    }
+
     @GetMapping
     public ResponseEntity<List<Community>> getCommunities() {
         List<Community> list = communityRepository.findAll();
@@ -110,6 +133,181 @@ public class CommunityController {
             list = communityRepository.findAll();
         }
         return ResponseEntity.ok(list);
+    }
+
+    @PostMapping
+    @org.springframework.transaction.annotation.Transactional
+    public ResponseEntity<Community> createCommunity(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestBody CreateCommunityRequest request) {
+        
+        User creator = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                
+        Community.CommunityType type = Community.CommunityType.valueOf(request.getType().toUpperCase());
+        
+        Community community = Community.builder()
+                .name(request.getName())
+                .description(request.getDescription())
+                .type(type)
+                .creator(creator)
+                .build();
+                
+        community.getMembers().add(creator);
+        communityRepository.save(community);
+        
+        return ResponseEntity.ok(community);
+    }
+
+    @GetMapping("/my")
+    public ResponseEntity<List<Community>> getMyCommunities(@AuthenticationPrincipal UserPrincipal principal) {
+        UUID userId = principal.getId();
+        List<Community> all = communityRepository.findAll();
+        List<Community> joined = all.stream()
+                .filter(c -> c.getMembers().stream().anyMatch(u -> u.getId().equals(userId)))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(joined);
+    }
+
+    @GetMapping("/discover")
+    public ResponseEntity<List<Community>> getDiscoverCommunities(@AuthenticationPrincipal UserPrincipal principal) {
+        UUID userId = principal.getId();
+        List<Community> all = communityRepository.findAll();
+        if (all.isEmpty()) {
+            // Seed default communities
+            Community c1 = Community.builder()
+                    .name("Pulchowk Campus Hub")
+                    .description("Official discussion forum for Pulchowk Engineering Campus, Lalitpur.")
+                    .type(Community.CommunityType.COLLEGE)
+                    .build();
+            Community c2 = Community.builder()
+                    .name("Kaski District Union")
+                    .description("Student union forum for all residents relocating from Pokhara/Kaski.")
+                    .type(Community.CommunityType.DISTRICT)
+                    .build();
+            Community c3 = Community.builder()
+                    .name("BBA Students Network")
+                    .description("Academic support and housing listings for BBA students across Nepal.")
+                    .type(Community.CommunityType.COURSE)
+                    .build();
+
+            communityRepository.saveAll(Arrays.asList(c1, c2, c3));
+            all = communityRepository.findAll();
+        }
+        List<Community> unjoined = all.stream()
+                .filter(c -> c.getMembers().stream().noneMatch(u -> u.getId().equals(userId)))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(unjoined);
+    }
+
+    @PostMapping("/{id}/join")
+    @org.springframework.transaction.annotation.Transactional
+    public ResponseEntity<Map<String, Object>> joinCommunity(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable("id") UUID communityId) {
+        
+        User user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                
+        Community community = communityRepository.findById(communityId)
+                .orElseThrow(() -> new IllegalArgumentException("Community not found"));
+                
+        community.getMembers().add(user);
+        communityRepository.save(community);
+        
+        Map<String, Object> res = new HashMap<>();
+        res.put("success", true);
+        res.put("message", "Successfully joined " + community.getName());
+        return ResponseEntity.ok(res);
+    }
+
+    @PostMapping("/{id}/leave")
+    @org.springframework.transaction.annotation.Transactional
+    public ResponseEntity<Map<String, Object>> leaveCommunity(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable("id") UUID communityId) {
+        
+        User user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                
+        Community community = communityRepository.findById(communityId)
+                .orElseThrow(() -> new IllegalArgumentException("Community not found"));
+                
+        community.getMembers().removeIf(u -> u.getId().equals(user.getId()));
+        communityRepository.save(community);
+        
+        Map<String, Object> res = new HashMap<>();
+        res.put("success", true);
+        res.put("message", "Successfully left " + community.getName());
+        return ResponseEntity.ok(res);
+    }
+
+    @GetMapping("/posts/recent")
+    public ResponseEntity<List<PostResponse>> getRecentPosts(@AuthenticationPrincipal UserPrincipal principal) {
+        UUID userId = principal != null ? principal.getId() : null;
+        List<Post> posts = postRepository.findAll();
+        posts.sort((p1, p2) -> {
+            if (p1.getCreatedAt() == null && p2.getCreatedAt() == null) return 0;
+            if (p1.getCreatedAt() == null) return 1;
+            if (p2.getCreatedAt() == null) return -1;
+            return p2.getCreatedAt().compareTo(p1.getCreatedAt()); // descending order
+        });
+
+        List<PostResponse> responses = posts.stream()
+                .limit(5)
+                .map(post -> {
+                    StudentProfile profile = studentProfileRepository.findById(post.getAuthor().getId()).orElse(null);
+                    String name = profile != null ? profile.getFullName() : "Anonymous User";
+                    String avatar = profile != null ? profile.getAvatarUrl() : "";
+                    String verState = profile != null ? profile.getVerificationStatus().toString() : "UNVERIFIED";
+
+                    long likes = postLikeRepository.countByPostId(post.getId());
+                    long comments = commentRepository.countByPostId(post.getId());
+                    boolean liked = userId != null && postLikeRepository.findByPostIdAndUserId(post.getId(), userId).isPresent();
+
+                    List<PollOptionResponse> pollOpts = null;
+                    if (post.getPostType() == Post.PostType.POLL) {
+                        pollOpts = pollOptionRepository.findByPostId(post.getId()).stream()
+                                .map(o -> PollOptionResponse.builder()
+                                        .id(o.getId())
+                                        .optionText(o.getOptionText())
+                                        .votesCount(o.getVotesCount())
+                                        .build())
+                                .collect(Collectors.toList());
+                    }
+
+                    EventDetailResponse evDetails = null;
+                    if (post.getPostType() == Post.PostType.EVENT) {
+                        EventDetail ed = eventDetailRepository.findById(post.getId()).orElse(null);
+                        if (ed != null) {
+                            evDetails = EventDetailResponse.builder()
+                                    .eventDate(ed.getEventDate())
+                                    .location(ed.getLocation())
+                                    .rsvpsCount(ed.getRsvpsCount())
+                                    .build();
+                        }
+                    }
+
+                    return PostResponse.builder()
+                            .id(post.getId())
+                            .communityId(post.getCommunityId())
+                            .authorId(post.getAuthor().getId())
+                            .authorName(name)
+                            .authorAvatar(avatar)
+                            .authorVerification(verState)
+                            .title(post.getTitle())
+                            .content(post.getContent())
+                            .postType(post.getPostType().toString())
+                            .likesCount(likes)
+                            .commentsCount(comments)
+                            .likedByMe(liked)
+                            .createdAt(post.getCreatedAt())
+                            .pollOptions(pollOpts)
+                            .eventDetails(evDetails)
+                            .build();
+                }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(responses);
     }
 
     @GetMapping("/{id}/posts")
@@ -211,9 +409,21 @@ public class CommunityController {
 
         // If it's an EVENT, create details
         if (type == Post.PostType.EVENT && request.getEventDate() != null) {
+            String dateStr = request.getEventDate();
+            OffsetDateTime odt;
+            try {
+                odt = OffsetDateTime.parse(dateStr);
+            } catch (Exception e) {
+                try {
+                    java.time.LocalDateTime ldt = java.time.LocalDateTime.parse(dateStr);
+                    odt = ldt.atOffset(java.time.ZoneOffset.UTC);
+                } catch (Exception ex) {
+                    odt = OffsetDateTime.now();
+                }
+            }
             EventDetail ed = EventDetail.builder()
                     .postId(post.getId())
-                    .eventDate(OffsetDateTime.parse(request.getEventDate()))
+                    .eventDate(odt)
                     .location(request.getLocation() != null ? request.getLocation() : "Kathmandu")
                     .build();
             eventDetailRepository.save(ed);
@@ -250,7 +460,7 @@ public class CommunityController {
     }
 
     @PostMapping("/posts/{id}/comments")
-    public ResponseEntity<Comment> addComment(
+    public ResponseEntity<CommentResponse> addComment(
             @AuthenticationPrincipal UserPrincipal principal,
             @PathVariable("id") UUID postId,
             @RequestBody Map<String, String> body) {
@@ -265,13 +475,42 @@ public class CommunityController {
                 .build();
 
         commentRepository.save(comment);
-        return ResponseEntity.ok(comment);
+
+        StudentProfile profile = studentProfileRepository.findById(author.getId()).orElse(null);
+        String name = profile != null ? profile.getFullName() : "Anonymous User";
+        String avatar = profile != null ? profile.getAvatarUrl() : "";
+
+        CommentResponse response = CommentResponse.builder()
+                .id(comment.getId())
+                .postId(comment.getPostId())
+                .authorId(author.getId())
+                .authorName(name)
+                .authorAvatar(avatar)
+                .content(comment.getContent())
+                .createdAt(comment.getCreatedAt())
+                .build();
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/posts/{id}/comments")
-    public ResponseEntity<List<Comment>> getComments(@PathVariable("id") UUID postId) {
+    public ResponseEntity<List<CommentResponse>> getComments(@PathVariable("id") UUID postId) {
         List<Comment> list = commentRepository.findByPostIdOrderByCreatedAtAsc(postId);
-        return ResponseEntity.ok(list);
+        List<CommentResponse> responses = list.stream().map(comment -> {
+            StudentProfile profile = studentProfileRepository.findById(comment.getAuthor().getId()).orElse(null);
+            String name = profile != null ? profile.getFullName() : "Anonymous User";
+            String avatar = profile != null ? profile.getAvatarUrl() : "";
+            return CommentResponse.builder()
+                    .id(comment.getId())
+                    .postId(comment.getPostId())
+                    .authorId(comment.getAuthor().getId())
+                    .authorName(name)
+                    .authorAvatar(avatar)
+                    .content(comment.getContent())
+                    .createdAt(comment.getCreatedAt())
+                    .build();
+        }).collect(Collectors.toList());
+        return ResponseEntity.ok(responses);
     }
 
     @PostMapping("/posts/polls/options/{optionId}/vote")

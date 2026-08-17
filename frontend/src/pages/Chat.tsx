@@ -105,7 +105,66 @@ const Chat: React.FC = () => {
       }
 
       const res = await api.get('/chats/conversations');
-      let list = res.data || [];
+      let list: Conversation[] = res.data || [];
+      
+      // Frontend defensive deduplication to merge any duplicate UI sections
+      const uniqueMap = new Map<string, Conversation>();
+      
+      const generalConvs: Conversation[] = [];
+      const listingConvs: Conversation[] = [];
+      
+      list.forEach((conv) => {
+        if (conv.listing && conv.listing.id) {
+          listingConvs.push(conv);
+        } else {
+          generalConvs.push(conv);
+        }
+      });
+      
+      listingConvs.forEach((conv) => {
+        const key = conv.peerProfile.id + "_" + conv.listing!.id;
+        if (!uniqueMap.has(key)) {
+          uniqueMap.set(key, conv);
+        } else {
+          const existing = uniqueMap.get(key)!;
+          existing.unreadCount += conv.unreadCount;
+          const existingTime = new Date(existing.lastMessageTime || 0).getTime();
+          const newTime = new Date(conv.lastMessageTime || 0).getTime();
+          if (newTime > existingTime) {
+            existing.lastMessage = conv.lastMessage;
+            existing.lastMessageTime = conv.lastMessageTime;
+          }
+        }
+      });
+      
+      generalConvs.forEach((conv) => {
+        const peerListings = Array.from(uniqueMap.values()).filter(c => c.peerProfile.id === conv.peerProfile.id);
+        if (peerListings.length > 0) {
+          const target = peerListings[0];
+          target.unreadCount += conv.unreadCount;
+          const targetTime = new Date(target.lastMessageTime || 0).getTime();
+          const convTime = new Date(conv.lastMessageTime || 0).getTime();
+          if (convTime > targetTime) {
+            target.lastMessage = conv.lastMessage;
+            target.lastMessageTime = conv.lastMessageTime;
+          }
+        } else {
+          const key = conv.peerProfile.id + "_null";
+          if (!uniqueMap.has(key)) {
+            uniqueMap.set(key, conv);
+          } else {
+            const existing = uniqueMap.get(key)!;
+            existing.unreadCount += conv.unreadCount;
+            const existingTime = new Date(existing.lastMessageTime || 0).getTime();
+            const newTime = new Date(conv.lastMessageTime || 0).getTime();
+            if (newTime > existingTime) {
+              existing.lastMessage = conv.lastMessage;
+              existing.lastMessageTime = conv.lastMessageTime;
+            }
+          }
+        }
+      });
+      list = Array.from(uniqueMap.values());
       
       setConversations(list);
       

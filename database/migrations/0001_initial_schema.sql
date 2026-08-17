@@ -264,6 +264,7 @@ CREATE TABLE public.communities (
     name VARCHAR(100) NOT NULL UNIQUE,
     description TEXT,
     category VARCHAR(50) NOT NULL,
+    creator_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()) NOT NULL
 );
@@ -271,6 +272,15 @@ CREATE TABLE public.communities (
 CREATE TRIGGER trigger_update_communities_updated_at
     BEFORE UPDATE ON public.communities
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ---------------------------------------------------------
+-- 18.5 Table: community_members
+-- ---------------------------------------------------------
+CREATE TABLE public.community_members (
+    community_id UUID NOT NULL REFERENCES public.communities(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    PRIMARY KEY (community_id, user_id)
+);
 
 -- ---------------------------------------------------------
 -- 19. Table: posts

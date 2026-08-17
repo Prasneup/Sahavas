@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Award, Flame, Star, FileText, CheckCircle2, GraduationCap, Home, Users, Wifi, Bus, ArrowRight, Shield } from 'lucide-react';
+import Footer from '../components/Footer';
 
 interface RelocationProgress {
   admissionCompleted: boolean;
@@ -157,7 +158,7 @@ const RelocationDashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start pb-24 select-none" style={{ backgroundColor: 'var(--clay)', color: 'var(--ink)', fontFamily: 'var(--font-body)' }}>
+    <div className="min-h-screen flex flex-col items-center justify-start pb-0 select-none" style={{ backgroundColor: 'var(--clay)', color: 'var(--ink)', fontFamily: 'var(--font-body)' }}>
       
       {/* Top Header stats bar */}
       <div className="w-full max-w-md px-6 pt-6 flex justify-between items-center z-25">
@@ -360,6 +361,7 @@ const RelocationDashboard: React.FC = () => {
         </div>
       )}
 
+      <Footer />
     </div>
   );
 };

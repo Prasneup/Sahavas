@@ -44,7 +44,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     
                     // Resolve user details using id matching
                     var userOpt = userRepository.findById(userId);
-                    if (userOpt.isPresent()) {
+                    if (userOpt.isPresent() && !"suspended".equalsIgnoreCase(userOpt.get().getStatus())) {
                         UserDetails userDetails = customUserDetailsService.loadUserByUsername(userOpt.get().getPhoneNumber());
                         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                                 userDetails, null, userDetails.getAuthorities());

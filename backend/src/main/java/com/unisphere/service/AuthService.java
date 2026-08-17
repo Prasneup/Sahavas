@@ -142,6 +142,10 @@ public class AuthService {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new IllegalArgumentException("User not found"));
             
+            if ("suspended".equalsIgnoreCase(user.getStatus())) {
+                throw new IllegalArgumentException("Your account has been suspended.");
+            }
+            
             UserPrincipal principal = new UserPrincipal(user);
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     principal, null, principal.getAuthorities());

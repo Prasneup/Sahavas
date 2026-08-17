@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Search, CheckCircle, Star, MapPin, Heart, ArrowLeft } from 'lucide-react';
 import { NivaroLogo } from '../components/NivaroLogo';
 import { Listing } from '../services/listingsData';
+import Footer from '../components/Footer';
 
 const RoomSearch: React.FC = () => {
   const [listings, setListings] = useState<Listing[]>([]);
@@ -212,6 +213,7 @@ const RoomSearch: React.FC = () => {
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 };

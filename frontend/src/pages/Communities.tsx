@@ -4,12 +4,16 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, MessageSquare, Heart, Share2, Calendar, MapPin, BarChart2, Plus, Flag, AlertTriangle } from 'lucide-react';
 import { NivaroLogo } from '../components/NivaroLogo';
+import Footer from '../components/Footer';
 
 interface Community {
   id: string;
   name: string;
   description: string;
-  type: 'COLLEGE' | 'DISTRICT' | 'COURSE';
+  type: 'COLLEGE' | 'COURSE' | 'LOCATION' | 'HOUSING' | 'INTEREST' | 'DISTRICT';
+  creator?: {
+    id: string;
+  };
 }
 
 interface PollOption {
@@ -51,10 +55,17 @@ interface Comment {
 }
 
 const Communities: React.FC = () => {
-  const [communities, setCommunities] = useState<Community[]>([]);
+  const [myCommunities, setMyCommunities] = useState<Community[]>([]);
+  const [discoverCommunities, setDiscoverCommunities] = useState<Community[]>([]);
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Community Creator States
+  const [showCreateCommunityModal, setShowCreateCommunityModal] = useState(false);
+  const [newCommunityName, setNewCommunityName] = useState('');
+  const [newCommunityDesc, setNewCommunityDesc] = useState('');
+  const [newCommunityType, setNewCommunityType] = useState<'COLLEGE' | 'COURSE' | 'LOCATION' | 'HOUSING' | 'INTEREST'>('COLLEGE');
 
   // Post Creator States
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -85,19 +96,31 @@ const Communities: React.FC = () => {
   useEffect(() => {
     if (selectedCommunity) {
       loadPosts(selectedCommunity.id);
+    } else {
+      setPosts([]);
     }
   }, [selectedCommunity]);
 
   const loadInitialData = async () => {
     try {
-      const res = await api.get('/communities');
-      setCommunities(res.data);
-      if (res.data && res.data.length > 0) {
-        setSelectedCommunity(res.data[0]);
+      setLoading(true);
+      const [myRes, discRes] = await Promise.all([
+        api.get('/communities/my'),
+        api.get('/communities/discover')
+      ]);
+      setMyCommunities(myRes.data);
+      setDiscoverCommunities(discRes.data);
+      if (myRes.data && myRes.data.length > 0) {
+        setSelectedCommunity(myRes.data[0]);
+      } else if (discRes.data && discRes.data.length > 0) {
+        setSelectedCommunity(discRes.data[0]);
+      } else {
+        setSelectedCommunity(null);
       }
     } catch (err) {
       console.error("Failed to load communities", err);
-      setCommunities([]);
+      setMyCommunities([]);
+      setDiscoverCommunities([]);
     } finally {
       setLoading(false);
     }
@@ -228,6 +251,59 @@ const Communities: React.FC = () => {
     }
   };
 
+  const handleJoinCommunity = async (communityId: string) => {
+    try {
+      await api.post(`/communities/${communityId}/join`);
+      const joinedObj = discoverCommunities.find(c => c.id === communityId) || myCommunities.find(c => c.id === communityId);
+      if (joinedObj) {
+        setMyCommunities(prev => prev.some(c => c.id === communityId) ? prev : [...prev, joinedObj]);
+        setDiscoverCommunities(prev => prev.filter(c => c.id !== communityId));
+        setSelectedCommunity(joinedObj);
+      }
+    } catch (err) {
+      console.error("Failed to join community", err);
+    }
+  };
+
+  const handleLeaveCommunity = async (communityId: string) => {
+    try {
+      await api.post(`/communities/${communityId}/leave`);
+      const leftObj = myCommunities.find(c => c.id === communityId);
+      if (leftObj) {
+        setDiscoverCommunities(prev => prev.some(c => c.id === communityId) ? prev : [...prev, leftObj]);
+        setMyCommunities(prev => prev.filter(c => c.id !== communityId));
+        if (selectedCommunity?.id === communityId) {
+          const remaining = myCommunities.filter(c => c.id !== communityId);
+          setSelectedCommunity(remaining.length > 0 ? remaining[0] : null);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to leave community", err);
+    }
+  };
+
+  const handleCreateCommunity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCommunityName.trim()) return;
+
+    try {
+      const res = await api.post('/communities', {
+        name: newCommunityName,
+        description: newCommunityDesc,
+        type: newCommunityType
+      });
+      const newComm = res.data;
+      setMyCommunities(prev => [...prev, newComm]);
+      setSelectedCommunity(newComm);
+      setShowCreateCommunityModal(false);
+      setNewCommunityName('');
+      setNewCommunityDesc('');
+    } catch (err) {
+      console.error("Failed to create community", err);
+      alert("Failed to create community. Make sure the name is unique.");
+    }
+  };
+
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCommunity || !postTitle.trim() || !postContent.trim()) return;
@@ -241,34 +317,16 @@ const Communities: React.FC = () => {
       location: postType === 'EVENT' ? eventLocation : null
     };
 
-    const newPostLocal: Post = {
-      id: Math.random().toString(),
-      communityId: selectedCommunity.id,
-      authorId: user?.id || "my-id",
-      authorName: user?.fullName || "Prasanna Neupane",
-      authorAvatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150",
-      authorVerification: "VERIFIED",
-      title: postTitle,
-      content: postContent,
-      postType,
-      likesCount: 0,
-      commentsCount: 0,
-      likedByMe: false,
-      createdAt: new Date().toISOString(),
-      pollOptions: postType === 'POLL' ? pollOptions.map((text, idx) => ({ id: `o-${idx}`, optionText: text, votesCount: 0 })) : undefined,
-      eventDetails: postType === 'EVENT' ? { eventDate, location: eventLocation, rsvpsCount: 0 } : undefined
-    };
-
-    setPosts(prev => [newPostLocal, ...prev]);
-    setShowCreateModal(false);
-    setPostTitle('');
-    setPostContent('');
-    setPollOptions(['', '']);
-
     try {
       await api.post(`/communities/${selectedCommunity.id}/posts`, payload);
+      await loadPosts(selectedCommunity.id);
+      setShowCreateModal(false);
+      setPostTitle('');
+      setPostContent('');
+      setPollOptions(['', '']);
     } catch (err) {
-      console.warn("API post creation failed");
+      console.error("Failed to create post", err);
+      alert("Failed to publish post.");
     }
   };
 
@@ -292,7 +350,7 @@ const Communities: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col pb-24" style={{ backgroundColor: 'var(--clay)', color: 'var(--ink)', fontFamily: 'var(--font-body)' }}>
+    <div className="min-h-screen flex flex-col pb-0" style={{ backgroundColor: 'var(--clay)', color: 'var(--ink)', fontFamily: 'var(--font-body)' }}>
 
       {/* Top Header bar */}
       <header className="border-b bg-paper px-6 py-4 flex justify-between items-center sticky top-0 z-20 shadow-sm" style={{ borderColor: 'var(--line)' }}>
@@ -314,13 +372,23 @@ const Communities: React.FC = () => {
           </div>
         </div>
 
-        <button
-          onClick={() => setShowCreateModal(true)}
-          style={{ backgroundColor: 'var(--marigold)', color: 'var(--paper)' }}
-          className="hover:bg-marigold-dark font-bold px-4 py-2.5 rounded-xl shadow-sm text-xs flex items-center gap-1.5 transition"
-        >
-          <Plus size={14} className="stroke-[2.5]" /> Create Post
-        </button>
+        {selectedCommunity && !myCommunities.some(c => c.id === selectedCommunity.id) ? (
+          <button
+            onClick={() => handleJoinCommunity(selectedCommunity.id)}
+            style={{ backgroundColor: 'var(--marigold)', color: 'var(--paper)' }}
+            className="hover:bg-marigold-dark font-bold px-4 py-2.5 rounded-xl shadow-sm text-xs flex items-center gap-1.5 transition"
+          >
+            Join Community
+          </button>
+        ) : selectedCommunity ? (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            style={{ backgroundColor: 'var(--marigold)', color: 'var(--paper)' }}
+            className="hover:bg-marigold-dark font-bold px-4 py-2.5 rounded-xl shadow-sm text-xs flex items-center gap-1.5 transition"
+          >
+            <Plus size={14} className="stroke-[2.5]" /> Create Post
+          </button>
+        ) : null}
       </header>
 
       {/* Main split triple column grid */}
@@ -330,57 +398,72 @@ const Communities: React.FC = () => {
         <aside className="w-full lg:w-64 flex-shrink-0 space-y-4">
 
           <div className="dashboard-card p-5">
-            <h3 className="text-xs uppercase tracking-wider mb-4" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--ink-soft)' }}>Communities</h3>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xs uppercase tracking-wider font-bold" style={{ fontFamily: 'var(--font-display)', color: 'var(--ink-soft)' }}>Communities</h3>
+              <button 
+                onClick={() => setShowCreateCommunityModal(true)}
+                className="text-[10px] font-black text-marigold uppercase tracking-wider hover:underline flex items-center gap-0.5"
+              >
+                <Plus size={10} /> Create
+              </button>
+            </div>
 
             <div className="space-y-6">
-              {/* College Groups */}
+              {/* My Communities */}
               <div>
-                <span className="text-[10px] uppercase tracking-wider block mb-2 font-bold" style={{ color: 'var(--marigold)' }}>College Hubs</span>
+                <span className="text-[10px] uppercase tracking-wider block mb-2 font-bold" style={{ color: 'var(--marigold)' }}>My Communities</span>
                 <div className="space-y-1.5">
-                  {communities.filter(c => c.type === 'COLLEGE').map(c => (
-                    <button
-                      key={c.id}
-                      onClick={() => setSelectedCommunity(c)}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition truncate ${selectedCommunity?.id === c.id ? 'bg-[#FAF3E8] text-[#D9A25A] border border-[#D9A25A]/15' : 'text-[#8E8674] hover:bg-clay/10'
-                        }`}
-                    >
-                      🏫 {c.name}
-                    </button>
-                  ))}
+                  {myCommunities.length > 0 ? (
+                    myCommunities.map(c => (
+                      <div key={c.id} className="flex items-center justify-between gap-1 group">
+                        <button
+                          onClick={() => setSelectedCommunity(c)}
+                          className={`flex-1 text-left px-3 py-2 rounded-xl text-xs font-bold transition truncate ${selectedCommunity?.id === c.id ? 'bg-[#FAF3E8] text-[#D9A25A] border border-[#D9A25A]/15' : 'text-[#8E8674] hover:bg-clay/10'
+                            }`}
+                        >
+                          👥 {c.name}
+                        </button>
+                        <button 
+                          onClick={() => handleLeaveCommunity(c.id)}
+                          className="opacity-0 group-hover:opacity-100 text-[10px] font-black text-red-500 hover:text-red-600 transition px-1"
+                          title="Leave Community"
+                        >
+                          Leave
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <span className="text-[10px] text-[#A39E93] italic px-3 block">No joined hubs</span>
+                  )}
                 </div>
               </div>
 
-              {/* District Unions */}
+              {/* Discover Communities */}
               <div>
-                <span className="text-[10px] uppercase tracking-wider block mb-2 font-bold" style={{ color: 'var(--marigold)' }}>Home District Unions</span>
+                <span className="text-[10px] uppercase tracking-wider block mb-2 font-bold" style={{ color: 'var(--marigold)' }}>Discover Communities</span>
                 <div className="space-y-1.5">
-                  {communities.filter(c => c.type === 'DISTRICT').map(c => (
-                    <button
-                      key={c.id}
-                      onClick={() => setSelectedCommunity(c)}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition truncate ${selectedCommunity?.id === c.id ? 'bg-[#FAF3E8] text-[#D9A25A] border border-[#D9A25A]/15' : 'text-[#8E8674] hover:bg-clay/10'
-                        }`}
-                    >
-                      🏔️ {c.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Course Sections */}
-              <div>
-                <span className="text-[10px] uppercase tracking-wider block mb-2 font-bold" style={{ color: 'var(--marigold)' }}>Course Sections</span>
-                <div className="space-y-1.5">
-                  {communities.filter(c => c.type === 'COURSE').map(c => (
-                    <button
-                      key={c.id}
-                      onClick={() => setSelectedCommunity(c)}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition truncate ${selectedCommunity?.id === c.id ? 'bg-[#FAF3E8] text-[#D9A25A] border border-[#D9A25A]/15' : 'text-[#8E8674] hover:bg-clay/10'
-                        }`}
-                    >
-                      📖 {c.name}
-                    </button>
-                  ))}
+                  {discoverCommunities.length > 0 ? (
+                    discoverCommunities.map(c => (
+                      <div key={c.id} className="flex items-center justify-between gap-1">
+                        <button
+                          onClick={() => setSelectedCommunity(c)}
+                          className={`flex-1 text-left px-3 py-2 rounded-xl text-xs font-bold transition truncate ${selectedCommunity?.id === c.id ? 'bg-[#FAF3E8] text-[#D9A25A] border border-[#D9A25A]/15' : 'text-[#8E8674] hover:bg-clay/10'
+                            }`}
+                        >
+                          🌐 {c.name}
+                        </button>
+                        <button 
+                          onClick={() => handleJoinCommunity(c.id)}
+                          style={{ backgroundColor: 'var(--marigold)', color: 'var(--paper)' }}
+                          className="px-2 py-1 rounded-lg text-[9px] font-bold shadow-sm transition hover:opacity-90"
+                        >
+                          Join
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <span className="text-[10px] text-[#A39E93] italic px-3 block">No new hubs to discover</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -410,11 +493,16 @@ const Communities: React.FC = () => {
                       <img src={post.authorAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150'} alt="Author" className="w-full h-full object-cover" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-ink flex items-center gap-1.5">
+                      <h4 className="text-xs font-bold text-ink flex items-center gap-1.5 flex-wrap">
                         {post.authorName}
                         {post.authorVerification === 'VERIFIED' && (
-                          <span className="w-3.5 h-3.5 rounded-full bg-pine-light border border-pine/10 flex items-center justify-center text-pine text-[8px] font-black">
+                          <span className="w-3.5 h-3.5 rounded-full bg-pine-light border border-pine/10 flex items-center justify-center text-pine text-[8px] font-black" title="Verified Student">
                             ✓
+                          </span>
+                        )}
+                        {selectedCommunity && selectedCommunity.creator?.id === post.authorId && (
+                          <span className="bg-[#FAF3E8] border border-[#D9A25A]/15 text-[#D9A25A] text-[9px] px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider">
+                            Mod
                           </span>
                         )}
                       </h4>
@@ -796,6 +884,73 @@ const Communities: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Floating Create Community Modal Dialog */}
+      {showCreateCommunityModal && (
+        <div className="fixed inset-0 bg-[#1E1E1E]/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+          <div className="bg-white border border-[#EAE5D9] rounded-[32px] w-full max-w-md p-6 shadow-2xl animate-scale-in">
+            <h3 className="text-xl font-black text-[#1E1E1E] mb-4 font-display">Create a Student Hub</h3>
+
+            <form onSubmit={handleCreateCommunity} className="space-y-4">
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-[#1E1E1E]">Hub Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Kathmandu CSE 2026, Lalitpur Housing Help"
+                  value={newCommunityName}
+                  onChange={(e) => setNewCommunityName(e.target.value)}
+                  className="w-full bg-[#FAF8F5] border border-[#EAE5D9] text-[#1E1E1E] rounded-xl px-4 py-2.5 text-xs font-semibold focus:outline-none focus:border-[#D9A25A]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-[#1E1E1E]">Description</label>
+                <textarea
+                  rows={3}
+                  placeholder="What is this hub for? Rules, goals, context..."
+                  value={newCommunityDesc}
+                  onChange={(e) => setNewCommunityDesc(e.target.value)}
+                  className="w-full bg-[#FAF8F5] border border-[#EAE5D9] text-[#1E1E1E] rounded-xl px-4 py-2.5 text-xs font-semibold focus:outline-none focus:border-[#D9A25A] resize-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-[#1E1E1E]">Category Type</label>
+                <select
+                  value={newCommunityType}
+                  onChange={(e) => setNewCommunityType(e.target.value as any)}
+                  className="w-full bg-[#FAF8F5] border border-[#EAE5D9] text-[#1E1E1E] rounded-xl px-4 py-2.5 text-xs font-semibold focus:outline-none focus:border-[#D9A25A]"
+                >
+                  <option value="COLLEGE">🏫 College</option>
+                  <option value="COURSE">📖 Course</option>
+                  <option value="LOCATION">🏔️ Location</option>
+                  <option value="HOUSING">🏠 Housing</option>
+                  <option value="INTEREST">🌟 Interest</option>
+                </select>
+              </div>
+
+              <div className="flex gap-3 justify-end pt-3">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateCommunityModal(false)}
+                  className="bg-transparent hover:bg-slate-100 text-[#8E8674] font-bold px-4 py-2.5 rounded-xl text-xs transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-[#D9A25A] hover:bg-[#C9924A] text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-md transition"
+                >
+                  Create Hub
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <Footer />
 
     </div>
   );

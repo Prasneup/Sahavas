@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -27,6 +28,70 @@ public class ListingController {
     private final ListingService listingService;
     private final SavedRoomRepository savedRoomRepository;
     private final ListingRepository listingRepository;
+
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Object>> getStats() {
+        List<Listing> all = listingRepository.findAll();
+        
+        long totalListings = all.size();
+        
+        double avgRent = all.stream()
+                .mapToDouble(l -> l.getRentAmount().doubleValue())
+                .average()
+                .orElse(0.0);
+                
+        long activeThisWeek = all.stream()
+                .filter(l -> l.getCreatedAt() != null && l.getCreatedAt().isAfter(java.time.ZonedDateTime.now().minusDays(7)))
+                .count();
+                
+        long rentedThisMonth = all.stream()
+                .filter(l -> l.getIsAvailable() != null && !l.getIsAvailable())
+                .count();
+                
+        long totalShortlists = savedRoomRepository.count();
+        
+        // Find popular neighborhood
+        Map<String, Long> neighborhoodCounts = new HashMap<>();
+        for (Listing l : all) {
+            String text = l.getDistanceFromCollegeText();
+            if (text != null && !text.trim().isEmpty()) {
+                String clean = text.toLowerCase();
+                String neighborhood = null;
+                if (clean.contains("balkumari")) neighborhood = "Balkumari, Lalitpur";
+                else if (clean.contains("pulchowk")) neighborhood = "Pulchowk, Lalitpur";
+                else if (clean.contains("kalimati")) neighborhood = "Kalimati, Kathmandu";
+                else if (clean.contains("patan")) neighborhood = "Patan, Lalitpur";
+                else if (clean.contains("dhobighat")) neighborhood = "Dhobighat, Lalitpur";
+                else if (clean.contains("kirtipur")) neighborhood = "Kirtipur, Kathmandu";
+                else if (clean.contains("gwarko")) neighborhood = "Gwarko, Lalitpur";
+                else if (clean.contains("baneshwor")) neighborhood = "Baneshwor, Kathmandu";
+                else if (clean.contains("chabahil")) neighborhood = "Chabahil, Kathmandu";
+                else if (clean.contains("koteshwor")) neighborhood = "Koteshwor, Kathmandu";
+                else if (clean.contains("lagankhel")) neighborhood = "Lagankhel, Lalitpur";
+                else if (clean.contains("kupandole")) neighborhood = "Kupandole, Lalitpur";
+                else if (clean.contains("imadol")) neighborhood = "Imadol, Lalitpur";
+                
+                if (neighborhood != null) {
+                    neighborhoodCounts.put(neighborhood, neighborhoodCounts.getOrDefault(neighborhood, 0L) + 1);
+                }
+            }
+        }
+        
+        String popularNeighborhood = neighborhoodCounts.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse("No data available");
+        
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("averageRent", Math.round(avgRent));
+        stats.put("totalListings", totalListings);
+        stats.put("activeThisWeek", activeThisWeek);
+        stats.put("rentedThisMonth", rentedThisMonth);
+        stats.put("totalShortlists", totalShortlists);
+        stats.put("popularNeighborhood", popularNeighborhood);
+        
+        return ResponseEntity.ok(stats);
+    }
 
     @PostMapping
     public ResponseEntity<Listing> createListing(

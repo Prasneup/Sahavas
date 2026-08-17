@@ -25,6 +25,10 @@ public class GlobalExceptionHandler {
     public ResponseEntity<?> handleAuthenticationException(org.springframework.security.core.AuthenticationException ex) {
         System.err.println("AuthenticationException: " + ex.getMessage());
         Map<String, String> response = new HashMap<>();
+        if (ex instanceof org.springframework.security.authentication.DisabledException) {
+            response.put("message", "Your account has been suspended.");
+            return ResponseEntity.status(403).body(response);
+        }
         response.put("message", "Invalid email or password.");
         return ResponseEntity.status(401).body(response);
     }

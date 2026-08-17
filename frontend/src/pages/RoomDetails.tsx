@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MessageSquare, Heart, Navigation, ShieldCheck, Star } from 'lucide-react';
 import { Listing } from '../services/listingsData';
 import api from '../services/api';
+import Footer from '../components/Footer';
 
 const RoomDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -316,6 +317,7 @@ const RoomDetails: React.FC = () => {
         </div>
 
       </main>
+      <Footer />
     </div>
   );
 };

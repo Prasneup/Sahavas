@@ -1,8 +1,12 @@
 package com.unisphere.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.OffsetDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -23,8 +27,23 @@ public class Community {
     private String description;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "community_type", length = 20, nullable = false)
+    @Column(name = "category", length = 50, nullable = false)
     private CommunityType type;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "creator_id")
+    @JsonIgnoreProperties({"phoneNumber", "email", "passwordHash", "role", "status", "createdAt", "updatedAt"})
+    private User creator;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "community_members",
+        joinColumns = @JoinColumn(name = "community_id"),
+        inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    @Builder.Default
+    @JsonIgnore
+    private Set<User> members = new HashSet<>();
 
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
@@ -36,7 +55,10 @@ public class Community {
 
     public enum CommunityType {
         COLLEGE,
-        DISTRICT,
-        COURSE
+        COURSE,
+        LOCATION,
+        HOUSING,
+        INTEREST,
+        DISTRICT
     }
 }

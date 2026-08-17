@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { User, Home as HomeIcon, Users, Flame, MapPin, Compass, Bookmark, Award, Sparkles, Activity, MessageCircle, CheckCircle, AlertTriangle } from 'lucide-react';
 import api from '../services/api';
 import { NivaroLogo } from '../components/NivaroLogo';
+import Footer from '../components/Footer';
 
 interface RoommateMatch {
   id: string;
@@ -27,6 +28,15 @@ const Dashboard: React.FC = () => {
   const [recommendedRoommates, setRecommendedRoommates] = useState<RoommateMatch[]>([]);
   const [streakDays, setStreakDays] = useState(1);
   const [totalXp, setTotalXp] = useState(0);
+  const [stats, setStats] = useState<any>({
+    averageRent: 0,
+    totalListings: 0,
+    activeThisWeek: 0,
+    rentedThisMonth: 0,
+    totalShortlists: 0,
+    popularNeighborhood: 'No data available'
+  });
+  const [recentPosts, setRecentPosts] = useState<any[]>([]);
 
   // Relocation Journey Checklist
   const [checklist, setChecklist] = useState([
@@ -146,11 +156,74 @@ const Dashboard: React.FC = () => {
         }
       })
       .catch(() => {});
+
+    // 5. Fetch dashboard statistics
+    api.get('/listings/stats')
+      .then(res => {
+        if (res.data) {
+          setStats(res.data);
+        }
+      })
+      .catch(() => {});
+
+    // 6. Fetch recent posts
+    api.get('/communities/posts/recent')
+      .then(res => {
+        if (res.data) {
+          setRecentPosts(res.data);
+        }
+      })
+      .catch(() => {});
   }, []);
 
+  // Dynamic Activity Timeline
+  const activityTimeline: { id: string; type: string; title: string; desc: string; color: string }[] = [];
+
+  if (vettingStatus === 'VERIFIED') {
+    activityTimeline.push({
+      id: 'verify-success',
+      type: 'VERIFICATION',
+      title: 'Profile Verified',
+      desc: 'Your student registration has been verified by the campus administration.',
+      color: 'bg-pine'
+    });
+  }
+
+  savedRooms.forEach((room: any) => {
+    activityTimeline.push({
+      id: `save-${room.id}`,
+      type: 'SHORTLIST',
+      title: 'Saved New Shortlist',
+      desc: `You added "${room.title}" to your shortlists.`,
+      color: 'bg-marigold'
+    });
+  });
+
+  recommendedRoommates.slice(0, 2).forEach((match: any) => {
+    activityTimeline.push({
+      id: `match-${match.id}`,
+      type: 'MATCH',
+      title: 'New Compatible Roommate',
+      desc: `${match.name} from ${match.college} is a ${match.matchScore}% compatibility match.`,
+      color: 'bg-marigold'
+    });
+  });
+
+  checklist.forEach((item: any) => {
+    if (item.done) {
+      activityTimeline.push({
+        id: `chk-${item.key}`,
+        type: 'CHECKLIST',
+        title: 'Completed Task',
+        desc: `You completed the move-in step: "${item.text}".`,
+        color: 'bg-pine'
+      });
+    }
+  });
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start pb-32" style={{ backgroundColor: 'var(--clay)', color: 'var(--ink)', fontFamily: 'var(--font-body)' }}>
-      <div className="w-full max-w-md md:max-w-6xl px-6 pt-6 flex flex-col items-stretch space-y-8">
+    <div className="min-h-screen flex flex-col items-center justify-start pb-0" style={{ backgroundColor: 'var(--clay)', color: 'var(--ink)', fontFamily: 'var(--font-body)' }}>
+      <div className="w-full max-w-md md:max-w-6xl px-6 pt-6 flex flex-col items-stretch space-y-8 mb-12">
         
         {/* Header Bar */}
         <header className="flex justify-between items-center">
@@ -509,21 +582,28 @@ const Dashboard: React.FC = () => {
               <div className="dashboard-card p-5 bg-paper space-y-4">
                 <div className="space-y-1">
                   <span className="text-[9px] text-ink-soft font-bold uppercase tracking-wider block">Average Student Rent</span>
-                  <div className="text-lg font-black font-mono">NPR 6,800 <span className="text-[10px] text-ink-soft font-sans font-medium">/ month</span></div>
+                  <div className="text-lg font-black font-mono">
+                    {stats.totalListings > 0 ? `NPR ${stats.averageRent.toLocaleString()}` : 'No data available'}
+                    {stats.totalListings > 0 && <span className="text-[10px] text-ink-soft font-sans font-medium"> / month</span>}
+                  </div>
                 </div>
 
                 <div className="border-t border-ink/5 pt-3.5 space-y-2 text-xs font-semibold text-ink-soft">
                   <div className="flex justify-between">
                     <span>Popular Neighborhood:</span>
-                    <span className="font-bold text-ink">Balkumari, Lalitpur</span>
+                    <span className="font-bold text-ink">{stats.popularNeighborhood}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Active Listings This Week:</span>
-                    <span className="font-bold text-pine">+14 Rooms Added</span>
+                    <span className="font-bold text-pine">
+                      {stats.totalListings > 0 ? `+${stats.activeThisWeek} Rooms Added` : 'No data available'}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span>Rented Houses This Month:</span>
-                    <span className="font-bold text-ink">28 shortlists matched</span>
+                    <span className="font-bold text-ink">
+                      {stats.totalShortlists > 0 ? `${stats.totalShortlists} shortlists matched` : 'No data available'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -536,27 +616,21 @@ const Dashboard: React.FC = () => {
               </h3>
 
               <div className="dashboard-card p-5 bg-paper space-y-4 font-sans text-xs">
-                <div className="flex gap-3">
-                  <span className="w-2 h-2 rounded-full bg-pine mt-1.5 shrink-0"></span>
-                  <div>
-                    <span className="font-bold text-ink block">Profile Verified</span>
-                    <span className="text-[10px] text-ink-soft">Your student registration has been verified by IOE Pulchowk Office.</span>
+                {activityTimeline.length === 0 ? (
+                  <div className="text-center py-4 text-[11px] text-ink-soft italic">
+                    No activity yet
                   </div>
-                </div>
-                <div className="flex gap-3 border-t border-ink/5 pt-3">
-                  <span className="w-2 h-2 rounded-full bg-marigold mt-1.5 shrink-0"></span>
-                  <div>
-                    <span className="font-bold text-ink block">Saved New Shortlist</span>
-                    <span className="text-[10px] text-ink-soft">You added "Premium Room near IOE Pulchowk gate" to your shortlists.</span>
-                  </div>
-                </div>
-                <div className="flex gap-3 border-t border-ink/5 pt-3">
-                  <span className="w-2 h-2 rounded-full bg-marigold mt-1.5 shrink-0"></span>
-                  <div>
-                    <span className="font-bold text-ink block">New Compatible Roommates</span>
-                    <span className="text-[10px] text-ink-soft">Kshitiz Shrestha joined NCIT communities with 86% match score.</span>
-                  </div>
-                </div>
+                ) : (
+                  activityTimeline.map(act => (
+                    <div key={act.id} className="flex gap-3 [&:not(:first-child)]:border-t [&:not(:first-child)]:border-ink/5 [&:not(:first-child)]:pt-3">
+                      <span className={`w-2 h-2 rounded-full ${act.color} mt-1.5 shrink-0`}></span>
+                      <div>
+                        <span className="font-bold text-ink block">{act.title}</span>
+                        <span className="text-[10px] text-ink-soft">{act.desc}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </section>
 
@@ -567,18 +641,23 @@ const Dashboard: React.FC = () => {
               </h3>
 
               <div className="dashboard-card p-5 bg-paper space-y-3">
-                <div className="p-3 bg-[#FAF8F5] border border-ink/5 rounded-xl">
-                  <span className="text-[8px] text-marigold font-black uppercase tracking-wider block">Admin Notice</span>
-                  <p className="text-[11px] font-semibold text-ink-soft leading-relaxed mt-1">
-                    Nivaro v1.2 is officially live! You can now check public transport and biking route times to NCIT, Pulchowk, and Kirtipur.
-                  </p>
-                </div>
-                <div className="p-3 bg-[#FAF8F5] border border-ink/5 rounded-xl">
-                  <span className="text-[8px] text-pine font-bold uppercase tracking-wider block">General Discussion</span>
-                  <p className="text-[11px] font-semibold text-ink-soft leading-relaxed mt-1">
-                    Basanta Rijal just listed a new flatlet available near Patan Campus for NPR 6,200. Check it out!
-                  </p>
-                </div>
+                {recentPosts.length === 0 ? (
+                  <div className="text-center py-4 text-[11px] text-ink-soft italic">
+                    No posts available yet
+                  </div>
+                ) : (
+                  recentPosts.map((post: any) => (
+                    <div key={post.id} className="p-3 bg-[#FAF8F5] border border-ink/5 rounded-xl">
+                      <span className={`text-[8px] font-black uppercase tracking-wider block ${post.postType === 'EVENT' ? 'text-pine' : 'text-marigold'}`}>
+                        {post.postType} – {post.authorName}
+                      </span>
+                      <h4 className="text-[11px] font-bold text-ink mt-0.5">{post.title}</h4>
+                      <p className="text-[10px] text-ink-soft leading-relaxed mt-0.5 line-clamp-2">
+                        {post.content}
+                      </p>
+                    </div>
+                  ))
+                )}
               </div>
             </section>
 
@@ -588,6 +667,7 @@ const Dashboard: React.FC = () => {
 
       </div>
 
+      <Footer />
 
     </div>
   );
