@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Home, Plus, Edit, Trash2, CheckCircle, Clock, Eye, Sparkles, Loader2, Bell, MessageSquare, ShieldCheck, User } from 'lucide-react';
+import { Home, Plus, Edit, Trash2, CheckCircle, Clock, Eye, Sparkles, Loader2, Bell, MessageSquare, ShieldCheck, User, Users } from 'lucide-react';
 import api from '../services/api';
 import { NivaroLogo } from '../components/NivaroLogo';
 
