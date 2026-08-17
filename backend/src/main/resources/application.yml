@@ -58,6 +58,6 @@ app:
     expiration-ms: 900000        # 15 minutes (900,000 ms)
     refresh-expiration-ms: 604800000 # 7 days (604,800,000 ms)
   cloudinary:
-    cloud-name: ${CLOUDINARY_CLOUD_NAME:l7tiongt}
-    api-key: ${CLOUDINARY_API_KEY:179845855244329}
-    api-secret: ${CLOUDINARY_API_SECRET:C2stSn57VQCgYC56JcWRp55uTJg}
+    cloud-name: ${CLOUDINARY_CLOUD_NAME:your_cloudinary_cloud_name}
+    api-key: ${CLOUDINARY_API_KEY:your_cloudinary_api_key}
+    api-secret: ${CLOUDINARY_API_SECRET:your_cloudinary_api_secret}
