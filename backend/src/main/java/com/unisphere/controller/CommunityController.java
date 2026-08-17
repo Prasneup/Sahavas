@@ -137,24 +137,34 @@ public class CommunityController {
 
     @PostMapping
     @org.springframework.transaction.annotation.Transactional
-    public ResponseEntity<Community> createCommunity(
+    public ResponseEntity<?> createCommunity(
             @AuthenticationPrincipal UserPrincipal principal,
             @RequestBody CreateCommunityRequest request) {
         
         User creator = userRepository.findById(principal.getId())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
                 
+        Optional<Community> existing = communityRepository.findByNameIgnoreCase(request.getName().trim());
+        if (existing.isPresent()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "community name already exists"));
+        }
+                
         Community.CommunityType type = Community.CommunityType.valueOf(request.getType().toUpperCase());
         
         Community community = Community.builder()
-                .name(request.getName())
+                .name(request.getName().trim())
                 .description(request.getDescription())
                 .type(type)
                 .creator(creator)
                 .build();
                 
         community.getMembers().add(creator);
-        communityRepository.save(community);
+        
+        try {
+            communityRepository.save(community);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
         
         return ResponseEntity.ok(community);
     }

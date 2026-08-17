@@ -298,9 +298,10 @@ const Communities: React.FC = () => {
       setShowCreateCommunityModal(false);
       setNewCommunityName('');
       setNewCommunityDesc('');
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to create community", err);
-      alert("Failed to create community. Make sure the name is unique.");
+      const errMsg = err.response?.data?.error || err.response?.data?.message || "Failed to create community. Please try again.";
+      alert(errMsg);
     }
   };
 
