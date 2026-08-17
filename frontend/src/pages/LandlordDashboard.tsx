@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Home, Plus, Edit, Trash2, CheckCircle, Clock, Eye, Sparkles, Loader2, Bell } from 'lucide-react';
+import { Home, Plus, Edit, Trash2, CheckCircle, Clock, Eye, Sparkles, Loader2, Bell, MessageSquare, ShieldCheck, User } from 'lucide-react';
 import api from '../services/api';
+import { NivaroLogo } from '../components/NivaroLogo';
 
 interface ListingImage {
   id?: string;
@@ -294,97 +295,105 @@ const LandlordDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-clay text-ink flex flex-col font-sans">
-      
-      {/* Header Panel */}
-      <header className="border-b border-ink/5 bg-clay/85 backdrop-blur-md sticky top-0 z-30 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-paper border border-ink/10 flex items-center justify-center shadow-sm">
-            <Home size={18} className="text-marigold" />
-          </div>
-          <div>
-            <span className="text-[10px] text-ink-soft font-bold uppercase tracking-wider block">Landlord Panel</span>
-            <h2 className="text-xs font-bold text-ink truncate font-display">Namaste, {user?.fullName || 'House Owner'}</h2>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          {/* Notification Bell Dropdown */}
-          <div className="relative">
-            <button 
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="bg-paper hover:bg-[#FAF3E8] border border-ink/10 text-ink p-2.5 rounded-xl shadow-sm transition relative"
-            >
-              <Bell size={16} />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-600 text-paper text-[8px] font-black flex items-center justify-center shadow-md animate-pulse">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-
-            {showNotifications && (
-              <div className="absolute right-0 mt-2 w-80 bg-paper border border-ink/10 rounded-[20px] shadow-xl z-50 p-4 space-y-3 animate-scale-up">
-                <div className="flex justify-between items-center border-b border-ink/5 pb-2">
-                  <h4 className="text-xs font-black text-ink font-display">Notifications</h4>
-                  {unreadCount > 0 && (
-                    <button 
-                      onClick={handleMarkAllRead}
-                      className="text-[10px] text-marigold font-black hover:underline"
-                    >
-                      Mark all as read
-                    </button>
-                  )}
-                </div>
-
-                <div className="max-h-60 overflow-y-auto divide-y divide-ink/5 space-y-2.5">
-                  {notifications.length === 0 ? (
-                    <div className="text-center py-6 text-[10px] font-bold text-ink-soft/75">
-                      No notifications yet.
-                    </div>
-                  ) : (
-                    notifications.map((notif) => (
-                      <div 
-                        key={notif.id}
-                        onClick={() => handleNotificationClick(notif)}
-                        className={`pt-2.5 pb-1 flex gap-2.5 cursor-pointer group hover:bg-[#FAF8F5] rounded-lg px-2 transition ${!notif.isRead ? 'bg-clay/10' : ''}`}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 justify-between">
-                            <span className={`text-[10px] font-black truncate ${!notif.isRead ? 'text-marigold-dark' : 'text-ink'}`}>
-                              {notif.title}
-                            </span>
-                            {!notif.isRead && (
-                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
-                            )}
-                          </div>
-                          <p className="text-[10px] text-ink-soft/80 line-clamp-2 mt-0.5 font-medium leading-normal">
-                            {notif.content}
-                          </p>
-                          <span className="text-[8px] text-ink-soft/45 font-mono mt-1 block">
-                            {new Date(notif.createdAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <button 
-            onClick={logout}
-            className="bg-paper hover:bg-[#FAF3E8] border border-ink/10 text-ink text-xs font-bold px-4 py-2 rounded-xl shadow-sm transition"
-          >
-            Logout
-          </button>
-        </div>
-      </header>
-
-      {/* Main Workspace */}
-      <main className="flex-1 max-w-6xl mx-auto w-full p-6 space-y-8">
+    <div className="min-h-screen flex flex-col items-center justify-start pb-0 animate-fade-in" style={{ backgroundColor: '#F5ECE1', color: 'var(--ink)', fontFamily: 'var(--font-body)' }}>
+      <div className="w-full max-w-6xl px-6 pt-6 flex flex-col items-stretch space-y-8 mb-12">
         
+        {/* Header Panel */}
+        <header className="flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-marigold flex items-center justify-center text-ink shadow-sm">
+              <NivaroLogo className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-ink font-display uppercase leading-none">
+                NIVARO
+              </h1>
+              <span className="text-[10px] tracking-wider block uppercase font-mono font-bold text-ink-soft/75 mt-0.5">
+                NAMASTE, {user?.fullName || 'OWNER'}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            {/* Notification Bell Dropdown */}
+            <div className="relative">
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="bg-paper hover:bg-[#FAF3E8] border border-ink/10 text-ink p-2.5 rounded-full shadow-sm transition relative"
+              >
+                <Bell size={16} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-600 text-paper text-[8px] font-black flex items-center justify-center shadow-md animate-pulse">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 bg-paper border border-ink/10 rounded-[20px] shadow-xl z-50 p-4 space-y-3 animate-scale-up">
+                  <div className="flex justify-between items-center border-b border-ink/5 pb-2">
+                    <h4 className="text-xs font-black text-ink font-display">Notifications</h4>
+                    {unreadCount > 0 && (
+                      <button 
+                        onClick={handleMarkAllRead}
+                        className="text-[10px] text-marigold font-black hover:underline"
+                      >
+                        Mark all as read
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="max-h-60 overflow-y-auto divide-y divide-ink/5 space-y-2.5">
+                    {notifications.length === 0 ? (
+                      <div className="text-center py-6 text-[10px] font-bold text-ink-soft/75">
+                        No notifications yet.
+                      </div>
+                    ) : (
+                      notifications.map((notif) => (
+                        <div 
+                          key={notif.id}
+                          onClick={() => handleNotificationClick(notif)}
+                          className={`pt-2.5 pb-1 flex gap-2.5 cursor-pointer group hover:bg-[#FAF8F5] rounded-lg px-2 transition ${notif.isRead ? '' : 'bg-clay/10'}`}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 justify-between">
+                              <span className={`text-[10px] font-black truncate ${notif.isRead ? 'text-ink' : 'text-marigold-dark'}`}>
+                                {notif.title}
+                              </span>
+                              {!notif.isRead && (
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                              )}
+                            </div>
+                            <p className="text-[10px] text-ink-soft/80 line-clamp-2 mt-0.5 font-medium leading-normal">
+                              {notif.content}
+                            </p>
+                            <span className="text-[8px] text-ink-soft/45 font-mono mt-1 block">
+                              {new Date(notif.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <button 
+              onClick={logout}
+              className="bg-paper hover:bg-[#FAF3E8] border border-ink/10 text-ink text-xs font-bold px-5 py-2.5 rounded-full shadow-sm transition"
+            >
+              Logout
+            </button>
+            <button 
+              onClick={() => navigate('/profile')}
+              className="w-10 h-10 rounded-full bg-paper border border-ink/10 flex items-center justify-center overflow-hidden shadow-sm hover:scale-105 transition"
+            >
+              <User size={20} className="text-ink-soft" />
+            </button>
+          </div>
+        </header>
+
         {/* Verification Alert Banner */}
         {vettingStatus !== 'VERIFIED' && (
           <div className="bg-[#FAF8F5] border border-marigold/30 rounded-[24px] p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
@@ -405,39 +414,186 @@ const LandlordDashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Top metrics summary cards */}
-        <section className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <div className="dashboard-card p-5 bg-paper flex flex-col justify-between min-h-[100px]">
-            <span className="text-[10px] uppercase tracking-wider block font-bold text-ink-soft">Total Properties</span>
-            <h3 className="text-3xl font-black font-mono text-ink mt-2">{listings.length}</h3>
-            <span className="text-[10px] block mt-1 text-ink-soft/70 font-semibold">Active listings in database</span>
+        {/* Redesigned Landlord Hero Section */}
+        <section className="bg-paper border border-ink/10 rounded-[32px] overflow-hidden p-6 md:p-10 shadow-sm relative flex flex-col md:flex-row gap-8 items-stretch">
+          {/* Left Text & Landlord Features */}
+          <div className="flex-1 flex flex-col justify-between space-y-8 z-10">
+            <div className="space-y-4">
+              <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-ink font-display leading-tight">
+                Find the Right<br />
+                <span className="text-marigold-dark">Tenant. Fill Your Room.</span>
+              </h2>
+              <p className="text-sm text-ink-soft font-semibold leading-relaxed max-w-sm">
+                List your property, connect with verified students, and rent with confidence.
+              </p>
+              <button 
+                onClick={() => {
+                  const target = document.getElementById('listings-header');
+                  if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                  } else {
+                    handleOpenCreate();
+                  }
+                }}
+                className="bg-ink hover:bg-ink-soft text-paper text-xs font-bold px-6 py-3 rounded-full shadow-sm transition flex items-center gap-2 w-fit mt-4"
+              >
+                Manage Your Listings <span className="text-base">&rarr;</span>
+              </button>
+            </div>
+
+            {/* Landlord 4 Features list */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-ink/5">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-clay/35 text-marigold flex items-center justify-center shrink-0">
+                  <Home size={14} className="stroke-[2.5]" />
+                </div>
+                <div>
+                  <h4 className="text-[10px] font-bold text-ink leading-tight">List Property</h4>
+                  <p className="text-[8px] text-ink-soft font-semibold">Easy & Quick</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-clay/35 text-marigold flex items-center justify-center shrink-0">
+                  <Users size={14} className="stroke-[2.5]" />
+                </div>
+                <div>
+                  <h4 className="text-[10px] font-bold text-ink leading-tight">Verified Students</h4>
+                  <p className="text-[8px] text-ink-soft font-semibold">Trusted Vetting</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-clay/35 text-marigold flex items-center justify-center shrink-0">
+                  <MessageSquare size={14} className="stroke-[2]" />
+                </div>
+                <div>
+                  <h4 className="text-[10px] font-bold text-ink leading-tight">Manage Inquiries</h4>
+                  <p className="text-[8px] text-ink-soft font-semibold">All in One Place</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-clay/35 text-marigold flex items-center justify-center shrink-0">
+                  <ShieldCheck size={14} className="stroke-[2]" />
+                </div>
+                <div>
+                  <h4 className="text-[10px] font-bold text-ink leading-tight">Rent Confidently</h4>
+                  <p className="text-[8px] text-ink-soft font-semibold">Safe & Secure</p>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div className="dashboard-card p-5 bg-paper flex flex-col justify-between min-h-[100px]">
-            <span className="text-[10px] uppercase tracking-wider block font-bold text-ink-soft">Verified Rooms</span>
-            <h3 className="text-3xl font-black font-mono text-pine mt-2">
+          {/* Right Visual Container with absolute overlays matching landlord reference image */}
+          <div className="flex-1 min-h-[360px] md:min-h-[420px] relative rounded-[24px] overflow-hidden bg-clay/10 hidden md:block">
+            {/* Main cozy room interior backdrop */}
+            <img 
+              src="https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800" 
+              alt="Cozy Interior" 
+              className="absolute inset-0 w-full h-full object-cover opacity-80"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-paper/30 to-transparent pointer-events-none" />
+
+            {/* Overlay Card 1: Active Listing (Top Right) */}
+            <div className="absolute top-4 right-4 bg-paper/95 backdrop-blur-sm border border-ink/10 rounded-2xl p-2.5 shadow-lg w-[210px] space-y-1.5 z-20">
+              <div className="h-20 rounded-lg overflow-hidden relative">
+                <img 
+                  src={listings[0]?.images?.[0]?.imageUrl || "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=400"} 
+                  alt="Listing card" 
+                  className="w-full h-full object-cover" 
+                />
+                <span className="absolute top-1.5 right-1.5 bg-pine text-paper text-[8px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1">
+                  <span className="w-1 h-1 rounded-full bg-paper animate-ping" /> Active Listing
+                </span>
+              </div>
+              <div>
+                <h4 className="text-[10px] font-black text-ink truncate leading-tight">
+                  {listings[0]?.title || "Cozy Room Near IOE Pulchowk"}
+                </h4>
+                 <p className="text-[8px] text-ink-soft font-semibold flex items-center gap-0.5 mt-0.5">
+                  <MapPin size={7} /> {(listings[0]?.distanceFromCollegeText?.split('from') || [])[0] || "Pulchowk, Lalitpur"}
+                </p>
+                <div className="flex items-center justify-between mt-1 pt-1.5 border-t border-ink/5">
+                  <span className="text-[9px] text-marigold-dark font-black">
+                    NPR {listings[0]?.rentAmount?.toLocaleString() || "7,500"} /mo
+                  </span>
+                  <span className="text-[7px] text-ink-soft/60 font-semibold font-mono">1 Bed • WiFi</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Overlay Card 2: Verified Student (Middle Right) */}
+            <div className="absolute top-[170px] right-4 bg-paper/95 backdrop-blur-sm border border-ink/10 rounded-2xl p-3 shadow-lg w-[200px] flex items-center gap-3 z-20">
+              <div className="w-9 h-9 rounded-full bg-clay/35 text-marigold flex items-center justify-center shrink-0 overflow-hidden border border-ink/5">
+                {inquiries[0]?.peerProfile?.avatarUrl ? (
+                  <img src={inquiries[0]?.peerProfile?.avatarUrl} alt="student" className="w-full h-full object-cover" />
+                ) : (
+                  <User size={16} />
+                )}
+              </div>
+              <div className="min-w-0">
+                <span className="text-[7px] text-pine font-black uppercase tracking-wider block">Verified Student</span>
+                <h4 className="text-[9px] font-black text-ink truncate leading-tight">
+                  {inquiries[0]?.peerProfile?.fullName || "Suresh Neupane"}
+                </h4>
+                <p className="text-[7px] text-ink-soft font-semibold truncate">
+                  {inquiries[0]?.peerProfile?.collegeName || "IOE Pulchowk Campus"}
+                </p>
+              </div>
+              <div className="w-4 h-4 rounded-full bg-pine/15 text-pine flex items-center justify-center shrink-0">
+                <CheckCircle size={10} className="stroke-[2.5]" />
+              </div>
+            </div>
+
+            {/* Overlay Card 3: New Inquiry message (Bottom Left) */}
+            <div className="absolute bottom-4 left-4 bg-paper/95 backdrop-blur-sm border border-ink/10 rounded-2xl p-3 shadow-lg w-[220px] space-y-1.5 z-20">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-marigold shrink-0" />
+                <span className="text-[8px] uppercase tracking-wider font-black text-ink-soft/75">New Inquiry</span>
+              </div>
+              <p className="text-[9px] text-ink-soft font-medium leading-relaxed italic">
+                "{inquiries[0]?.lastMessage || "Hello! I am interested in your room. Please let me know more details."}"
+              </p>
+              <span className="text-[7px] text-ink-soft/40 block font-mono">2m ago</span>
+            </div>
+          </div>
+        </section>
+
+        {/* Top metrics summary cards */}
+        <section className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full">
+          <div className="bg-paper border border-ink/10 rounded-2xl p-5 flex flex-col justify-between min-h-[110px] shadow-sm">
+            <span className="text-[9px] uppercase tracking-wider block font-black text-ink-soft/75">Total Properties</span>
+            <h3 className="text-3xl font-black font-mono text-ink mt-2">{listings.length}</h3>
+            <span className="text-[9px] block mt-1.5 font-bold text-ink-soft/70">Active listings in database</span>
+          </div>
+
+          <div className="bg-paper border border-ink/10 rounded-2xl p-5 flex flex-col justify-between min-h-[110px] shadow-sm">
+            <span className="text-[9px] uppercase tracking-wider block font-black text-ink-soft/75">Verified Rooms</span>
+            <h3 className="text-3xl font-Pine font-mono text-pine mt-2">
               {listings.filter(l => l.isVerified).length}
             </h3>
-            <span className="text-[10px] block mt-1 text-pine font-bold uppercase tracking-wider">Cleared & Live on Map</span>
+            <span className="text-[9px] block mt-1.5 font-bold text-pine font-black uppercase tracking-wider">Cleared & Live on Map</span>
           </div>
 
-          <div className="dashboard-card p-5 bg-paper flex flex-col justify-between min-h-[100px]">
-            <span className="text-[10px] uppercase tracking-wider block font-bold text-ink-soft">Account Status</span>
-            <h3 className={`text-xs font-black uppercase tracking-wider mt-4 px-3 py-1 rounded-full w-fit ${
-              vettingStatus === 'VERIFIED' ? 'bg-pine-light text-pine' : 'bg-marigold/10 text-marigold-dark'
+          <div className="bg-paper border border-ink/10 rounded-2xl p-5 flex flex-col justify-between min-h-[110px] shadow-sm">
+            <span className="text-[9px] uppercase tracking-wider block font-black text-ink-soft/75">Account Status</span>
+            <div className="mt-2.5">
+              <Link to="/verify" className="inline-block bg-[#F8EEDC] hover:bg-[#FAF3E8] border border-marigold/40 text-marigold-dark rounded-full px-3 py-1 font-bold text-[9px] tracking-wide uppercase transition">
+                Check Status
+              </Link>
+            </div>
+            <span className={`text-[10px] block mt-1.5 font-black uppercase tracking-wider ${
+              vettingStatus === 'VERIFIED' ? 'text-pine' : 'text-marigold-dark'
             }`}>
               {vettingStatus.replace('_', ' ')}
-            </h3>
-            <span className="text-[10px] block mt-1 text-ink-soft/70 font-semibold">Vetting tier certification</span>
+            </span>
           </div>
         </section>
 
         {/* Listings Section & Conversations Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start w-full">
           
           {/* Main listings list (2/3 width) */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center" id="listings-header">
               <h3 className="text-base font-black text-ink font-display flex items-center gap-1.5">
                 🏠 My Rooms & Apartments
               </h3>
@@ -549,20 +705,20 @@ const LandlordDashboard: React.FC = () => {
                     <div className="flex justify-between items-start gap-2">
                       <div className="flex gap-2.5 items-center">
                         <div className="w-9 h-9 rounded-full bg-clay/35 text-marigold flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden">
-                          {conv.peerProfile.avatarUrl && conv.peerProfile.avatarUrl.trim().length > 0 ? (
+                          {conv.peerProfile?.avatarUrl && conv.peerProfile.avatarUrl.trim().length > 0 ? (
                             <img src={conv.peerProfile.avatarUrl} alt={conv.peerProfile.fullName} className="w-full h-full object-cover" />
                           ) : (
-                            conv.peerProfile.fullName.split(' ').map(n => n[0]).join('').toUpperCase()
+                            conv.peerProfile?.fullName ? conv.peerProfile.fullName.split(' ').map(n => n[0]).join('').toUpperCase() : 'NS'
                           )}
                         </div>
                         <div>
                           <h4 className="text-xs font-black text-ink flex items-center gap-1.5">
-                            {conv.peerProfile.fullName}
+                            {conv.peerProfile?.fullName || 'Nivaro Student'}
                             {conv.unreadCount && conv.unreadCount > 0 ? (
                               <span className="bg-[#D9A25A] text-paper text-[8px] font-black px-1.5 py-0.5 rounded-md animate-pulse">NEW</span>
                             ) : null}
                           </h4>
-                          <span className="text-[9px] text-ink-soft/70 font-semibold block">{conv.peerProfile.collegeName || 'Nivaro Student'}</span>
+                          <span className="text-[9px] text-ink-soft/70 font-semibold block">{conv.peerProfile?.collegeName || 'Nivaro Student'}</span>
                         </div>
                       </div>
                       <span className="text-[8px] text-ink-soft/50 font-mono font-bold">
@@ -590,7 +746,7 @@ const LandlordDashboard: React.FC = () => {
                     )}
 
                     <button
-                      onClick={() => navigate(`/chat/${conv.peerProfile.id}${conv.listing ? `?listingId=${conv.listing.id}` : ''}`)}
+                      onClick={() => navigate(`/chat/${conv.peerProfile?.id || ''}${conv.listing ? `?listingId=${conv.listing.id}` : ''}`)}
                       className="w-full mt-2 bg-ink hover:bg-ink-soft text-paper text-[10px] font-black py-2.5 rounded-xl transition text-center flex items-center justify-center gap-1"
                     >
                       Open Conversation
@@ -603,7 +759,7 @@ const LandlordDashboard: React.FC = () => {
 
         </div>
 
-      </main>
+      </div>
 
       {/* CREATE/EDIT MODAL DIALOG */}
       {showModal && (

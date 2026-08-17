@@ -222,21 +222,21 @@ const Dashboard: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-start pb-0" style={{ backgroundColor: 'var(--clay)', color: 'var(--ink)', fontFamily: 'var(--font-body)' }}>
-      <div className="w-full max-w-md md:max-w-6xl px-6 pt-6 flex flex-col items-stretch space-y-8 mb-12">
+    <div className="min-h-screen flex flex-col items-center justify-start pb-0" style={{ backgroundColor: '#F5ECE1', color: 'var(--ink)', fontFamily: 'var(--font-body)' }}>
+      <div className="w-full max-w-6xl px-6 pt-6 flex flex-col items-stretch space-y-8 mb-12">
         
         {/* Header Bar */}
         <header className="flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'var(--marigold)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)' }}>
-              <NivaroLogo className="w-5.5 h-5.5" />
+            <div className="w-10 h-10 rounded-full bg-marigold flex items-center justify-center text-ink shadow-sm">
+              <NivaroLogo className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl tracking-tight flex items-center gap-2.5" style={{ fontFamily: 'var(--font-display)', fontWeight: 600, color: 'var(--ink)' }}>
+              <h1 className="text-2xl font-bold tracking-tight text-ink font-display uppercase leading-none">
                 NIVARO
               </h1>
-              <span className="text-[10px] tracking-wider block -mt-1 uppercase font-semibold" style={{ color: 'var(--ink-soft)' }}>
-                Namaste, {user?.fullName?.split(' ')[0] || 'Prasanna'}
+              <span className="text-[10px] tracking-wider block uppercase font-mono font-bold text-ink-soft/75 mt-0.5">
+                NAMASTE, {user?.fullName || 'RAJAN'}
               </span>
             </div>
           </div>
@@ -252,32 +252,18 @@ const Dashboard: React.FC = () => {
             )}
             <button 
               onClick={logout}
-              className="bg-paper hover:bg-[#FAF3E8] border border-ink/10 text-ink text-xs font-bold px-4 py-2 rounded-xl shadow-sm transition"
+              className="bg-paper hover:bg-[#FAF3E8] border border-ink/10 text-ink text-xs font-bold px-5 py-2.5 rounded-full shadow-sm transition"
             >
               Logout
             </button>
             <button 
               onClick={() => navigate('/profile')}
-              style={{ backgroundColor: 'var(--paper)', border: '1px solid var(--line)' }}
-              className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden shadow-sm hover:scale-105 transition"
+              className="w-10 h-10 rounded-full bg-paper border border-ink/10 flex items-center justify-center overflow-hidden shadow-sm hover:scale-105 transition"
             >
-              <User size={20} style={{ color: 'var(--ink-soft)' }} />
+              <User size={20} className="text-ink-soft" />
             </button>
           </div>
         </header>
-
-        {/* Dashboard Title & Welcome Section */}
-        <section className="flex flex-col md:flex-row md:items-end justify-between gap-2 border-b border-ink/5 pb-4">
-          <div>
-            <h2 className="text-3xl font-black" style={{ fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>Dashboard</h2>
-            <p className="text-sm mt-1 leading-relaxed font-semibold" style={{ color: 'var(--ink-soft)' }}>
-              Welcome back — here's what's happening on Nivaro.
-            </p>
-          </div>
-          <span className="text-xs font-bold text-marigold md:text-right">
-            Find your room. Find your perfect roommate.
-          </span>
-        </section>
 
         {/* Verification Notification Banner */}
         {vettingStatus === 'VERIFIED' && localStorage.getItem('hide_verified_banner') !== 'VERIFIED' && (
@@ -329,44 +315,177 @@ const Dashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Top 4 Stats Cards Banner */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 w-full">
-          <div className="dashboard-card p-5 flex flex-col justify-between min-h-[110px]">
-            <span className="text-[10px] uppercase tracking-wider block font-bold" style={{ color: 'var(--ink-soft)' }}>Profile Completeness</span>
-            <div className="flex justify-between items-baseline mt-2">
-              <h3 className="text-2xl font-black font-mono" style={{ color: 'var(--ink)' }}>{profileCompleteness}%</h3>
-              <span className="text-[10px] font-bold" style={{ color: 'var(--ink-soft)' }}>Finished</span>
+        {/* Redesigned Student Hero Section */}
+        <section className="bg-paper border border-ink/10 rounded-[32px] overflow-hidden p-6 md:p-10 shadow-sm relative flex flex-col md:flex-row gap-8 items-stretch">
+          {/* Left Text & Features */}
+          <div className="flex-1 flex flex-col justify-between space-y-8 z-10">
+            <div className="space-y-4">
+              <h2 className="text-4xl md:text-5xl font-bold tracking-tight text-ink font-display leading-tight">
+                Find Your Room.<br />
+                <span className="text-marigold-dark">Find Your People.</span>
+              </h2>
+              <p className="text-sm text-ink-soft font-semibold leading-relaxed max-w-sm">
+                Rooms, roommates, and communities — all in one place.
+              </p>
+              <button 
+                onClick={() => navigate('/rooms')}
+                className="bg-ink hover:bg-ink-soft text-paper text-xs font-bold px-6 py-3 rounded-full shadow-sm transition flex items-center gap-2 w-fit mt-4"
+              >
+                Explore Rooms <span className="text-base">&rarr;</span>
+              </button>
             </div>
-            <div className="w-full h-2 rounded-full overflow-hidden mt-3" style={{ backgroundColor: 'var(--line)' }}>
-              <div className="h-full rounded-full transition-all duration-750" style={{ width: `${profileCompleteness}%`, backgroundColor: 'var(--marigold)' }} />
+
+            {/* Bottom 3 Features list */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-ink/5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-clay/35 text-marigold flex items-center justify-center shrink-0">
+                  <HomeIcon size={14} className="stroke-[2.5]" />
+                </div>
+                <div>
+                  <h4 className="text-[11px] font-bold text-ink leading-tight">Verified Rooms</h4>
+                  <p className="text-[9px] text-ink-soft font-semibold">Trusted listings</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-clay/35 text-marigold flex items-center justify-center shrink-0">
+                  <Users size={14} className="stroke-[2.5]" />
+                </div>
+                <div>
+                  <h4 className="text-[11px] font-bold text-ink leading-tight">Smart Matches</h4>
+                  <p className="text-[9px] text-ink-soft font-semibold">Compatible roommates</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-clay/35 text-marigold flex items-center justify-center shrink-0">
+                  <MapPin size={14} className="stroke-[2.5]" />
+                </div>
+                <div>
+                  <h4 className="text-[11px] font-bold text-ink leading-tight">Ideal Locations</h4>
+                  <p className="text-[9px] text-ink-soft font-semibold">Close to what matters</p>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="dashboard-card p-5 flex flex-col justify-between min-h-[110px]">
-            <span className="text-[10px] uppercase tracking-wider block font-bold" style={{ color: 'var(--ink-soft)' }}>Vetting Status</span>
-            <div className="mt-2.5">
-              <Link to="/verify" style={{ backgroundColor: 'rgba(232, 163, 61, 0.15)', color: 'var(--marigold-dark)', borderRadius: '20px', padding: '5px 12px', fontWeight: 600, fontSize: '11px' }} className="inline-block cursor-pointer hover:underline">
-                🛡️ Check Status
+          {/* Right Visual Container with absolute overlays matching reference image */}
+          <div className="flex-1 min-h-[360px] md:min-h-[420px] relative rounded-[24px] overflow-hidden bg-clay/10 hidden md:block">
+            {/* Main cozy room interior backdrop */}
+            <img 
+              src="https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=800" 
+              alt="Cozy Room" 
+              className="absolute inset-0 w-full h-full object-cover opacity-80"
+            />
+            {/* Student character overlay (overlay vector background representation) */}
+            <div className="absolute inset-0 bg-gradient-to-r from-paper/30 to-transparent pointer-events-none" />
+
+            {/* Overlay Card 1: Cozy Room Near IOE (Top Right) */}
+            <div className="absolute top-4 right-4 bg-paper/95 backdrop-blur-sm border border-ink/10 rounded-2xl p-2.5 shadow-lg w-[200px] space-y-1.5 animate-slide-up z-20">
+              <div className="h-20 rounded-lg overflow-hidden relative">
+                <img 
+                  src={recommendedRooms[0]?.images?.[0]?.imageUrl || "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=400"} 
+                  alt="Room Card" 
+                  className="w-full h-full object-cover" 
+                />
+                <span className="absolute top-1.5 right-1.5 bg-ink text-paper text-[8px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                  ★ Featured
+                </span>
+              </div>
+              <div>
+                <h4 className="text-[10px] font-black text-ink truncate leading-tight">
+                  {recommendedRooms[0]?.title || "Cozy Room Near IOE"}
+                </h4>
+                <p className="text-[8px] text-ink-soft font-semibold flex items-center gap-0.5 mt-0.5">
+                  <MapPin size={7} /> {(recommendedRooms[0]?.distanceFromCollegeText?.split('from') || [])[0] || "Pulchowk, Lalitpur"}
+                </p>
+                <div className="flex items-center justify-between mt-1 pt-1.5 border-t border-ink/5">
+                  <span className="text-[9px] text-marigold-dark font-black">
+                    NPR {recommendedRooms[0]?.rentAmount?.toLocaleString() || "7,500"} /mo
+                  </span>
+                  <span className="text-[7px] text-ink-soft/60 font-semibold font-mono">1 Bed • WiFi</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Overlay Card 2: 300m from Campus (Center Left) */}
+            <div className="absolute top-[160px] left-4 bg-paper/95 backdrop-blur-sm border border-ink/10 rounded-xl p-2 flex items-center gap-1.5 shadow-md animate-slide-up z-20">
+              <div className="w-5 h-5 rounded-full bg-marigold flex items-center justify-center text-ink shrink-0">
+                <MapPin size={10} className="stroke-[2.5]" />
+              </div>
+              <span className="text-[9px] font-bold text-ink uppercase tracking-wide">300m from Campus</span>
+            </div>
+
+            {/* Overlay Card 3: Compatible Match 92% (Bottom Right) */}
+            <div className="absolute bottom-4 right-4 bg-paper/95 backdrop-blur-sm border border-ink/10 rounded-2xl p-3 shadow-lg w-[180px] space-y-2 animate-slide-up z-20">
+              <div className="text-center">
+                <span className="text-[8px] uppercase tracking-wider block font-bold text-ink-soft/75">Compatible Match</span>
+                <span className="text-xs font-black text-marigold-dark block mt-0.5">
+                  {recommendedRoommates[0] ? `${recommendedRoommates[0].matchScore}% Match` : "92% Match"}
+                </span>
+              </div>
+              <div className="flex justify-center -space-x-2.5 overflow-hidden py-1">
+                <img 
+                  src={recommendedRoommates[0]?.avatarUrl || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=200"} 
+                  alt="User 1" 
+                  className="inline-block h-8 w-8 rounded-full ring-2 ring-paper object-cover" 
+                />
+                <img 
+                  src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200" 
+                  alt="User 2" 
+                  className="inline-block h-8 w-8 rounded-full ring-2 ring-paper object-cover" 
+                />
+              </div>
+              <div className="flex flex-wrap gap-0.5 justify-center">
+                <span className="text-[7px] bg-clay/35 text-ink-soft px-1 py-0.5 rounded font-black uppercase">IOE</span>
+                <span className="text-[7px] bg-clay/35 text-ink-soft px-1 py-0.5 rounded font-black uppercase">BCA</span>
+                <span className="text-[7px] bg-clay/35 text-ink-soft px-1 py-0.5 rounded font-black uppercase">Quiet</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 4 Summary Metrics Cards Banner */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 w-full">
+          <div className="bg-paper border border-ink/10 rounded-2xl p-5 flex flex-col justify-between min-h-[110px] shadow-sm">
+            <span className="text-[9px] uppercase tracking-wider block font-black text-ink-soft/75">Profile Completeness</span>
+            <div className="flex justify-between items-baseline mt-2">
+              <h3 className="text-2xl font-black font-mono text-ink">{profileCompleteness}%</h3>
+              <span className="text-[9px] font-bold text-ink-soft/70">Finished</span>
+            </div>
+            <div className="w-full h-2 rounded-full overflow-hidden mt-3 bg-clay/30">
+              <div className="h-full rounded-full transition-all duration-750 bg-marigold" style={{ width: `${profileCompleteness}%` }} />
+            </div>
+          </div>
+
+          <div className="bg-paper border border-ink/10 rounded-2xl p-5 flex flex-col justify-between min-h-[110px] shadow-sm">
+            <span className="text-[9px] uppercase tracking-wider block font-black text-ink-soft/75">Vetting Status</span>
+            <div className="mt-2">
+              <Link to="/verify" className="inline-block bg-[#F8EEDC] hover:bg-[#FAF3E8] border border-marigold/40 text-marigold-dark rounded-full px-3 py-1 font-bold text-[9px] tracking-wide uppercase transition">
+                Check Status
               </Link>
             </div>
-            <span className="text-[10px] block mt-2 font-black uppercase tracking-wider text-marigold-dark">{vettingStatus.replace('_', ' ')}</span>
+            <span className={`text-[10px] block mt-1.5 font-black uppercase tracking-wider ${
+              vettingStatus === 'VERIFIED' ? 'text-pine' : 'text-marigold-dark'
+            }`}>
+              {vettingStatus.replace('_', ' ')}
+            </span>
           </div>
 
-          <div className="dashboard-card p-5 flex flex-col justify-between min-h-[110px]">
-            <span className="text-[10px] uppercase tracking-wider block font-bold" style={{ color: 'var(--ink-soft)' }}>Discovery Matches</span>
-            <h3 className="text-2xl mt-2 font-black font-mono" style={{ color: 'var(--ink)' }}>{matchCount}</h3>
-            <span className="text-[10px] block mt-1 font-semibold" style={{ color: 'var(--ink-soft)' }}>Compatible Peers</span>
+          <div className="bg-paper border border-ink/10 rounded-2xl p-5 flex flex-col justify-between min-h-[110px] shadow-sm">
+            <span className="text-[9px] uppercase tracking-wider block font-black text-ink-soft/75">Discovery Matches</span>
+            <h3 className="text-2xl mt-2 font-black font-mono text-ink">{matchCount}</h3>
+            <span className="text-[9px] block mt-1.5 font-bold text-ink-soft/70">Compatible Peers</span>
           </div>
 
-          <div className="dashboard-card p-5 flex flex-col justify-between min-h-[110px]">
-            <span className="text-[10px] uppercase tracking-wider block font-bold" style={{ color: 'var(--ink-soft)' }}>Relocation Streak</span>
-            <div className="flex items-center gap-1.5 mt-2 text-orange-600 font-bold">
-              <Flame className="fill-orange-600 stroke-orange-600 animate-pulse" size={20} />
-              <span style={{ fontFamily: 'var(--font-mono)' }}>{streakDays} Days</span>
+          <div className="bg-paper border border-ink/10 rounded-2xl p-5 flex flex-col justify-between min-h-[110px] shadow-sm">
+            <span className="text-[9px] uppercase tracking-wider block font-black text-ink-soft/75">Relocation Status</span>
+            <div className="flex items-center gap-1 mt-2 text-marigold-dark font-black text-xs leading-none">
+              🔥 {checklistPercentage === 100 ? "Settled & Done" : "Searching for a Room"}
             </div>
-            <span className="text-[10px] block mt-1 font-semibold" style={{ color: 'var(--ink-soft)' }}>{totalXp} Total XP</span>
+            <span className="text-[9px] block mt-1.5 font-bold text-ink-soft/70 leading-normal">
+              {checklistPercentage === 100 ? "Congratulations, you are moved in!" : "Keep going! You're doing great."}
+            </span>
           </div>
-        </div>
+        </section>
 
         {/* Primary Action Buttons */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
@@ -414,11 +533,7 @@ const Dashboard: React.FC = () => {
 
         {/* Redesigned Grid Sections */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 w-full items-start">
-          
-          {/* Left Main Column (8 / 12) */}
           <div className="lg:col-span-8 space-y-8">
-            
-            {/* Recommended Rooms Section */}
             <section className="space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-black text-ink font-display flex items-center gap-1.5">
@@ -440,7 +555,7 @@ const Dashboard: React.FC = () => {
                       <div>
                         <h4 className="text-xs font-bold text-ink truncate">{room.title}</h4>
                         <span className="text-[9px] text-marigold font-bold flex items-center gap-0.5 mt-1">
-                          <MapPin size={9} /> {room.distanceFromCollegeText.split('from')[0] || 'Near college'}
+                          <MapPin size={9} /> {(room.distanceFromCollegeText?.split('from') || [])[0] || 'Near college'}
                         </span>
                       </div>
                       <div className="flex items-center justify-between pt-2 border-t border-ink/5">
