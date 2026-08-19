@@ -21,4 +21,12 @@ public class MatchingResponse {
     private double matchScorePercentage;
     private Map<String, String> matchingPreferences;
     private Map<String, String> mismatchedPreferences;
+    private String majorCourse;
+    private Integer academicYear;
+    private Double budgetMin;
+    private Double budgetMax;
+    private String bio;
+    private String avatarUrl;
+    private java.util.List<String> interests;
+    private Map<String, Double> compatibilityBreakdown;
 }

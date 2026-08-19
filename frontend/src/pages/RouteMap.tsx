@@ -44,7 +44,19 @@ const isValidCoordinate = (lat: any, lng: any) => {
 };
 
 const fetchOSRMRoute = async (profile: 'driving' | 'foot' | 'bike', start: { lat: number; lng: number }, end: { lat: number; lng: number }) => {
-  const url = `https://router.project-osrm.org/route/v1/${profile}/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`;
+  let subPath = '';
+  let serviceProfile = '';
+  if (profile === 'foot') {
+    subPath = 'routed-foot';
+    serviceProfile = 'foot';
+  } else if (profile === 'bike') {
+    subPath = 'routed-bike';
+    serviceProfile = 'bicycle';
+  } else {
+    subPath = 'routed-car';
+    serviceProfile = 'driving';
+  }
+  const url = `https://routing.openstreetmap.de/${subPath}/route/v1/${serviceProfile}/${start.lng},${start.lat};${end.lng},${end.lat}?overview=full&geometries=geojson`;
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`OSRM route fetch failed: ${response.statusText}`);
@@ -103,20 +115,29 @@ const RouteMap: React.FC = () => {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'success' | 'error' | 'denied'>('idle');
   const [startLocationType, setStartLocationType] = useState<'geolocation' | 'college'>('college');
+  const [selectedMode, setSelectedMode] = useState<'walking' | 'biking' | 'driving'>('driving');
 
   // Real OSRM Routing states
   const [routeData, setRouteData] = useState<{
-    distanceKm: string;
+    walkingDistanceKm: string;
+    bikeDistanceKm: string;
+    drivingDistanceKm: string;
     walkingTime: string;
     bikeTime: string;
     drivingTime: string;
-    routeGeometry: any | null;
+    walkingGeometry: any | null;
+    bikeGeometry: any | null;
+    drivingGeometry: any | null;
   }>({
-    distanceKm: '...',
+    walkingDistanceKm: '...',
+    bikeDistanceKm: '...',
+    drivingDistanceKm: '...',
     walkingTime: '...',
     bikeTime: '...',
     drivingTime: '...',
-    routeGeometry: null
+    walkingGeometry: null,
+    bikeGeometry: null,
+    drivingGeometry: null
   });
   const [routingError, setRoutingError] = useState<string | null>(null);
 
@@ -293,10 +314,9 @@ const RouteMap: React.FC = () => {
           fetchOSRMRoute('driving', start, { lat: roomLat, lng: roomLng }).catch(e => { console.warn("OSRM driving route error:", e); return null; })
         ]);
 
-        const primaryRoute = driveRoute || footRoute || bikeRoute;
         console.log("RouteMap - Route API response received:", { footRoute, bikeRoute, driveRoute });
 
-        if (!primaryRoute) {
+        if (!footRoute && !bikeRoute && !driveRoute) {
           throw new Error("Could not calculate any road route between these locations");
         }
 
@@ -305,31 +325,50 @@ const RouteMap: React.FC = () => {
           return mins > 0 ? `${mins} min` : "1 min";
         };
 
-        const distance = primaryRoute.distance / 1000;
-
         setRouteData({
-          distanceKm: `${distance.toFixed(2)}`,
+          walkingDistanceKm: footRoute ? (footRoute.distance / 1000).toFixed(2) : "Not available",
+          bikeDistanceKm: bikeRoute ? (bikeRoute.distance / 1000).toFixed(2) : "Not available",
+          drivingDistanceKm: driveRoute ? (driveRoute.distance / 1000).toFixed(2) : "Not available",
           walkingTime: footRoute ? formatDuration(footRoute.duration) : "Not available",
           bikeTime: bikeRoute ? formatDuration(bikeRoute.duration) : "Not available",
           drivingTime: driveRoute ? formatDuration(driveRoute.duration) : "Not available",
-          routeGeometry: primaryRoute.geometry
+          walkingGeometry: footRoute ? footRoute.geometry : null,
+          bikeGeometry: bikeRoute ? bikeRoute.geometry : null,
+          drivingGeometry: driveRoute ? driveRoute.geometry : null
         });
 
       } catch (err: any) {
         console.error("RouteMap - OSRM routing API failure:", err);
         setRoutingError(err.message || "Failed to calculate road route");
         setRouteData({
-          distanceKm: "Not available",
+          walkingDistanceKm: "Not available",
+          bikeDistanceKm: "Not available",
+          drivingDistanceKm: "Not available",
           walkingTime: "Not available",
           bikeTime: "Not available",
           drivingTime: "Not available",
-          routeGeometry: null
+          walkingGeometry: null,
+          bikeGeometry: null,
+          drivingGeometry: null
         });
       }
     };
 
     calculateRoutes();
   }, [loading, listing, startLat, startLng, roomLat, roomLng, hasValidRoomCoords]);
+
+  // Derive active geometry and distance based on selectedMode
+  const activeGeometry = selectedMode === 'walking'
+    ? routeData.walkingGeometry
+    : selectedMode === 'biking'
+      ? routeData.bikeGeometry
+      : routeData.drivingGeometry;
+
+  const activeDistance = selectedMode === 'walking'
+    ? routeData.walkingDistanceKm
+    : selectedMode === 'biking'
+      ? routeData.bikeDistanceKm
+      : routeData.drivingDistanceKm;
 
   // Update map markers and route geometry
   useEffect(() => {
@@ -376,8 +415,8 @@ const RouteMap: React.FC = () => {
     markersRef.current = [startMarker, roomMarker];
 
     // 4. Draw route polyline from geojson
-    if (routeData.routeGeometry) {
-      const routeLayer = L.geoJSON(routeData.routeGeometry, {
+    if (activeGeometry) {
+      const routeLayer = L.geoJSON(activeGeometry, {
         style: {
           color: 'var(--marigold)',
           weight: 5,
@@ -392,7 +431,7 @@ const RouteMap: React.FC = () => {
       const bounds = L.latLngBounds([startLat, startLng], [roomLat, roomLng]);
       map.fitBounds(bounds, { padding: [50, 50] });
     }
-  }, [loading, listing, startLat, startLng, roomLat, roomLng, routeData.routeGeometry, startLocationType, isUsingUserLocation, hasValidRoomCoords, collegeName]);
+  }, [loading, listing, startLat, startLng, roomLat, roomLng, activeGeometry, selectedMode, startLocationType, isUsingUserLocation, hasValidRoomCoords, collegeName]);
 
 
   // Conditional Rendering Returns (Must be declared AFTER all Hook Declarations to comply with the Rules of Hooks)
@@ -510,28 +549,55 @@ const RouteMap: React.FC = () => {
             {/* Travel breakdown stats panel */}
             <div className="space-y-3 pt-3 border-t border-ink/5">
               
-              <div className="flex justify-between items-center bg-[#FAF8F5] border border-ink/5 p-3.5 rounded-2xl">
+              <div 
+                onClick={() => routeData.walkingTime !== "Not available" && setSelectedMode('walking')}
+                className={`flex justify-between items-center border p-3.5 rounded-2xl transition ${
+                  routeData.walkingTime === "Not available"
+                    ? 'bg-[#FAF8F5]/60 border-ink/5 opacity-60 cursor-not-allowed'
+                    : selectedMode === 'walking'
+                      ? 'bg-[#FAF3E8] border-marigold shadow-sm cursor-pointer font-bold'
+                      : 'bg-[#FAF8F5] border-ink/5 hover:bg-[#FAF6EC] cursor-pointer'
+                }`}
+              >
                 <span className="text-xs font-semibold text-ink-soft flex items-center gap-1.5 font-sans">
                   🚶 Walking Duration:
                 </span>
                 <span className="text-sm font-bold text-ink font-mono">{routeData.walkingTime}</span>
               </div>
 
-              <div className="flex justify-between items-center bg-[#FAF8F5] border border-ink/5 p-3.5 rounded-2xl">
+              <div 
+                onClick={() => routeData.bikeTime !== "Not available" && setSelectedMode('biking')}
+                className={`flex justify-between items-center border p-3.5 rounded-2xl transition ${
+                  routeData.bikeTime === "Not available"
+                    ? 'bg-[#FAF8F5]/60 border-ink/5 opacity-60 cursor-not-allowed'
+                    : selectedMode === 'biking'
+                      ? 'bg-[#FAF3E8] border-marigold shadow-sm cursor-pointer font-bold'
+                      : 'bg-[#FAF8F5] border-ink/5 hover:bg-[#FAF6EC] cursor-pointer'
+                }`}
+              >
                 <span className="text-xs font-semibold text-ink-soft flex items-center gap-1.5 font-sans">
                   🚴 Biking Duration:
                 </span>
                 <span className="text-sm font-bold text-ink font-mono">{routeData.bikeTime}</span>
               </div>
 
-              <div className="flex justify-between items-center bg-[#FAF8F5] border border-ink/5 p-3.5 rounded-2xl">
+              <div 
+                onClick={() => routeData.drivingTime !== "Not available" && setSelectedMode('driving')}
+                className={`flex justify-between items-center border p-3.5 rounded-2xl transition ${
+                  routeData.drivingTime === "Not available"
+                    ? 'bg-[#FAF8F5]/60 border-ink/5 opacity-60 cursor-not-allowed'
+                    : selectedMode === 'driving'
+                      ? 'bg-[#FAF3E8] border-marigold shadow-sm cursor-pointer font-bold'
+                      : 'bg-[#FAF8F5] border-ink/5 hover:bg-[#FAF6EC] cursor-pointer'
+                }`}
+              >
                 <span className="text-xs font-semibold text-ink-soft flex items-center gap-1.5 font-sans">
                   🚗 Driving Duration:
                 </span>
                 <span className="text-sm font-bold text-ink font-mono">{routeData.drivingTime}</span>
               </div>
 
-              <div className="flex justify-between items-center bg-[#FAF8F5] border border-ink/5 p-3.5 rounded-2xl">
+              <div className="flex justify-between items-center bg-[#FAF8F5] border border-ink/5 p-3.5 rounded-2xl opacity-60 cursor-not-allowed">
                 <span className="text-xs font-semibold text-ink-soft flex items-center gap-1.5 font-sans">
                   🚌 Public Transit:
                 </span>
@@ -540,10 +606,10 @@ const RouteMap: React.FC = () => {
 
               <div className="flex justify-between items-center bg-[#FAF8F5] border border-ink/5 p-3.5 rounded-2xl border-t-2">
                 <span className="text-xs font-bold text-ink-soft flex items-center gap-1.5 font-sans">
-                  📍 Total Road Distance:
+                  📍 Total Road Distance ({selectedMode === 'walking' ? 'Walking' : selectedMode === 'biking' ? 'Biking' : 'Driving'}):
                 </span>
                 <span className="text-sm font-extrabold text-marigold font-mono">
-                  {routeData.distanceKm !== "Not available" ? `${routeData.distanceKm} km` : "Not available"}
+                  {activeDistance !== "Not available" ? `${activeDistance} km` : "Not available"}
                 </span>
               </div>
 

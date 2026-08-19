@@ -26,6 +26,9 @@ const Login: React.FC = () => {
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed. Please check credentials.');
+      setTimeout(() => {
+        setError('');
+      }, 8000);
     } finally {
       setIsSubmitting(false);
     }

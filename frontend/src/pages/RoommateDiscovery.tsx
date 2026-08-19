@@ -56,8 +56,9 @@ const RoommateDiscovery: React.FC = () => {
             compatibilityScore: Math.round(r.matchScorePercentage || 85),
             bio: r.bio || "Student matching partner on Sahavas",
             avatarUrl: r.avatarUrl || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=200",
-            sleepSchedule: r.matchingPreferences?.sleepSchedule === 2 ? "Early Bird" : "Late Owl",
-            smokingStatus: r.matchingPreferences?.smoking === 1 ? "Non-Smoker" : "Smoker"
+            sleepSchedule: r.matchingPreferences?.sleepSchedule || "Early Bird",
+            smokingStatus: r.matchingPreferences?.smoking || "Non-Smoker",
+            compatibilityBreakdown: r.compatibilityBreakdown
           }));
           setMatches(mapped.slice(0, 3));
         }

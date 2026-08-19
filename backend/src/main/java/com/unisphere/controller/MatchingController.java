@@ -33,4 +33,12 @@ public class MatchingController {
         List<MatchingResponse> suggestions = matchingService.getSuggestions(principal.getId());
         return ResponseEntity.ok(suggestions);
     }
+
+    @GetMapping("/compatibility/{targetUserId}")
+    public ResponseEntity<MatchingResponse> getCompatibility(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable java.util.UUID targetUserId) {
+        MatchingResponse compatibility = matchingService.getCompatibility(principal.getId(), targetUserId);
+        return ResponseEntity.ok(compatibility);
+    }
 }

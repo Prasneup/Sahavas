@@ -36,24 +36,30 @@ const MatchResults: React.FC = () => {
             compatibilityScore: Math.round(r.matchScorePercentage || 85),
             college: r.collegeName || "NCIT Balkumari",
             department: r.majorCourse || "Computer Science",
-            academicYear: `${r.academicYear} Year`,
-            budgetRange: `NPR ${r.budgetMin} - ${r.budgetMax} / mo`,
-            smokingStatus: r.matchingPreferences?.smoking === 1 ? "Non-Smoker" : (r.matchingPreferences?.smoking === 5 ? "Regular Smoker" : "Social Smoker"),
-            drinkingHabit: r.matchingPreferences?.drinking === 1 ? "Never" : "Socially",
+            academicYear: r.academicYear ? `${r.academicYear} Year` : "1st Year",
+            budgetRange: r.budgetMin && r.budgetMax ? `NPR ${Math.round(r.budgetMin)} - ${Math.round(r.budgetMax)} / mo` : "NPR 6000 - 8000 / mo",
+            smokingStatus: r.matchingPreferences?.smoking || "Non-Smoker",
+            drinkingHabit: "Socially",
             studyStyle: "Quiet library study",
-            sleepSchedule: r.matchingPreferences?.sleepSchedule === 2 ? "Early Bird" : "Late Owl",
-            cleanlinessLevel: r.matchingPreferences?.cleanliness === 5 ? "High Cleanliness" : (r.matchingPreferences?.cleanliness === 3 ? "Moderate Cleanliness" : "Low Cleanliness"),
+            sleepSchedule: r.matchingPreferences?.sleepSchedule || "Early Bird",
+            cleanlinessLevel: r.matchingPreferences?.cleanliness || "Moderate Cleanliness",
             guestPreference: "No overnight guests",
             hometown: r.hometownDistrict || "Kathmandu",
             bio: r.bio || "Student matching partner on Sahavas",
             avatarUrl: r.avatarUrl || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=200",
-            interests: ["Football", "Guitar", "Gaming"],
-            compatibilityBreakdown: {
-              lifestyle: Math.round(80 + Math.random() * 20),
-              study: Math.round(80 + Math.random() * 20),
-              budget: Math.round(80 + Math.random() * 20),
-              cleanliness: Math.round(80 + Math.random() * 20),
-              location: Math.round(80 + Math.random() * 20)
+            interests: r.interests && r.interests.length > 0 ? r.interests : ["Football", "Guitar", "Gaming"],
+            compatibilityBreakdown: r.compatibilityBreakdown ? {
+              lifestyle: Math.round(r.compatibilityBreakdown.lifestyle || 80),
+              study: Math.round(r.compatibilityBreakdown.study || 80),
+              budget: Math.round(r.compatibilityBreakdown.budget || 80),
+              cleanliness: Math.round(r.compatibilityBreakdown.cleanliness || 80),
+              location: Math.round(r.compatibilityBreakdown.location || 80)
+            } : {
+              lifestyle: 80,
+              study: 80,
+              budget: 80,
+              cleanliness: 80,
+              location: 80
             }
           }));
           setRoommates(mapped.sort((a: any, b: any) => b.compatibilityScore - a.compatibilityScore));

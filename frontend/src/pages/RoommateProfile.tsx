@@ -25,28 +25,40 @@ const RoommateProfile: React.FC = () => {
           setProfile(location.state.roommate);
           checkLocalStorage(location.state.roommate.id);
         } else {
-          // Otherwise fetch from profiles API
-          const res = await api.get(`/profiles/${id}`);
-          const p = res.data;
+          // Otherwise fetch from profiles API and matching compatibility API in parallel
+          const [profileRes, compRes] = await Promise.all([
+            api.get(`/profiles/${id}`),
+            api.get(`/matching/compatibility/${id}`).catch(() => null)
+          ]);
+          
+          const p = profileRes.data;
+          const c = compRes?.data;
+          
           const mapped: Roommate = {
             id: p.id,
             name: p.fullName || "Student Partner",
-            compatibilityScore: 85,
+            compatibilityScore: c ? Math.round(c.matchScorePercentage || 85) : 85,
             college: p.collegeName || "NCIT Balkumari",
             department: p.majorCourse || "Computer Science",
             academicYear: p.academicYear ? `${p.academicYear} Year` : "1st Year",
-            budgetRange: `NPR ${p.budgetMin || 6000} - ${p.budgetMax || 8000} / mo`,
-            smokingStatus: "Non-Smoker",
+            budgetRange: p.budgetMin && p.budgetMax ? `NPR ${Math.round(p.budgetMin)} - ${Math.round(p.budgetMax)} / mo` : "NPR 6000 - 8000 / mo",
+            smokingStatus: c && c.matchingPreferences?.smoking ? c.matchingPreferences.smoking : "Non-Smoker",
             drinkingHabit: "Socially",
             studyStyle: "Quiet study",
-            sleepSchedule: "Early Bird",
-            cleanlinessLevel: "Moderate Cleanliness",
+            sleepSchedule: c && c.matchingPreferences?.sleepSchedule ? c.matchingPreferences.sleepSchedule : "Early Bird",
+            cleanlinessLevel: c && c.matchingPreferences?.cleanliness ? c.matchingPreferences.cleanliness : "Moderate Cleanliness",
             guestPreference: "No overnight guests",
             hometown: p.hometownDistrict || "Kathmandu",
             bio: p.bio || "Looking for a roommate on Sahavas",
             avatarUrl: p.avatarUrl || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=200",
             interests: p.interests && p.interests.length > 0 ? p.interests : ["Reading", "Music"],
-            compatibilityBreakdown: {
+            compatibilityBreakdown: c && c.compatibilityBreakdown ? {
+              lifestyle: Math.round(c.compatibilityBreakdown.lifestyle || 80),
+              study: Math.round(c.compatibilityBreakdown.study || 80),
+              budget: Math.round(c.compatibilityBreakdown.budget || 80),
+              cleanliness: Math.round(c.compatibilityBreakdown.cleanliness || 80),
+              location: Math.round(c.compatibilityBreakdown.location || 80)
+            } : {
               lifestyle: 80,
               study: 80,
               budget: 80,

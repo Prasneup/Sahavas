@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Home as HomeIcon, Users, Flame, MapPin, Compass, Bookmark, Award, Sparkles, Activity, MessageCircle, CheckCircle, AlertTriangle } from 'lucide-react';
+import { User, Home as HomeIcon, Users, Flame, MapPin, Compass, Bookmark, Award, Sparkles, Activity, MessageCircle, CheckCircle, AlertTriangle, Bell } from 'lucide-react';
 import api from '../services/api';
 import { NivaroLogo } from '../components/NivaroLogo';
 import Footer from '../components/Footer';
@@ -23,6 +23,74 @@ const Dashboard: React.FC = () => {
   const [vettingStatus, setVettingStatus] = useState('UNVERIFIED');
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
   const [matchCount, setMatchCount] = useState(8);
+
+  // Notification states
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+    if (showNotifications) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showNotifications]);
+
+  const handleNotificationClick = async (notif: any) => {
+    try {
+      await api.put(`/notifications/${notif.id}/read`);
+      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (err) {
+      console.error("Failed to mark notification as read", err);
+    }
+    setShowNotifications(false);
+
+    if (notif.type === 'NEW_MESSAGE' || notif.type === 'NEW_ENQUIRY') {
+      let peerId = '';
+      try {
+        const chatRes = await api.get('/chats/conversations');
+        const match = chatRes.data?.find((c: any) => c.conversationId === notif.conversationId);
+        if (match) {
+          peerId = match.peerProfile?.id;
+        }
+      } catch (e) {
+        console.error("Failed to resolve peer profile ID", e);
+      }
+
+      if (peerId) {
+        navigate(`/chat/${peerId}${notif.roomId ? `?listingId=${notif.roomId}` : ''}`);
+      } else {
+        navigate('/messages');
+      }
+    } else if (notif.type === 'VERIFICATION_APPROVED' || notif.type === 'VERIFICATION_REJECTED') {
+      if (notif.type === 'VERIFICATION_APPROVED') {
+        setVettingStatus('VERIFIED');
+      } else {
+        setVettingStatus('REJECTED');
+      }
+      navigate('/dashboard');
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    const unreads = notifications.filter(n => !n.isRead);
+    try {
+      await Promise.all(unreads.map(n => api.put(`/notifications/${n.id}/read`)));
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.error("Failed to mark all notifications as read", err);
+    }
+  };
   const [recommendedRooms, setRecommendedRooms] = useState<any[]>([]);
   const [savedRooms, setSavedRooms] = useState<any[]>([]);
   const [recommendedRoommates, setRecommendedRoommates] = useState<RoommateMatch[]>([]);
@@ -94,6 +162,18 @@ const Dashboard: React.FC = () => {
           setStreakDays(res.data.streakDays || 1);
           setTotalXp(res.data.totalXp || 0);
         }
+      })
+      .catch(() => {});
+      
+    api.get('/notifications')
+      .then(res => {
+        setNotifications(res.data || []);
+      })
+      .catch(() => {});
+
+    api.get('/notifications/unread/count')
+      .then(res => {
+        setUnreadCount(res.data?.unreadCount || 0);
       })
       .catch(() => {});
 
@@ -235,8 +315,17 @@ const Dashboard: React.FC = () => {
               <h1 className="text-2xl font-bold tracking-tight text-ink font-display uppercase leading-none">
                 NIVARO
               </h1>
-              <span className="text-[10px] tracking-wider block uppercase font-mono font-bold text-ink-soft/75 mt-0.5">
+              <span className="text-[10px] tracking-wider uppercase font-mono font-bold text-ink-soft/75 mt-0.5 flex items-center gap-1.5 flex-wrap">
                 NAMASTE, {user?.fullName || 'RAJAN'}
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-ink-soft/30" />
+                <span className="inline-flex items-center gap-0.5 text-marigold-dark">
+                  <Flame size={11} className="fill-marigold-dark stroke-[2.5]" />
+                  {streakDays} Day Streak
+                </span>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-ink-soft/30" />
+                <span className="inline-flex items-center gap-0.5 text-marigold-dark">
+                  ★ {totalXp} XP
+                </span>
               </span>
             </div>
           </div>
@@ -250,6 +339,70 @@ const Dashboard: React.FC = () => {
                 🛡️ Admin Panel
               </button>
             )}
+            {/* Notification Bell Dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="bg-paper hover:bg-[#FAF3E8] border border-ink/10 text-ink p-2.5 rounded-full shadow-sm transition relative flex items-center justify-center"
+              >
+                <Bell size={16} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-600 text-paper text-[8px] font-black flex items-center justify-center shadow-md animate-pulse">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 bg-paper border border-ink/10 rounded-[20px] shadow-xl z-50 p-4 space-y-3">
+                  <div className="flex justify-between items-center border-b border-ink/5 pb-2">
+                    <h4 className="text-xs font-black text-ink font-display">Notifications</h4>
+                    {unreadCount > 0 && (
+                      <button 
+                        onClick={handleMarkAllRead}
+                        className="text-[10px] text-marigold font-black hover:underline"
+                      >
+                        Mark all as read
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="max-h-60 overflow-y-auto divide-y divide-ink/5 space-y-2.5">
+                    {notifications.length === 0 ? (
+                      <div className="text-center py-6 text-[10px] font-bold text-ink-soft/75">
+                        No notifications yet.
+                      </div>
+                    ) : (
+                      notifications.map((notif) => (
+                        <div 
+                          key={notif.id}
+                          onClick={() => handleNotificationClick(notif)}
+                          className={`pt-2.5 pb-1 flex gap-2.5 cursor-pointer group hover:bg-[#FAF8F5] rounded-lg px-2 transition ${notif.isRead ? '' : 'bg-clay/10'}`}
+                        >
+                          <div className="flex-1 min-w-0 text-left">
+                            <div className="flex items-center gap-1.5 justify-between">
+                              <span className={`text-[10px] font-black truncate ${notif.isRead ? 'text-ink' : 'text-marigold-dark'}`}>
+                                {notif.title}
+                              </span>
+                              {!notif.isRead && (
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
+                              )}
+                            </div>
+                            <p className="text-[10px] text-ink-soft/80 line-clamp-2 mt-0.5 font-medium leading-normal">
+                              {notif.content}
+                            </p>
+                            <span className="text-[8px] text-ink-soft/45 font-mono mt-1 block">
+                              {new Date(notif.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button 
               onClick={logout}
               className="bg-paper hover:bg-[#FAF3E8] border border-ink/10 text-ink text-xs font-bold px-5 py-2.5 rounded-full shadow-sm transition"
@@ -479,7 +632,7 @@ const Dashboard: React.FC = () => {
           <div className="bg-paper border border-ink/10 rounded-2xl p-5 flex flex-col justify-between min-h-[110px] shadow-sm">
             <span className="text-[9px] uppercase tracking-wider block font-black text-ink-soft/75">Relocation Status</span>
             <div className="flex items-center gap-1 mt-2 text-marigold-dark font-black text-xs leading-none">
-              🔥 {checklistPercentage === 100 ? "Settled & Done" : "Searching for a Room"}
+              <Flame size={14} className="text-marigold stroke-[2.5]" /> {checklistPercentage === 100 ? "Settled & Done" : "Searching for a Room"}
             </div>
             <span className="text-[9px] block mt-1.5 font-bold text-ink-soft/70 leading-normal">
               {checklistPercentage === 100 ? "Congratulations, you are moved in!" : "Keep going! You're doing great."}

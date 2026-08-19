@@ -97,6 +97,60 @@ public class MatchingEngine {
         return Math.round(score * 10.0) / 10.0;
     }
 
+    public Map<String, Double> calculateCompatibilityBreakdown(RoommatePreference a, RoommatePreference b) {
+        Map<String, Double> breakdown = new HashMap<>();
+
+        // 1. Cleanliness
+        double s_clean = 1.0 - (Math.abs(a.getCleanliness() - b.getCleanliness()) / 2.0);
+        breakdown.put("cleanliness", Math.round(s_clean * 1000.0) / 10.0);
+
+        // 2. Budget
+        double s_budget = 1.0;
+        BigDecimal maxMin = a.getBudgetMin().max(b.getBudgetMin());
+        BigDecimal minMax = a.getBudgetMax().min(b.getBudgetMax());
+        if (maxMin.compareTo(minMax) > 0) {
+            s_budget = 0.0;
+        }
+        breakdown.put("budget", s_budget * 100.0);
+
+        // 3. Study
+        double s_study = a.getStudyHabits().equals(b.getStudyHabits()) ? 1.0 : 0.5;
+        breakdown.put("study", s_study * 100.0);
+
+        // 4. Location
+        breakdown.put("location", 100.0); // same city requirement to even match
+
+        // 5. Lifestyle (smoking, sleep, social, noise)
+        double lifestyleSum = 0.0;
+        double lifestyleWeights = 0.0;
+
+        double s_smoking = 1.0;
+        if (a.getSmoking() == 0 && b.getSmoking() == 2) {
+            s_smoking = 0.0;
+        } else {
+            s_smoking = 1.0 - (Math.abs(a.getSmoking() - b.getSmoking()) / 2.0);
+        }
+        lifestyleSum += s_smoking * W_SMOKING;
+        lifestyleWeights += W_SMOKING;
+
+        double s_sleep = a.getSleepSchedule().equals(b.getSleepSchedule()) ? 1.0 : 0.0;
+        lifestyleSum += s_sleep * W_SLEEP;
+        lifestyleWeights += W_SLEEP;
+
+        double s_social = 1.0 - (Math.abs(a.getSocialLevel() - b.getSocialLevel()) / 2.0);
+        lifestyleSum += s_social * W_SOCIAL;
+        lifestyleWeights += W_SOCIAL;
+
+        double s_noise = 1.0 - (Math.abs(a.getNoiseTolerance() - b.getNoiseTolerance()) / 2.0);
+        lifestyleSum += s_noise * W_NOISE;
+        lifestyleWeights += W_NOISE;
+
+        double lifestyleScore = (lifestyleSum / lifestyleWeights) * 100.0;
+        breakdown.put("lifestyle", Math.round(lifestyleScore * 10.0) / 10.0);
+
+        return breakdown;
+    }
+
     private String getSleepLabel(int val) {
         return val == 0 ? "Early Bird" : "Night Owl";
     }
