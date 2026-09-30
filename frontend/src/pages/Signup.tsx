@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import api from '../services/api';
 import { NivaroLogo } from '../components/NivaroLogo';
+import { trustService } from '../services/trustService';
+import { 
+  validatePhoneNumber, 
+  validateEmail, 
+  validatePassword 
+} from '../utils/validation';
 
 const Signup: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -29,8 +34,8 @@ const Signup: React.FC = () => {
 
   useEffect(() => {
     // Load colleges list for students selection dropdown
-    api.get('/colleges')
-      .then(res => setColleges(res.data || []))
+    trustService.getColleges()
+      .then(res => setColleges(res || []))
       .catch(err => console.error("Failed to load college registers", err));
   }, []);
 
@@ -41,13 +46,8 @@ const Signup: React.FC = () => {
       if (value.length > 0 && !/^\d*$/.test(value)) return; // Restrict to numbers only
       if (value.length > 10) return; // Limit length to 10
       
-      if (value.length > 0 && value.length < 10) {
-        setPhoneError('Nepal mobile numbers must be exactly 10 digits');
-      } else if (value.length === 10 && !/^(98|97)/.test(value)) {
-        setPhoneError('Nepal mobile numbers must start with 97 or 98');
-      } else {
-        setPhoneError('');
-      }
+      const err = validatePhoneNumber(value);
+      setPhoneError(err === 'invalid_chars' || err === 'invalid_length' ? '' : err);
     }
 
     const valueParsed = name === 'academicYear' ? parseInt(value, 10) : value;
@@ -69,13 +69,13 @@ const Signup: React.FC = () => {
       return;
     }
 
-    if (!formData.phoneNumber || !/^(98|97)\d{8}$/.test(formData.phoneNumber)) {
+    if (!formData.phoneNumber || validatePhoneNumber(formData.phoneNumber)) {
       setError('Please enter a valid 10-digit Nepal mobile number starting with 97 or 98.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
-    if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    if (!formData.email || !validateEmail(formData.email)) {
       setError('Please enter a valid email address.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
@@ -111,13 +111,9 @@ const Signup: React.FC = () => {
     }
 
     // Password validation: min 8 chars, must contain both letters and numbers
-    if (!formData.password || formData.password.length < 8) {
-      setError('Password must be at least 8 characters long.');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-    if (!/[A-Za-z]/.test(formData.password) || !/[0-9]/.test(formData.password)) {
-      setError('Password must contain both letters and numbers.');
+    const pwdErr = validatePassword(formData.password);
+    if (pwdErr) {
+      setError(pwdErr);
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -149,14 +145,7 @@ const Signup: React.FC = () => {
         navigate('/login');
       }, 2000);
     } catch (err: any) {
-      const backendMessage = err.response?.data?.message || '';
-      if (backendMessage.includes("Email is already in use") || backendMessage.includes("Email already exists")) {
-        setError("An account with this email already exists. Please sign in instead.");
-      } else if (backendMessage.includes("Phone number is already in use")) {
-        setError("An account with this phone number already exists.");
-      } else {
-        setError(backendMessage || 'Registration failed. Please check inputs.');
-      }
+      setError(err.response?.data?.message || 'Verification / Registration failed. Phone/email might be registered.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setIsSubmitting(false);
@@ -164,214 +153,214 @@ const Signup: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-clay px-4 py-12 font-sans text-ink">
+    <div className="flex items-center justify-center min-h-screen bg-clay py-12 px-4 font-sans text-ink">
       <div className="w-full max-w-lg bg-paper border border-ink/5 rounded-[32px] p-8 shadow-lg">
         
         {/* Header Bar */}
         <div className="text-center mb-8 flex flex-col items-center">
-          {/* Nivaro Mandala/Sun Logo Icon */}
           <div className="w-10 h-10 rounded-full bg-paper flex items-center justify-center border border-ink/10 shadow-sm mb-3">
             <NivaroLogo className="w-6 h-6 text-marigold" />
           </div>
           <h2 className="text-3xl font-black text-ink font-display">NIVARO</h2>
           <p className="text-xs text-ink-soft font-semibold mt-2">
-            Find your room. Find your perfect roommate.
+            Create an account to search flatmates or rent out rooms
           </p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl text-sm font-semibold animate-shake">
+          <div className="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl text-xs font-semibold">
             {error}
           </div>
         )}
 
         {successMessage && (
-          <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-xl text-sm font-semibold">
+          <div className="mb-6 p-4 bg-pine-light border border-pine/20 text-pine rounded-xl text-xs font-semibold">
             {successMessage}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Account Type</label>
+        <form onSubmit={handleSubmit} className="space-y-4 text-xs text-left">
+          
+          {/* Form fields layout exact copy of layout definitions */}
+          <div className="space-y-1">
+            <label className="block text-[10px] uppercase font-bold text-ink-soft">Account Category</label>
             <select
               name="role"
               value={formData.role}
               onChange={handleChange}
-              className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold"
+              className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-3 focus:outline-none focus:border-marigold text-xs font-bold"
             >
-              <option value="student">Student (Looking for roommate/rooms)</option>
-              <option value="owner">House Owner / Landlord (Posting rooms)</option>
+              <option value="student">🎓 I am a Student (seeking room/roommate)</option>
+              <option value="owner">🏠 I am a Landlord / Owner (renting out a space)</option>
             </select>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Full Name</label>
-              <input
-                type="text"
-                name="fullName"
-                required
-                value={formData.fullName}
-                onChange={handleChange}
-                placeholder="Prasanna Neupane"
-                className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold"
-              />
-            </div>
-
-            <div>
-              <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Gender</label>
-              <select
-                name="gender"
-                value={formData.gender}
-                onChange={handleChange}
-                className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold"
-              >
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
-                <option value="OTHER">Other</option>
-              </select>
-            </div>
+          <div className="space-y-1">
+            <label className="block text-[10px] uppercase font-bold text-ink-soft">Full Name</label>
+            <input
+              type="text"
+              name="fullName"
+              required
+              placeholder="e.g. Prasanna Neupane"
+              value={formData.fullName}
+              onChange={handleChange}
+              className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-3 focus:outline-none focus:border-marigold text-xs font-semibold"
+            />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Phone Number</label>
+            <div className="space-y-1">
+              <label className="block text-[10px] uppercase font-bold text-ink-soft">Nepal Phone Number</label>
               <input
                 type="text"
                 name="phoneNumber"
                 required
+                placeholder="e.g. 9841XXXXXX"
                 value={formData.phoneNumber}
                 onChange={handleChange}
-                placeholder="e.g. 9841234567"
-                className={`w-full bg-[#FAF8F5] border text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold ${phoneError ? 'border-brick' : 'border-ink/10'}`}
+                className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-3 focus:outline-none focus:border-marigold text-xs font-semibold font-mono"
               />
               {phoneError && (
-                <span className="text-[10px] text-brick font-semibold mt-1 block">{phoneError}</span>
+                <span className="text-[10px] font-bold text-rose-500 block mt-1 leading-tight">{phoneError}</span>
               )}
             </div>
 
-            <div>
-              <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Email Address</label>
+            <div className="space-y-1">
+              <label className="block text-[10px] uppercase font-bold text-ink-soft">Email Address</label>
               <input
                 type="email"
                 name="email"
+                required
+                placeholder="e.g. student@college.edu.np"
                 value={formData.email}
                 onChange={handleChange}
-                placeholder="student@college.edu.np"
-                className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold"
+                className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-3 focus:outline-none focus:border-marigold text-xs font-semibold"
               />
             </div>
           </div>
 
+          {/* Location details */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Origin District</label>
+            <div className="space-y-1">
+              <label className="block text-[10px] uppercase font-bold text-ink-soft">Hometown District</label>
               <input
                 type="text"
                 name="hometownDistrict"
                 required
+                placeholder="e.g. Dang, Kaski, Lalitpur"
                 value={formData.hometownDistrict}
                 onChange={handleChange}
-                placeholder="e.g. Biratnagar, Jhapa"
-                className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold"
+                className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-3 focus:outline-none focus:border-marigold text-xs font-semibold"
               />
             </div>
 
-            <div>
-              <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Target City</label>
-              <select
+            <div className="space-y-1">
+              <label className="block text-[10px] uppercase font-bold text-ink-soft">Target / Current City</label>
+              <input
+                type="text"
                 name="currentCity"
+                required
+                placeholder="e.g. Kathmandu"
                 value={formData.currentCity}
                 onChange={handleChange}
-                className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold"
-              >
-                <option value="Kathmandu">Kathmandu</option>
-                <option value="Pokhara">Pokhara</option>
-                <option value="Butwal">Butwal</option>
-                <option value="Nepalgunj">Nepalgunj</option>
-                <option value="Dharan">Dharan</option>
-                <option value="Chitwan">Chitwan</option>
-              </select>
+                className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-3 focus:outline-none focus:border-marigold text-xs font-semibold"
+              />
             </div>
           </div>
 
+          {/* Conditional Fields for Students role */}
           {formData.role === 'student' && (
-            <div className="space-y-4 pt-1">
-              <div>
-                <label className="block text-ink-soft text-xs font-bold uppercase mb-2">College Name</label>
+            <div className="p-4 bg-[#FAF8F5] border border-ink/5 rounded-2xl space-y-4">
+              <span className="text-[9px] uppercase tracking-wider block font-bold text-marigold">Student Academic Details</span>
+              
+              <div className="space-y-1">
+                <label className="block text-[10px] uppercase font-bold text-ink-soft">Select College / Campus</label>
                 <select
                   name="collegeId"
                   value={formData.collegeId}
                   onChange={handleChange}
-                  required
-                  className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold"
+                  className="w-full bg-paper border border-ink/10 text-ink rounded-xl px-4 py-3 focus:outline-none focus:border-marigold text-xs font-bold"
                 >
-                  <option value="">-- Select Your College --</option>
-                  {colleges.map((c: any) => (
-                    <option key={c.id} value={c.id}>{c.name} ({c.city})</option>
+                  <option value="">-- Choose College --</option>
+                  {colleges.map(c => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.location})</option>
                   ))}
                 </select>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Major Course</label>
+                <div className="space-y-1">
+                  <label className="block text-[10px] uppercase font-bold text-ink-soft">Major Course / Department</label>
                   <input
                     type="text"
                     name="majorCourse"
-                    required
+                    placeholder="e.g. Civil Engineering"
                     value={formData.majorCourse}
                     onChange={handleChange}
-                    placeholder="e.g. BBA, BIM, CSIT"
-                    className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold"
+                    className="w-full bg-paper border border-ink/10 text-ink rounded-xl px-4 py-3 focus:outline-none focus:border-marigold text-xs font-semibold"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Academic Year</label>
+                <div className="space-y-1">
+                  <label className="block text-[10px] uppercase font-bold text-ink-soft">Academic Year</label>
                   <select
                     name="academicYear"
                     value={formData.academicYear}
                     onChange={handleChange}
-                    className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold"
+                    className="w-full bg-paper border border-ink/10 text-ink rounded-xl px-4 py-3 focus:outline-none focus:border-marigold text-xs font-bold"
                   >
-                    <option value={1}>First Year</option>
-                    <option value={2}>Second Year</option>
-                    <option value={3}>Third Year</option>
-                    <option value={4}>Fourth Year</option>
+                    <option value={1}>1st Year</option>
+                    <option value={2}>2nd Year</option>
+                    <option value={3}>3rd Year</option>
+                    <option value={4}>4th Year</option>
                   </select>
                 </div>
               </div>
             </div>
           )}
 
-          <div>
-            <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Password</label>
-            <input
-              type="password"
-              name="password"
-              required
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Min 8 characters"
-              className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="block text-[10px] uppercase font-bold text-ink-soft">Gender</label>
+              <select
+                name="gender"
+                value={formData.gender}
+                onChange={handleChange}
+                className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-3 focus:outline-none focus:border-marigold text-xs font-bold"
+              >
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-[10px] uppercase font-bold text-ink-soft">Password</label>
+              <input
+                type="password"
+                name="password"
+                required
+                placeholder="Min 8 chars (numbers + letters)"
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-3 focus:outline-none focus:border-marigold text-xs font-semibold"
+              />
+            </div>
           </div>
 
           <button
             type="submit"
-            disabled={isSubmitting || phoneError.length > 0 || successMessage.length > 0}
-            className="w-full bg-marigold hover:bg-marigold-dark text-paper font-black py-4 rounded-xl shadow-md transition disabled:opacity-50 text-sm uppercase tracking-wider mt-4"
+            disabled={isSubmitting || !!phoneError}
+            className="w-full bg-marigold hover:bg-marigold-dark text-paper font-black py-4 rounded-xl shadow-md transition disabled:opacity-50 text-xs uppercase tracking-wider mt-4"
           >
-            {isSubmitting ? 'Registering User...' : successMessage ? 'Redirecting...' : 'Create Account'}
+            {isSubmitting ? 'Creating profile account...' : 'Create Account'}
           </button>
         </form>
 
-        <p className="text-ink-soft text-center text-xs mt-6 font-semibold">
-          Already registered?{' '}
+        <p className="text-ink-soft text-center text-xs mt-6 font-semibold animate-fade-in">
+          Already have an account?{' '}
           <Link to="/login" className="text-marigold hover:underline font-bold">
-            Sign in here
+            Sign In here
           </Link>
         </p>
       </div>

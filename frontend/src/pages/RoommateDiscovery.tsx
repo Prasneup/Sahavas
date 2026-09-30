@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, ArrowLeft } from 'lucide-react';
-import api from '../services/api';
 import { NivaroLogo } from '../components/NivaroLogo';
+import { roommateService } from '../services/roommateService';
+import { RoommateCard } from '../components/roommate/RoommateCard';
 import Footer from '../components/Footer';
 
 const RoommateDiscovery: React.FC = () => {
@@ -36,20 +37,20 @@ const RoommateDiscovery: React.FC = () => {
     const fetchStatsAndMatches = async () => {
       try {
         // Fetch stats first
-        const statsRes = await api.get('/roommates/stats');
-        if (statsRes.data) {
+        const statsRes = await roommateService.getStats();
+        if (statsRes) {
           setStats({
-            compatibleMatches: statsRes.data.compatibleMatches || 0,
-            pendingRequests: statsRes.data.pendingRequests || 0,
-            savedProfiles: statsRes.data.savedProfiles || 0,
-            acceptedConnections: statsRes.data.acceptedConnections || 0
+            compatibleMatches: statsRes.compatibleMatches || 0,
+            pendingRequests: statsRes.pendingRequests || 0,
+            savedProfiles: statsRes.savedProfiles || 0,
+            acceptedConnections: statsRes.acceptedConnections || 0
           });
         }
 
         // Fetch matches preview
-        const res = await api.get('/matching/suggestions');
-        if (res.data) {
-          const mapped = res.data.map((r: any) => ({
+        const res = await roommateService.getSuggestions();
+        if (res) {
+          const mapped = res.map((r: any) => ({
             id: r.studentId,
             name: r.fullName,
             college: r.collegeName || "NCIT Balkumari",
@@ -100,7 +101,7 @@ const RoommateDiscovery: React.FC = () => {
     };
 
     try {
-      await api.post('/matching/preferences', payload);
+      await roommateService.updatePreferences(payload);
     } catch (err) {
       console.warn("Failed to post roommate preferences to backend", err);
     }
@@ -237,37 +238,11 @@ const RoommateDiscovery: React.FC = () => {
                   </div>
                 ) : (
                   matches.map((match) => (
-                    <div 
+                    <RoommateCard 
                       key={match.id}
-                      onClick={() => navigate(`/matches/${match.id}`, { state: { roommate: match } })}
-                      className="dashboard-card p-5 bg-paper flex flex-col justify-between hover:-translate-y-0.5 hover:shadow-md transition cursor-pointer"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <img src={match.avatarUrl} alt={match.name} className="w-12 h-12 rounded-full object-cover border border-ink/10" />
-                          <div>
-                            <h4 className="text-xs font-black text-ink">{match.name}</h4>
-                            <span className="text-[10px] text-ink-soft block font-semibold">{match.college}</span>
-                          </div>
-                        </div>
-                        <span className="text-xs font-bold text-pine bg-pine-light px-2.5 py-1 rounded-full font-mono">
-                          {match.compatibilityScore}%
-                        </span>
-                      </div>
-
-                      <p className="text-xs text-ink-soft line-clamp-2 mt-4 font-medium italic">
-                        "{match.bio}"
-                      </p>
-
-                      <div className="flex flex-wrap gap-1.5 mt-4 pt-4 border-t border-ink/5">
-                        <span className="text-[8px] bg-clay text-ink-soft font-bold px-2 py-0.5 rounded uppercase">
-                          {match.sleepSchedule}
-                        </span>
-                        <span className="text-[8px] bg-clay text-ink-soft font-bold px-2 py-0.5 rounded uppercase">
-                          {match.smokingStatus}
-                        </span>
-                      </div>
-                    </div>
+                      roommate={match}
+                      variant="preview"
+                    />
                   ))
                 )}
               </div>
@@ -448,22 +423,18 @@ const RoommateDiscovery: React.FC = () => {
           <div className="max-w-md mx-auto bg-paper border border-ink/10 rounded-[32px] p-8 shadow-sm text-center py-16 space-y-8">
             {/* Spinning Mandala Logo */}
             <div className="flex justify-center">
-              <div className="w-16 h-16 rounded-full bg-[#FAF3E8] border border-marigold flex items-center justify-center text-marigold animate-spin-slow">
+              <div className="w-16 h-16 rounded-full bg-marigold flex items-center justify-center text-ink shadow-md animate-spin duration-[3000ms]">
                 <NivaroLogo className="w-10 h-10" />
               </div>
             </div>
 
-            <div className="space-y-3">
-              <h3 className="text-xl font-black text-ink font-display">Finding Your Roommate Matches</h3>
-              <p className="text-xs text-marigold-dark font-mono font-bold animate-pulse">{loaderMessage}</p>
+            <div className="space-y-2">
+              <h3 className="text-lg font-black text-ink font-display">{loaderMessage}</h3>
+              <p className="text-xs text-ink-soft font-semibold">Running multi-factor matching algorithms...</p>
             </div>
 
-            {/* Progress Percentage Counter */}
-            <div className="space-y-2">
-              <div className="w-full bg-clay/30 h-2.5 rounded-full overflow-hidden">
-                <div className="bg-marigold h-full rounded-full transition-all duration-100" style={{ width: `${progress}%` }}></div>
-              </div>
-              <span className="text-xs font-bold font-mono text-ink-soft">{progress}% Completed</span>
+            <div className="w-full bg-clay/30 h-2.5 rounded-full overflow-hidden">
+              <div className="bg-marigold h-full rounded-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
             </div>
           </div>
         )}

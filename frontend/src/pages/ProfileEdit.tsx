@@ -1,29 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
-import { User, Award, CheckCircle, Sparkles, BookOpen, ArrowLeft, Upload, Loader2 } from 'lucide-react';
-import { NivaroLogo } from '../components/NivaroLogo';
-
-interface ProfileData {
-  fullName: string;
-  gender: string;
-  age: number;
-  majorCourse: string;
-  academicYear: number;
-  currentSemester: number;
-  avatarUrl: string;
-  bio: string;
-  hometownDistrict: string;
-  currentCity: string;
-  preferredRelocationCity: string;
-  budgetMin: number;
-  budgetMax: number;
-  verificationStatus: string;
-  completenessPercentage: number;
-  interests: string[];
-  skills: string[];
-  languages: string[];
-}
+import { User, Award, Sparkles, BookOpen, ArrowLeft, Upload, Loader2 } from 'lucide-react';
+import { ProfileData } from '../types/user';
+import { trustService } from '../services/trustService';
+import { mediaService } from '../services/mediaService';
+import Footer from '../components/Footer';
 
 const ProfileEdit: React.FC = () => {
   const [profile, setProfile] = useState<ProfileData>({
@@ -63,8 +44,10 @@ const ProfileEdit: React.FC = () => {
 
   const loadProfile = async () => {
     try {
-      const res = await api.get('/profiles/me');
-      setProfile(res.data);
+      const data = await trustService.getMyProfile();
+      if (data) {
+        setProfile(data);
+      }
     } catch (err) {
       console.warn("API profile fetch failed, using defaults", err);
       setProfile({
@@ -95,16 +78,12 @@ const ProfileEdit: React.FC = () => {
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
-    const formData = new FormData();
-    formData.append('file', file);
 
     setUploading(true);
     try {
-      const res = await api.post('/media/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      if (res.data?.url) {
-        setProfile(prev => ({ ...prev, avatarUrl: res.data.url }));
+      const url = await mediaService.upload(file);
+      if (url) {
+        setProfile(prev => ({ ...prev, avatarUrl: url }));
       }
     } catch (err) {
       alert("Failed to upload scan file to Cloudinary. Please verify connection/credentials.");
@@ -118,8 +97,10 @@ const ProfileEdit: React.FC = () => {
     setSaving(true);
     setMessage('');
     try {
-      const res = await api.put('/profiles/me', profile);
-      setProfile(res.data);
+      const data = await trustService.updateMyProfile(profile);
+      if (data) {
+        setProfile(data);
+      }
       setMessage('Profile saved successfully!');
     } catch (err) {
       setMessage('Profile updated successfully (Mock Session Mode)!');
@@ -152,413 +133,365 @@ const ProfileEdit: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-clay text-marigold">
-        <span className="animate-pulse font-bold text-sm">Loading Student Profile details...</span>
+        <span className="animate-pulse font-bold text-sm">Opening Profile Customizer...</span>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-6 md:p-10 font-sans" style={{ backgroundColor: 'var(--clay)', color: 'var(--ink)' }}>
-      <div className="max-w-6xl mx-auto">
-        
-        {/* Header Bar */}
-        <header className="mb-8 flex justify-between items-center border-b pb-5" style={{ borderColor: 'var(--line)' }}>
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => navigate('/dashboard')} 
-              style={{ backgroundColor: 'var(--paper)', border: '1px solid var(--line)' }}
-              className="w-9 h-9 rounded-full flex items-center justify-center shadow-sm"
-            >
-              <ArrowLeft size={18} style={{ color: 'var(--ink-soft)' }} />
-            </button>
-            <div className="flex items-center gap-1.5">
-              {/* Nivaro Mandala Logo */}
-              <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'var(--marigold)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)' }}>
-                <NivaroLogo className="w-4.5 h-4.5" />
-              </div>
-              <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: 'var(--font-display)', color: 'var(--ink)' }}>My Student Profile</h1>
-            </div>
-          </div>
-          <button 
-            onClick={() => navigate('/dashboard')} 
-            className="text-xs font-semibold text-ink-soft hover:text-ink transition"
-          >
-            ← Back to Feed
-          </button>
-        </header>
+    <div className="min-h-screen bg-clay text-ink flex flex-col items-center pb-24 font-sans select-none overflow-x-hidden animate-fade-in">
+      
+      {/* Header Bar */}
+      <header className="w-full bg-paper border-b border-ink/5 px-6 py-4 flex justify-between items-center sticky top-0 z-20 shadow-sm max-w-xl mx-auto">
+        <button 
+          onClick={() => navigate('/dashboard')} 
+          className="w-9 h-9 rounded-full bg-paper border border-ink/10 flex items-center justify-center shadow-sm hover:bg-[#FAF3E8] transition"
+        >
+          <ArrowLeft size={18} className="text-ink-soft" />
+        </button>
+        <h2 className="text-ink-soft text-xs font-bold uppercase tracking-wider font-display">Configure Identity</h2>
+        <div className="w-9" />
+      </header>
 
+      <div className="w-full max-w-xl px-6 pt-6 flex-1 flex flex-col justify-start space-y-6">
+        
+        {/* Title */}
+        <div>
+          <h1 className="text-2xl font-black text-ink tracking-tight font-display">Edit Student Profile</h1>
+          <p className="text-xs text-ink-soft mt-1 font-semibold leading-relaxed">
+            Customize details visible to roommate matchmaking algorithms and union members.
+          </p>
+        </div>
+
+        {/* Completeness Card */}
+        <div className="bg-paper border border-ink/5 rounded-2xl p-5 shadow-sm space-y-4">
+          <div className="flex justify-between items-center text-xs font-bold text-ink-soft">
+            <span>Profile Completeness Index</span>
+            <span className="font-mono text-marigold-dark">{profile.completenessPercentage}%</span>
+          </div>
+          
+          <div className="w-full bg-clay/30 h-2.5 rounded-full overflow-hidden">
+            <div 
+              className="bg-marigold h-full rounded-full transition-all duration-500" 
+              style={{ width: `${profile.completenessPercentage}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Message Banner */}
         {message && (
-          <div className="mb-6 p-4 bg-teal-50 border border-teal-200 text-teal-600 rounded-xl text-sm font-semibold">
+          <div className="bg-pine-light/80 border border-pine/20 text-pine rounded-2xl p-4 text-center font-bold text-xs shadow-sm">
             {message}
           </div>
         )}
 
-        {/* 2-Column Responsive Layout Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Main Configuration Form */}
+        <form onSubmit={handleSave} className="space-y-6 text-xs text-left">
           
-          {/* Left Column (4 cols): Profile Widgets Sidebar */}
-          <div className="lg:col-span-4 flex flex-col gap-6">
-            
-            {/* User Profile summary card */}
-            <div className="dashboard-card p-6 flex items-center gap-4">
-              <div className="w-14 h-14 rounded-full overflow-hidden bg-clay flex-shrink-0 border border-marigold/30">
-                <img 
-                  src={profile.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100'} 
-                  alt="Avatar"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div>
-                <h4 className="font-bold text-ink leading-tight font-display">{profile.fullName}</h4>
-                <p className="text-xs text-ink-soft mt-0.5 font-medium">{profile.majorCourse || 'Engineering Student'}</p>
-                {profile.verificationStatus === 'VERIFIED' && (
-                  <span className="inline-block bg-pine-light text-pine text-[8px] px-2 py-0.5 rounded-full mt-1.5 font-bold uppercase tracking-wider border border-pine/15">
-                    ★ Verified badge
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Profile Completeness widget */}
-            <div className="dashboard-card p-6 flex flex-col justify-between">
-              <div>
-                <span className="text-[10px] text-ink-soft font-bold uppercase tracking-wider">Completeness</span>
-                <h3 className="text-3xl font-bold text-marigold mt-1 font-mono">{profile.completenessPercentage}%</h3>
-              </div>
-              <div className="w-full bg-clay/55 h-2.5 rounded-full overflow-hidden mt-4 border border-ink/5">
-                <div 
-                  className="bg-marigold h-full transition-all duration-500" 
-                  style={{ width: `${profile.completenessPercentage}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Vetting Status widget */}
-            <div className="dashboard-card p-6 flex flex-col justify-between">
-              <div>
-                <span className="text-[10px] text-ink-soft font-bold uppercase tracking-wider">Verification Status</span>
-                <h3 className="text-base font-bold flex items-center gap-2 mt-2">
-                  {profile.verificationStatus === 'VERIFIED' ? (
-                    <span className="inline-flex items-center gap-1.5 bg-pine-light text-pine text-[11px] font-bold px-3 py-1 rounded-full border border-pine/10">
-                      <CheckCircle className="text-pine" size={14} /> Verified Student
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 bg-marigold/10 text-marigold-dark text-[11px] font-bold px-3 py-1 rounded-full border border-marigold/10">
-                      <Award className="text-marigold animate-pulse" size={14} /> Pending verification
-                    </span>
-                  )}
-                </h3>
-              </div>
-              <button 
-                onClick={() => navigate('/verify')}
-                className="text-[11px] font-bold text-marigold hover:underline mt-4 text-left"
-              >
-                Upload Student ID Card →
-              </button>
-            </div>
-
-          </div>
-
-          {/* Right Column (8 cols): Input fields and settings forms */}
-          <form onSubmit={handleSave} className="lg:col-span-8 space-y-6">
-          
-          {/* General & Academics Card */}
-          <div className="bg-paper border border-ink/5 rounded-[16px] p-6 sm:p-8 space-y-6 shadow-sm">
-            <h3 className="text-base font-black text-ink border-b border-ink/5 pb-3 flex items-center gap-2 font-display">
-              <User size={16} className="text-marigold" />
-              General & Academic details
+          {/* Section 1: Demographics */}
+          <div className="bg-paper border border-ink/5 rounded-2xl p-5 shadow-sm space-y-4">
+            <h3 className="text-xs font-black text-ink font-display uppercase tracking-wider flex items-center gap-1.5">
+              <User size={15} className="text-marigold" /> Demographics
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <div>
-                <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Full Name</label>
-                <input
+            {/* Avatar Upload */}
+            <div className="flex items-center gap-4 border-b border-ink/5 pb-4">
+              <img 
+                src={profile.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'} 
+                alt="Profile Avatar"
+                className="w-16 h-16 rounded-full object-cover border border-ink/10 bg-clay shadow-sm"
+              />
+              
+              <label className="bg-clay hover:bg-clay/80 border border-ink/10 text-ink-soft hover:text-ink font-bold px-4 py-2 rounded-xl transition cursor-pointer text-[10px] uppercase tracking-wider shadow-sm relative flex items-center gap-1.5">
+                {uploading ? (
+                  <>
+                    <Loader2 size={12} className="animate-spin text-marigold" />
+                    <span>Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload size={12} />
+                    <span>Upload Photo</span>
+                  </>
+                )}
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  disabled={uploading}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+            {/* Name and Gender */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="block text-[10px] uppercase font-bold text-ink-soft">Full Name</label>
+                <input 
                   type="text"
                   required
+                  placeholder="e.g. Rajan Neupane"
                   value={profile.fullName}
                   onChange={(e) => setProfile({ ...profile, fullName: e.target.value })}
-                  className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold"
+                  className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-xs font-semibold"
                 />
               </div>
 
-              <div>
-                <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Age</label>
-                <input
-                  type="number"
-                  required
-                  value={profile.age}
-                  onChange={(e) => setProfile({ ...profile, age: parseInt(e.target.value) || 20 })}
-                  className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Gender</label>
+              <div className="space-y-1">
+                <label className="block text-[10px] uppercase font-bold text-ink-soft">Gender Identification</label>
                 <select
                   value={profile.gender}
                   onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
-                  className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold"
+                  className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-xs font-bold"
                 >
                   <option value="MALE">Male</option>
                   <option value="FEMALE">Female</option>
-                  <option value="OTHER">Other</option>
+                  <option value="OTHER">Other / Non-binary</option>
                 </select>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <div>
-                <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Course / Major</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Civil Engineering"
-                  value={profile.majorCourse}
-                  onChange={(e) => setProfile({ ...profile, majorCourse: e.target.value })}
-                  className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Semester</label>
-                <select
-                  value={profile.currentSemester}
-                  onChange={(e) => setProfile({ ...profile, currentSemester: parseInt(e.target.value) || 1 })}
-                  className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold font-mono"
-                >
-                  {[1, 2, 3, 4, 5, 6, 7, 8].map(sem => (
-                    <option key={sem} value={sem}>Semester {sem}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Profile Picture (Avatar)</label>
-                {profile.avatarUrl ? (
-                  <div className="flex items-center gap-3 bg-[#FAF8F5] border border-ink/10 rounded-xl p-2 h-[46px]">
-                    <img src={profile.avatarUrl} alt="Avatar" className="w-9 h-9 rounded-full object-cover border border-ink/5 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-bold text-ink-soft truncate font-mono">{profile.avatarUrl}</p>
-                    </div>
-                    <button 
-                      type="button" 
-                      onClick={() => setProfile(prev => ({ ...prev, avatarUrl: '' }))}
-                      className="text-xs font-black text-rose-500 hover:underline pr-2 flex-shrink-0"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                ) : (
-                  <label className="border border-dashed border-ink/15 hover:border-marigold/30 rounded-xl px-4 py-3 h-[46px] text-center cursor-pointer transition flex items-center justify-center gap-2 bg-[#FAF8F5] text-ink-soft text-xs font-bold">
-                    {uploading ? (
-                      <>
-                        <Loader2 size={14} className="animate-spin text-marigold" />
-                        <span>Uploading...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Upload size={14} className="text-ink-soft/55" />
-                        <span>Upload Photo</span>
-                      </>
-                    )}
-                    <input 
-                      type="file" 
-                      accept="image/*"
-                      onChange={handleAvatarUpload}
-                      disabled={uploading}
-                      className="hidden"
-                    />
-                  </label>
-                )}
-              </div>
+            {/* Age */}
+            <div className="space-y-1">
+              <label className="block text-[10px] uppercase font-bold text-ink-soft">Age (Years)</label>
+              <input 
+                type="number"
+                required
+                min={16}
+                max={40}
+                value={profile.age}
+                onChange={(e) => setProfile({ ...profile, age: Number(e.target.value) })}
+                className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-xs font-semibold font-mono"
+              />
             </div>
 
-            <div>
-              <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Bio Prompt</label>
-              <textarea
+            {/* Bio textarea */}
+            <div className="space-y-1">
+              <label className="block text-[10px] uppercase font-bold text-ink-soft">Self Bio Description</label>
+              <textarea 
                 rows={3}
-                placeholder="Talk about yourself, your hobbies, study times..."
+                placeholder="Talk about study schedules, clean rules, flat sharing interests..."
                 value={profile.bio}
                 onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-3 focus:outline-none focus:border-marigold text-sm font-semibold leading-relaxed"
+                className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-xs font-semibold resize-none"
               />
             </div>
           </div>
 
-          {/* Geography & Lifestyle Card */}
-          <div className="bg-paper border border-ink/5 rounded-[16px] p-6 sm:p-8 space-y-6 shadow-sm">
-            <h3 className="text-base font-black text-ink border-b border-ink/5 pb-3 flex items-center gap-2 font-display">
-              <BookOpen size={16} className="text-marigold" />
-              Geography & Lifestyle parameters
+          {/* Section 2: Academics */}
+          <div className="bg-paper border border-ink/5 rounded-2xl p-5 shadow-sm space-y-4">
+            <h3 className="text-xs font-black text-ink font-display uppercase tracking-wider flex items-center gap-1.5">
+              <BookOpen size={15} className="text-marigold" /> Academics Context
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <div>
-                <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Home District</label>
-                <input
+            <div className="space-y-1">
+              <label className="block text-[10px] uppercase font-bold text-ink-soft">Major Course / Department</label>
+              <input 
+                type="text"
+                required
+                placeholder="e.g. Computer Engineering"
+                value={profile.majorCourse}
+                onChange={(e) => setProfile({ ...profile, majorCourse: e.target.value })}
+                className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-xs font-semibold"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="block text-[10px] uppercase font-bold text-ink-soft">Academic Year</label>
+                <select
+                  value={profile.academicYear}
+                  onChange={(e) => setProfile({ ...profile, academicYear: Number(e.target.value) })}
+                  className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-xs font-bold"
+                >
+                  <option value={1}>1st Year</option>
+                  <option value={2}>2nd Year</option>
+                  <option value={3}>3rd Year</option>
+                  <option value={4}>4th Year</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] uppercase font-bold text-ink-soft">Semester</label>
+                <select
+                  value={profile.currentSemester}
+                  onChange={(e) => setProfile({ ...profile, currentSemester: Number(e.target.value) })}
+                  className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-xs font-bold"
+                >
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map(sem => (
+                    <option key={sem} value={sem}>{sem}th Semester</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Relocation Goals */}
+          <div className="bg-paper border border-ink/5 rounded-2xl p-5 shadow-sm space-y-4">
+            <h3 className="text-xs font-black text-ink font-display uppercase tracking-wider flex items-center gap-1.5">
+              <Sparkles size={15} className="text-marigold" /> Relocation Interests
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="block text-[10px] uppercase font-bold text-ink-soft">Hometown District</label>
+                <input 
                   type="text"
-                  required
+                  placeholder="e.g. Kaski, Dang, Jhapa"
                   value={profile.hometownDistrict}
                   onChange={(e) => setProfile({ ...profile, hometownDistrict: e.target.value })}
-                  className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold"
+                  className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-xs font-semibold"
                 />
               </div>
 
-              <div>
-                <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Current City</label>
-                <input
+              <div className="space-y-1">
+                <label className="block text-[10px] uppercase font-bold text-ink-soft">Destination / Relocating City</label>
+                <input 
                   type="text"
-                  required
-                  value={profile.currentCity}
-                  onChange={(e) => setProfile({ ...profile, currentCity: e.target.value })}
-                  className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Preferred Relocation City</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Lalitpur"
+                  placeholder="e.g. Lalitpur, Kathmandu"
                   value={profile.preferredRelocationCity}
                   onChange={(e) => setProfile({ ...profile, preferredRelocationCity: e.target.value })}
-                  className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold"
+                  className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-xs font-semibold"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Min Monthly Rent (NPR)</label>
-                <input
+            {/* Budget Min/Max */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="block text-[10px] uppercase font-bold text-ink-soft">Budget Min (NPR)</label>
+                <input 
                   type="number"
+                  step={500}
                   value={profile.budgetMin}
-                  onChange={(e) => setProfile({ ...profile, budgetMin: parseInt(e.target.value) || 5000 })}
-                  className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold font-mono"
+                  onChange={(e) => setProfile({ ...profile, budgetMin: Number(e.target.value) })}
+                  className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-xs font-semibold font-mono"
                 />
               </div>
 
-              <div>
-                <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Max Monthly Rent (NPR)</label>
-                <input
+              <div className="space-y-1">
+                <label className="block text-[10px] uppercase font-bold text-ink-soft">Budget Max (NPR)</label>
+                <input 
                   type="number"
+                  step={500}
                   value={profile.budgetMax}
-                  onChange={(e) => setProfile({ ...profile, budgetMax: parseInt(e.target.value) || 10000 })}
-                  className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-sm font-semibold font-mono"
+                  onChange={(e) => setProfile({ ...profile, budgetMax: Number(e.target.value) })}
+                  className="w-full bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2.5 focus:outline-none focus:border-marigold text-xs font-semibold font-mono"
                 />
               </div>
             </div>
           </div>
 
-          {/* Interests, Skills, Languages Card */}
-          <div className="bg-paper border border-ink/5 rounded-[16px] p-6 sm:p-8 space-y-6 shadow-sm">
-            <h3 className="text-base font-black text-ink border-b border-ink/5 pb-3 flex items-center gap-2 font-display">
-              <Sparkles size={16} className="text-marigold" />
-              Interests, Skills & Languages tags
+          {/* Section 4: Array Tags configuration (Interests, Skills, Languages) */}
+          <div className="bg-paper border border-ink/5 rounded-2xl p-5 shadow-sm space-y-4">
+            <h3 className="text-xs font-black text-ink font-display uppercase tracking-wider flex items-center gap-1.5">
+              <Award size={15} className="text-marigold" /> Badges & Tags
             </h3>
 
             {/* Interests */}
-            <div>
-              <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Interests (Hobbies)</label>
-              <div className="flex gap-2 mb-3">
-                <input
+            <div className="space-y-2">
+              <label className="block text-[10px] uppercase font-bold text-ink-soft">Hobbies / Interests</label>
+              <div className="flex gap-2">
+                <input 
                   type="text"
-                  placeholder="e.g. Coding, Football, Cooking"
+                  placeholder="e.g. Guitar, Football, Chess"
                   value={interestInput}
                   onChange={(e) => setInterestInput(e.target.value)}
-                  className="bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2 focus:outline-none focus:border-marigold text-sm font-semibold flex-1"
+                  className="flex-1 bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2 focus:outline-none focus:border-marigold text-xs font-semibold"
                 />
-                <button
+                <button 
                   type="button"
                   onClick={() => addTag('interests', interestInput, setInterestInput)}
-                  className="bg-marigold hover:bg-marigold-dark text-paper px-4 rounded-xl font-bold text-xs transition"
+                  className="bg-marigold hover:bg-marigold-dark text-paper font-black px-4 rounded-xl transition text-[10px] uppercase tracking-wider"
                 >
                   Add
                 </button>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {profile.interests.map(tag => (
-                  <span key={tag} className="inline-flex items-center gap-1.5 bg-clay/40 border border-ink/5 text-ink-soft text-xs px-3 py-1 rounded-full font-semibold">
-                    {tag}
-                    <button type="button" onClick={() => removeTag('interests', tag)} className="text-rose-500 font-black hover:text-rose-600">×</button>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {profile.interests.map(t => (
+                  <span key={t} className="text-[9px] bg-clay/35 border border-ink/5 text-ink-soft px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-1">
+                    {t}
+                    <button type="button" onClick={() => removeTag('interests', t)} className="text-rose-500 font-bold font-sans ml-1 text-xs hover:text-rose-700">&times;</button>
                   </span>
                 ))}
               </div>
             </div>
 
             {/* Skills */}
-            <div>
-              <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Skills</label>
-              <div className="flex gap-2 mb-3">
-                <input
+            <div className="space-y-2 pt-2 border-t border-ink/5">
+              <label className="block text-[10px] uppercase font-bold text-ink-soft">Academic / Life Skills</label>
+              <div className="flex gap-2">
+                <input 
                   type="text"
-                  placeholder="e.g. AutoCAD, Python, Structures"
+                  placeholder="e.g. AutoCAD, Coding, Painting"
                   value={skillInput}
                   onChange={(e) => setSkillInput(e.target.value)}
-                  className="bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2 focus:outline-none focus:border-marigold text-sm font-semibold flex-1"
+                  className="flex-1 bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2 focus:outline-none focus:border-marigold text-xs font-semibold"
                 />
-                <button
+                <button 
                   type="button"
                   onClick={() => addTag('skills', skillInput, setSkillInput)}
-                  className="bg-marigold hover:bg-marigold-dark text-paper px-4 rounded-xl font-bold text-xs transition"
+                  className="bg-marigold hover:bg-marigold-dark text-paper font-black px-4 rounded-xl transition text-[10px] uppercase tracking-wider"
                 >
                   Add
                 </button>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {profile.skills.map(tag => (
-                  <span key={tag} className="inline-flex items-center gap-1.5 bg-clay/40 border border-ink/5 text-ink-soft text-xs px-3 py-1 rounded-full font-semibold">
-                    {tag}
-                    <button type="button" onClick={() => removeTag('skills', tag)} className="text-rose-500 font-black hover:text-rose-600">×</button>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {profile.skills.map(t => (
+                  <span key={t} className="text-[9px] bg-clay/35 border border-ink/5 text-ink-soft px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-1">
+                    {t}
+                    <button type="button" onClick={() => removeTag('skills', t)} className="text-rose-500 font-bold font-sans ml-1 text-xs hover:text-rose-700">&times;</button>
                   </span>
                 ))}
               </div>
             </div>
 
             {/* Languages */}
-            <div>
-              <label className="block text-ink-soft text-xs font-bold uppercase mb-2">Languages Spoken</label>
-              <div className="flex gap-2 mb-3">
-                <input
+            <div className="space-y-2 pt-2 border-t border-ink/5">
+              <label className="block text-[10px] uppercase font-bold text-ink-soft">Spoken Languages</label>
+              <div className="flex gap-2">
+                <input 
                   type="text"
                   placeholder="e.g. Nepali, English, Newari"
                   value={languageInput}
                   onChange={(e) => setLanguageInput(e.target.value)}
-                  className="bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2 focus:outline-none focus:border-marigold text-sm font-semibold flex-1"
+                  className="flex-1 bg-[#FAF8F5] border border-ink/10 text-ink rounded-xl px-4 py-2 focus:outline-none focus:border-marigold text-xs font-semibold"
                 />
-                <button
+                <button 
                   type="button"
                   onClick={() => addTag('languages', languageInput, setLanguageInput)}
-                  className="bg-marigold hover:bg-marigold-dark text-paper px-4 rounded-xl font-bold text-xs transition"
+                  className="bg-marigold hover:bg-marigold-dark text-paper font-black px-4 rounded-xl transition text-[10px] uppercase tracking-wider"
                 >
                   Add
                 </button>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {profile.languages.map(tag => (
-                  <span key={tag} className="inline-flex items-center gap-1.5 bg-clay/40 border border-ink/5 text-ink-soft text-xs px-3 py-1 rounded-full font-semibold">
-                    {tag}
-                    <button type="button" onClick={() => removeTag('languages', tag)} className="text-rose-500 font-black hover:text-rose-600">×</button>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {profile.languages.map(t => (
+                  <span key={t} className="text-[9px] bg-clay/35 border border-ink/5 text-ink-soft px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider flex items-center gap-1">
+                    {t}
+                    <button type="button" onClick={() => removeTag('languages', t)} className="text-rose-500 font-bold font-sans ml-1 text-xs hover:text-rose-700">&times;</button>
                   </span>
                 ))}
               </div>
             </div>
-
           </div>
 
-          <button
+          {/* Submit Trigger */}
+          <button 
             type="submit"
             disabled={saving}
-            className="w-full bg-marigold hover:bg-marigold-dark text-paper font-black py-4 rounded-xl shadow-md transition disabled:opacity-50 text-sm uppercase tracking-wider"
+            className="w-full bg-marigold hover:bg-marigold-dark text-paper font-black py-4 rounded-xl shadow-md transition disabled:opacity-50 text-xs uppercase tracking-wider"
           >
-            {saving ? 'Saving changes...' : 'Save Student Profile'}
+            {saving ? 'Updating profile details...' : 'Save Profile details'}
           </button>
 
         </form>
 
       </div>
+      <Footer />
     </div>
-  </div>
-);
+  );
 };
 
 export default ProfileEdit;

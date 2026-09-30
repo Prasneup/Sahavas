@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Shield, AlertTriangle, Upload, FileText, Lock, Loader2 } from 'lucide-react';
+import { trustService } from '../services/trustService';
+import { mediaService } from '../services/mediaService';
 
 interface TrustData {
   trustScore: number;
@@ -37,13 +38,15 @@ const Verification: React.FC = () => {
 
   const loadTrustData = async () => {
     try {
-      const res = await api.get('/trust/me');
-      setTrust(res.data);
-      if (res.data.collegeRegistrationNumber) {
-        setRegistrationNumber(res.data.collegeRegistrationNumber);
-      }
-      if (res.data.documentImageUrl) {
-        setUploadedFile(res.data.documentImageUrl);
+      const data = await trustService.getTrustMeDetails();
+      if (data) {
+        setTrust(data);
+        if (data.collegeRegistrationNumber) {
+          setRegistrationNumber(data.collegeRegistrationNumber);
+        }
+        if (data.documentImageUrl) {
+          setUploadedFile(data.documentImageUrl);
+        }
       }
     } catch (err) {
       console.warn("API trust details failed, initializing base states");
@@ -55,16 +58,12 @@ const Verification: React.FC = () => {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
-    const formData = new FormData();
-    formData.append('file', file);
 
     setUploading(true);
     try {
-      const res = await api.post('/media/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      if (res.data?.url) {
-        setUploadedFile(res.data.url);
+      const url = await mediaService.upload(file);
+      if (url) {
+        setUploadedFile(url);
       }
     } catch (err) {
       alert("Failed to upload scan file to Cloudinary. Please verify connection/credentials.");
@@ -86,14 +85,16 @@ const Verification: React.FC = () => {
     };
 
     try {
-      const res = await api.post('/trust/verify', payload);
-      setTrust(prev => ({
-        ...prev,
-        verificationLevel: res.data.newVerificationLevel,
-        trustScore: res.data.newTrustScore,
-        verificationStatus: res.data.newVerificationStatus || 'PENDING',
-        rejectionReason: undefined
-      }));
+      const res = await trustService.submitVerification(payload);
+      if (res) {
+        setTrust(prev => ({
+          ...prev,
+          verificationLevel: res.newVerificationLevel,
+          trustScore: res.newTrustScore,
+          verificationStatus: res.newVerificationStatus || 'PENDING',
+          rejectionReason: undefined
+        }));
+      }
       alert("Verification submitted successfully. Your document is now under review.");
     } catch (err) {
       alert("Failed to submit verification request. Please verify inputs or permissions.");
@@ -132,7 +133,7 @@ const Verification: React.FC = () => {
     <div className="min-h-screen bg-clay text-ink flex flex-col items-center pb-24 font-sans select-none overflow-x-hidden">
       
       {/* Header Bar */}
-      <header className="w-full bg-paper border-b border-ink/5 px-6 py-4 flex justify-between items-center sticky top-0 z-20 shadow-sm w-full max-w-md mx-auto">
+      <header className="w-full bg-paper border-b border-ink/5 px-6 py-4 flex justify-between items-center sticky top-0 z-20 shadow-sm max-w-md mx-auto">
         <button 
           onClick={() => navigate(user?.role === 'owner' ? '/landlord' : '/dashboard')} 
           className="w-9 h-9 rounded-full bg-paper border border-ink/10 flex items-center justify-center shadow-sm"

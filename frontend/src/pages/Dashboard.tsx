@@ -1,20 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Home as HomeIcon, Users, Flame, MapPin, Compass, Bookmark, Award, Sparkles, Activity, MessageCircle, CheckCircle, AlertTriangle, Bell } from 'lucide-react';
+import { User, Home as HomeIcon, Users, Flame, Compass, Bookmark, Award, Sparkles, Activity, MessageCircle } from 'lucide-react';
 import api from '../services/api';
 import { NivaroLogo } from '../components/NivaroLogo';
 import Footer from '../components/Footer';
-
-interface RoommateMatch {
-  id: string;
-  name: string;
-  college: string;
-  gender: string;
-  matchScore: number;
-  badges: string[];
-  avatarUrl: string;
-}
+import { useNotifications } from '../hooks/useNotifications';
+import { NotificationDropdown } from '../components/dashboard/NotificationDropdown';
+import { VettingBanner } from '../components/dashboard/VettingBanner';
+import { RoomCard } from '../components/room/RoomCard';
+import { trustService } from '../services/trustService';
+import { roommateService } from '../services/roommateService';
+import { roomService } from '../services/roomService';
+import { communityService } from '../services/communityService';
+import { RoommateMatch } from '../types/roommate';
+import { Notification } from '../types/notification';
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -22,37 +22,42 @@ const Dashboard: React.FC = () => {
   const [profileCompleteness, setProfileCompleteness] = useState(60);
   const [vettingStatus, setVettingStatus] = useState('UNVERIFIED');
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
-  const [matchCount, setMatchCount] = useState(8);
 
-  // Notification states
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  // Hook handles notification states, unread counter, and mark-as-read
+  const { 
+    notifications, 
+    unreadCount, 
+    markRead, 
+    markAllRead
+  } = useNotifications();
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowNotifications(false);
-      }
-    };
-    if (showNotifications) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showNotifications]);
+  const [recommendedRooms, setRecommendedRooms] = useState<any[]>([]);
+  const [savedRooms, setSavedRooms] = useState<any[]>([]);
+  const [recommendedRoommates, setRecommendedRoommates] = useState<RoommateMatch[]>([]);
+  const [streakDays, setStreakDays] = useState(1);
+  const [totalXp, setTotalXp] = useState(0);
+  const [stats, setStats] = useState<any>({
+    averageRent: 0,
+    totalListings: 0,
+    activeThisWeek: 0,
+    rentedThisMonth: 0,
+    totalShortlists: 0,
+    popularNeighborhood: 'No data available'
+  });
+  const [recentPosts, setRecentPosts] = useState<any[]>([]);
 
-  const handleNotificationClick = async (notif: any) => {
-    try {
-      await api.put(`/notifications/${notif.id}/read`);
-      setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
-      setUnreadCount(prev => Math.max(0, prev - 1));
-    } catch (err) {
-      console.error("Failed to mark notification as read", err);
-    }
-    setShowNotifications(false);
+  // Relocation Journey Checklist
+  const [checklist, setChecklist] = useState([
+    { key: 'admissionCompleted', text: 'Secure College Admission', done: false },
+    { key: 'collegeConfirmed', text: 'Confirm Campus Registration', done: false },
+    { key: 'roomFound', text: 'Explore & Book a Room', done: false },
+    { key: 'roommateFound', text: 'Find a Compatible Roommate', done: false },
+    { key: 'internetSetup', text: 'Arrange Internet Setup', done: false },
+    { key: 'transportationSetup', text: 'Arrange Transportation/Moving', done: false },
+  ]);
+
+  const handleNotificationClick = async (notif: Notification) => {
+    await markRead(notif.id);
 
     if (notif.type === 'NEW_MESSAGE' || notif.type === 'NEW_ENQUIRY') {
       let peerId = '';
@@ -81,53 +86,15 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const handleMarkAllRead = async () => {
-    const unreads = notifications.filter(n => !n.isRead);
-    try {
-      await Promise.all(unreads.map(n => api.put(`/notifications/${n.id}/read`)));
-      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-      setUnreadCount(0);
-    } catch (err) {
-      console.error("Failed to mark all notifications as read", err);
-    }
-  };
-  const [recommendedRooms, setRecommendedRooms] = useState<any[]>([]);
-  const [savedRooms, setSavedRooms] = useState<any[]>([]);
-  const [recommendedRoommates, setRecommendedRoommates] = useState<RoommateMatch[]>([]);
-  const [streakDays, setStreakDays] = useState(1);
-  const [totalXp, setTotalXp] = useState(0);
-  const [stats, setStats] = useState<any>({
-    averageRent: 0,
-    totalListings: 0,
-    activeThisWeek: 0,
-    rentedThisMonth: 0,
-    totalShortlists: 0,
-    popularNeighborhood: 'No data available'
-  });
-  const [recentPosts, setRecentPosts] = useState<any[]>([]);
-
-  // Relocation Journey Checklist
-  const [checklist, setChecklist] = useState([
-    { key: 'admissionCompleted', text: 'Secure College Admission', done: false },
-    { key: 'collegeConfirmed', text: 'Confirm Campus Registration', done: false },
-    { key: 'roomFound', text: 'Explore & Book a Room', done: false },
-    { key: 'roommateFound', text: 'Find a Compatible Roommate', done: false },
-    { key: 'internetSetup', text: 'Arrange Internet Setup', done: false },
-    { key: 'transportationSetup', text: 'Arrange Transportation/Moving', done: false },
-  ]);
-
   const toggleChecklistTask = async (key: string, currentDone: boolean) => {
     try {
-      const res = await api.post('/relocation/progress/toggle', {
-        taskName: key,
-        completed: !currentDone
-      });
-      if (res.data) {
+      const res = await trustService.toggleRelocationTask(key, !currentDone);
+      if (res) {
         setChecklist(prev => prev.map(item => 
-          item.key === key ? { ...item, done: res.data[key] } : item
+          item.key === key ? { ...item, done: res[key] } : item
         ));
-        setStreakDays(res.data.streakDays || 1);
-        setTotalXp(res.data.totalXp || 0);
+        setStreakDays(res.streakDays || 1);
+        setTotalXp(res.totalXp || 0);
       }
     } catch (err) {
       console.error("Failed to toggle checklist task on backend", err);
@@ -148,52 +115,39 @@ const Dashboard: React.FC = () => {
     }
 
     // Fetch relocation progress
-    api.get('/relocation/progress')
+    trustService.getRelocationProgress()
       .then(res => {
-        if (res.data) {
+        if (res) {
           setChecklist([
-            { key: 'admissionCompleted', text: 'Secure College Admission', done: res.data.admissionCompleted },
-            { key: 'collegeConfirmed', text: 'Confirm Campus Registration', done: res.data.collegeConfirmed },
-            { key: 'roomFound', text: 'Explore & Book a Room', done: res.data.roomFound },
-            { key: 'roommateFound', text: 'Find a Compatible Roommate', done: res.data.roommateFound },
-            { key: 'internetSetup', text: 'Arrange Internet Setup', done: res.data.internetSetup },
-            { key: 'transportationSetup', text: 'Arrange Transportation/Moving', done: res.data.transportationSetup },
+            { key: 'admissionCompleted', text: 'Secure College Admission', done: res.admissionCompleted },
+            { key: 'collegeConfirmed', text: 'Confirm Campus Registration', done: res.collegeConfirmed },
+            { key: 'roomFound', text: 'Explore & Book a Room', done: res.roomFound },
+            { key: 'roommateFound', text: 'Find a Compatible Roommate', done: res.roommateFound },
+            { key: 'internetSetup', text: 'Arrange Internet Setup', done: res.internetSetup },
+            { key: 'transportationSetup', text: 'Arrange Transportation/Moving', done: res.transportationSetup },
           ]);
-          setStreakDays(res.data.streakDays || 1);
-          setTotalXp(res.data.totalXp || 0);
+          setStreakDays(res.streakDays || 1);
+          setTotalXp(res.totalXp || 0);
         }
-      })
-      .catch(() => {});
-      
-    api.get('/notifications')
-      .then(res => {
-        setNotifications(res.data || []);
-      })
-      .catch(() => {});
-
-    api.get('/notifications/unread/count')
-      .then(res => {
-        setUnreadCount(res.data?.unreadCount || 0);
       })
       .catch(() => {});
 
     // 1. Fetch user profile completeness & vetting status
-    api.get('/profiles/me')
+    trustService.getMyProfile()
       .then(res => {
-        if (res.data) {
-          setProfileCompleteness(res.data.completenessPercentage || 60);
-          setVettingStatus(res.data.verificationStatus || 'UNVERIFIED');
-          setRejectionReason(res.data.rejectionReason || null);
+        if (res) {
+          setProfileCompleteness(res.completenessPercentage || 60);
+          setVettingStatus(res.verificationStatus || 'UNVERIFIED');
+          setRejectionReason((res as any).rejectionReason || null);
         }
       })
       .catch(() => {});
 
     // 2. Fetch roommates matching suggestions
-    api.get('/matching/suggestions')
+    roommateService.getSuggestions()
       .then(res => {
-        if (res.data && res.data.length > 0) {
-          setMatchCount(res.data.length);
-          setRecommendedRoommates(res.data.slice(0, 3).map((r: any) => ({
+        if (res && res.length > 0) {
+          setRecommendedRoommates(res.slice(0, 3).map((r: any) => ({
             id: r.studentId,
             name: r.fullName,
             college: r.collegeName || "NCIT Balkumari",
@@ -203,20 +157,18 @@ const Dashboard: React.FC = () => {
             avatarUrl: r.avatarUrl || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=200"
           })));
         } else {
-          // Fallback if no quiz has been taken or no results
-          setMatchCount(0);
           setRecommendedRoommates([]);
         }
       })
       .catch(() => {
-        setMatchCount(0);
+        setRecommendedRoommates([]);
       });
 
     // 3. Fetch recommended room listings (first 3 rooms)
-    api.get('/listings')
+    roomService.getListings()
       .then(res => {
-        if (res.data) {
-          setRecommendedRooms(res.data.slice(0, 3).map((room: any) => ({
+        if (res) {
+          setRecommendedRooms(res.slice(0, 3).map((room: any) => ({
             id: room.id,
             title: room.title,
             rentAmount: room.rentAmount,
@@ -229,32 +181,32 @@ const Dashboard: React.FC = () => {
       .catch(() => {});
 
     // 4. Fetch bookmarked rooms shortcut list
-    api.get('/listings/saved')
+    roomService.getSavedListings()
       .then(res => {
-        if (res.data) {
-          setSavedRooms(res.data.slice(0, 2));
+        if (res) {
+          setSavedRooms(res.slice(0, 2));
         }
       })
       .catch(() => {});
 
     // 5. Fetch dashboard statistics
-    api.get('/listings/stats')
+    roomService.getStats()
       .then(res => {
-        if (res.data) {
-          setStats(res.data);
+        if (res) {
+          setStats(res);
         }
       })
       .catch(() => {});
 
     // 6. Fetch recent posts
-    api.get('/communities/posts/recent')
+    communityService.getRecentPosts()
       .then(res => {
-        if (res.data) {
-          setRecentPosts(res.data);
+        if (res) {
+          setRecentPosts(res);
         }
       })
       .catch(() => {});
-  }, []);
+  }, [user, navigate]);
 
   // Dynamic Activity Timeline
   const activityTimeline: { id: string; type: string; title: string; desc: string; color: string }[] = [];
@@ -339,69 +291,14 @@ const Dashboard: React.FC = () => {
                 🛡️ Admin Panel
               </button>
             )}
+
             {/* Notification Bell Dropdown */}
-            <div className="relative" ref={dropdownRef}>
-              <button 
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="bg-paper hover:bg-[#FAF3E8] border border-ink/10 text-ink p-2.5 rounded-full shadow-sm transition relative flex items-center justify-center"
-              >
-                <Bell size={16} />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-600 text-paper text-[8px] font-black flex items-center justify-center shadow-md animate-pulse">
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
-
-              {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-paper border border-ink/10 rounded-[20px] shadow-xl z-50 p-4 space-y-3">
-                  <div className="flex justify-between items-center border-b border-ink/5 pb-2">
-                    <h4 className="text-xs font-black text-ink font-display">Notifications</h4>
-                    {unreadCount > 0 && (
-                      <button 
-                        onClick={handleMarkAllRead}
-                        className="text-[10px] text-marigold font-black hover:underline"
-                      >
-                        Mark all as read
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="max-h-60 overflow-y-auto divide-y divide-ink/5 space-y-2.5">
-                    {notifications.length === 0 ? (
-                      <div className="text-center py-6 text-[10px] font-bold text-ink-soft/75">
-                        No notifications yet.
-                      </div>
-                    ) : (
-                      notifications.map((notif) => (
-                        <div 
-                          key={notif.id}
-                          onClick={() => handleNotificationClick(notif)}
-                          className={`pt-2.5 pb-1 flex gap-2.5 cursor-pointer group hover:bg-[#FAF8F5] rounded-lg px-2 transition ${notif.isRead ? '' : 'bg-clay/10'}`}
-                        >
-                          <div className="flex-1 min-w-0 text-left">
-                            <div className="flex items-center gap-1.5 justify-between">
-                              <span className={`text-[10px] font-black truncate ${notif.isRead ? 'text-ink' : 'text-marigold-dark'}`}>
-                                {notif.title}
-                              </span>
-                              {!notif.isRead && (
-                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
-                              )}
-                            </div>
-                            <p className="text-[10px] text-ink-soft/80 line-clamp-2 mt-0.5 font-medium leading-normal">
-                              {notif.content}
-                            </p>
-                            <span className="text-[8px] text-ink-soft/45 font-mono mt-1 block">
-                              {new Date(notif.createdAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+            <NotificationDropdown 
+              notifications={notifications}
+              unreadCount={unreadCount}
+              onNotificationClick={handleNotificationClick}
+              onMarkAllRead={markAllRead}
+            />
 
             <button 
               onClick={logout}
@@ -418,55 +315,15 @@ const Dashboard: React.FC = () => {
           </div>
         </header>
 
-        {/* Verification Notification Banner */}
-        {vettingStatus === 'VERIFIED' && localStorage.getItem('hide_verified_banner') !== 'VERIFIED' && (
-          <div className="bg-pine-light/80 border border-pine/20 text-pine rounded-2xl p-5 flex items-start justify-between shadow-sm relative w-full">
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-full bg-paper flex items-center justify-center text-pine shadow-sm flex-shrink-0">
-                <CheckCircle size={20} className="stroke-[2.5]" />
-              </div>
-              <div>
-                <h4 className="text-sm font-black font-display text-pine-dark">Your document has been approved!</h4>
-                <p className="text-xs opacity-95 mt-0.5 font-semibold">Your identity verification has been successfully completed.</p>
-              </div>
-            </div>
-            <button 
-              onClick={() => {
-                localStorage.setItem('hide_verified_banner', 'VERIFIED');
-                setVettingStatus('VERIFIED_DISMISSED'); 
-              }}
-              className="text-pine-dark/50 hover:text-pine-dark text-lg font-bold absolute top-3 right-4"
-            >
-              &times;
-            </button>
-          </div>
-        )}
-
-        {vettingStatus === 'REJECTED' && localStorage.getItem('hide_rejected_banner') !== 'REJECTED' && (
-          <div className="bg-rose-50 border border-brick/20 text-brick rounded-2xl p-5 flex items-start justify-between shadow-sm relative w-full">
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-full bg-paper flex items-center justify-center text-brick shadow-sm flex-shrink-0">
-                <AlertTriangle size={20} className="stroke-[2.5]" />
-              </div>
-              <div>
-                <h4 className="text-sm font-black font-display">Your document verification was not approved.</h4>
-                <p className="text-xs opacity-95 mt-0.5 font-semibold">Reason: {rejectionReason || 'No reason provided.'}</p>
-                <Link to="/verify" className="text-xs font-black underline mt-2 block hover:opacity-80">
-                  Correct and Resubmit Document &rarr;
-                </Link>
-              </div>
-            </div>
-            <button 
-              onClick={() => {
-                localStorage.setItem('hide_rejected_banner', 'REJECTED');
-                setVettingStatus('REJECTED_DISMISSED');
-              }}
-              className="text-brick/50 hover:text-brick text-lg font-bold absolute top-3 right-4"
-            >
-              &times;
-            </button>
-          </div>
-        )}
+        {/* Verification Notification Banners */}
+        <VettingBanner 
+          status={vettingStatus} 
+          rejectionReason={rejectionReason} 
+          onDismiss={() => {
+            if (vettingStatus === 'VERIFIED') setVettingStatus('VERIFIED_DISMISSED');
+            else if (vettingStatus === 'REJECTED') setVettingStatus('REJECTED_DISMISSED');
+          }}
+        />
 
         {/* Redesigned Student Hero Section */}
         <section className="bg-paper border border-ink/10 rounded-[32px] overflow-hidden p-6 md:p-10 shadow-sm relative flex flex-col md:flex-row gap-8 items-stretch">
@@ -478,165 +335,48 @@ const Dashboard: React.FC = () => {
                 <span className="text-marigold-dark">Find Your People.</span>
               </h2>
               <p className="text-sm text-ink-soft font-semibold leading-relaxed max-w-sm">
-                Rooms, roommates, and communities — all in one place.
+                Sahavas provides a curated student housing ecosystem linking secure spaces, compatible roommate matches, and college community forums.
               </p>
-              <button 
-                onClick={() => navigate('/rooms')}
-                className="bg-ink hover:bg-ink-soft text-paper text-xs font-bold px-6 py-3 rounded-full shadow-sm transition flex items-center gap-2 w-fit mt-4"
-              >
-                Explore Rooms <span className="text-base">&rarr;</span>
-              </button>
             </div>
-
-            {/* Bottom 3 Features list */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-ink/5">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-clay/35 text-marigold flex items-center justify-center shrink-0">
-                  <HomeIcon size={14} className="stroke-[2.5]" />
-                </div>
-                <div>
-                  <h4 className="text-[11px] font-bold text-ink leading-tight">Verified Rooms</h4>
-                  <p className="text-[9px] text-ink-soft font-semibold">Trusted listings</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-clay/35 text-marigold flex items-center justify-center shrink-0">
-                  <Users size={14} className="stroke-[2.5]" />
-                </div>
-                <div>
-                  <h4 className="text-[11px] font-bold text-ink leading-tight">Smart Matches</h4>
-                  <p className="text-[9px] text-ink-soft font-semibold">Compatible roommates</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-clay/35 text-marigold flex items-center justify-center shrink-0">
-                  <MapPin size={14} className="stroke-[2.5]" />
-                </div>
-                <div>
-                  <h4 className="text-[11px] font-bold text-ink leading-tight">Ideal Locations</h4>
-                  <p className="text-[9px] text-ink-soft font-semibold">Close to what matters</p>
-                </div>
-              </div>
+            
+            <div className="flex flex-wrap gap-x-6 gap-y-3 text-xs font-mono font-bold text-ink-soft/95 uppercase">
+              <span className="flex items-center gap-1.5">
+                ✦ 100% Student Vetted
+              </span>
+              <span className="flex items-center gap-1.5">
+                ✦ Zero Agent Fees
+              </span>
+              <span className="flex items-center gap-1.5">
+                ✦ Real-Time Chats
+              </span>
             </div>
           </div>
+          
+          {/* Right Statistics Widgets */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full md:w-80 shrink-0">
+            <div className="bg-clay/40 border border-ink/5 rounded-2xl p-5 flex flex-col justify-between min-h-[110px] shadow-sm">
+              <span className="text-[9px] uppercase tracking-wider block font-black text-ink-soft/75">Profile Completion</span>
+              <h3 className="text-2xl font-black text-ink mt-2 font-mono">
+                {profileCompleteness}%
+              </h3>
+              <span className="text-[9px] block mt-1 font-bold text-marigold-dark">
+                {profileCompleteness < 100 ? (
+                  <Link to="/profile" className="hover:underline">Complete profile details &rarr;</Link>
+                ) : (
+                  "Completed! Unlocked all systems"
+                )}
+              </span>
+            </div>
 
-          {/* Right Visual Container with absolute overlays matching reference image */}
-          <div className="flex-1 min-h-[360px] md:min-h-[420px] relative rounded-[24px] overflow-hidden bg-clay/10 hidden md:block">
-            {/* Main cozy room interior backdrop */}
-            <img 
-              src="https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=800" 
-              alt="Cozy Room" 
-              className="absolute inset-0 w-full h-full object-cover opacity-80"
-            />
-            {/* Student character overlay (overlay vector background representation) */}
-            <div className="absolute inset-0 bg-gradient-to-r from-paper/30 to-transparent pointer-events-none" />
-
-            {/* Overlay Card 1: Cozy Room Near IOE (Top Right) */}
-            <div className="absolute top-4 right-4 bg-paper/95 backdrop-blur-sm border border-ink/10 rounded-2xl p-2.5 shadow-lg w-[200px] space-y-1.5 animate-slide-up z-20">
-              <div className="h-20 rounded-lg overflow-hidden relative">
-                <img 
-                  src={recommendedRooms[0]?.images?.[0]?.imageUrl || "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=400"} 
-                  alt="Room Card" 
-                  className="w-full h-full object-cover" 
-                />
-                <span className="absolute top-1.5 right-1.5 bg-ink text-paper text-[8px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                  ★ Featured
-                </span>
+            <div className="bg-paper border border-ink/10 rounded-2xl p-5 flex flex-col justify-between min-h-[110px] shadow-sm">
+              <span className="text-[9px] uppercase tracking-wider block font-black text-ink-soft/75">Relocation Status</span>
+              <div className="flex items-center gap-1 mt-2 text-marigold-dark font-black text-xs leading-none">
+                <Flame size={14} className="text-marigold stroke-[2.5]" /> {checklistPercentage === 100 ? "Settled & Done" : "Searching for a Room"}
               </div>
-              <div>
-                <h4 className="text-[10px] font-black text-ink truncate leading-tight">
-                  {recommendedRooms[0]?.title || "Cozy Room Near IOE"}
-                </h4>
-                <p className="text-[8px] text-ink-soft font-semibold flex items-center gap-0.5 mt-0.5">
-                  <MapPin size={7} /> {(recommendedRooms[0]?.distanceFromCollegeText?.split('from') || [])[0] || "Pulchowk, Lalitpur"}
-                </p>
-                <div className="flex items-center justify-between mt-1 pt-1.5 border-t border-ink/5">
-                  <span className="text-[9px] text-marigold-dark font-black">
-                    NPR {recommendedRooms[0]?.rentAmount?.toLocaleString() || "7,500"} /mo
-                  </span>
-                  <span className="text-[7px] text-ink-soft/60 font-semibold font-mono">1 Bed • WiFi</span>
-                </div>
-              </div>
+              <span className="text-[9px] block mt-1.5 font-bold text-ink-soft/70 leading-normal">
+                {checklistPercentage === 100 ? "Congratulations, you are moved in!" : "Keep going! You're doing great."}
+              </span>
             </div>
-
-            {/* Overlay Card 2: 300m from Campus (Center Left) */}
-            <div className="absolute top-[160px] left-4 bg-paper/95 backdrop-blur-sm border border-ink/10 rounded-xl p-2 flex items-center gap-1.5 shadow-md animate-slide-up z-20">
-              <div className="w-5 h-5 rounded-full bg-marigold flex items-center justify-center text-ink shrink-0">
-                <MapPin size={10} className="stroke-[2.5]" />
-              </div>
-              <span className="text-[9px] font-bold text-ink uppercase tracking-wide">300m from Campus</span>
-            </div>
-
-            {/* Overlay Card 3: Compatible Match 92% (Bottom Right) */}
-            <div className="absolute bottom-4 right-4 bg-paper/95 backdrop-blur-sm border border-ink/10 rounded-2xl p-3 shadow-lg w-[180px] space-y-2 animate-slide-up z-20">
-              <div className="text-center">
-                <span className="text-[8px] uppercase tracking-wider block font-bold text-ink-soft/75">Compatible Match</span>
-                <span className="text-xs font-black text-marigold-dark block mt-0.5">
-                  {recommendedRoommates[0] ? `${recommendedRoommates[0].matchScore}% Match` : "92% Match"}
-                </span>
-              </div>
-              <div className="flex justify-center -space-x-2.5 overflow-hidden py-1">
-                <img 
-                  src={recommendedRoommates[0]?.avatarUrl || "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=200"} 
-                  alt="User 1" 
-                  className="inline-block h-8 w-8 rounded-full ring-2 ring-paper object-cover" 
-                />
-                <img 
-                  src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200" 
-                  alt="User 2" 
-                  className="inline-block h-8 w-8 rounded-full ring-2 ring-paper object-cover" 
-                />
-              </div>
-              <div className="flex flex-wrap gap-0.5 justify-center">
-                <span className="text-[7px] bg-clay/35 text-ink-soft px-1 py-0.5 rounded font-black uppercase">IOE</span>
-                <span className="text-[7px] bg-clay/35 text-ink-soft px-1 py-0.5 rounded font-black uppercase">BCA</span>
-                <span className="text-[7px] bg-clay/35 text-ink-soft px-1 py-0.5 rounded font-black uppercase">Quiet</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 4 Summary Metrics Cards Banner */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5 w-full">
-          <div className="bg-paper border border-ink/10 rounded-2xl p-5 flex flex-col justify-between min-h-[110px] shadow-sm">
-            <span className="text-[9px] uppercase tracking-wider block font-black text-ink-soft/75">Profile Completeness</span>
-            <div className="flex justify-between items-baseline mt-2">
-              <h3 className="text-2xl font-black font-mono text-ink">{profileCompleteness}%</h3>
-              <span className="text-[9px] font-bold text-ink-soft/70">Finished</span>
-            </div>
-            <div className="w-full h-2 rounded-full overflow-hidden mt-3 bg-clay/30">
-              <div className="h-full rounded-full transition-all duration-750 bg-marigold" style={{ width: `${profileCompleteness}%` }} />
-            </div>
-          </div>
-
-          <div className="bg-paper border border-ink/10 rounded-2xl p-5 flex flex-col justify-between min-h-[110px] shadow-sm">
-            <span className="text-[9px] uppercase tracking-wider block font-black text-ink-soft/75">Vetting Status</span>
-            <div className="mt-2">
-              <Link to="/verify" className="inline-block bg-[#F8EEDC] hover:bg-[#FAF3E8] border border-marigold/40 text-marigold-dark rounded-full px-3 py-1 font-bold text-[9px] tracking-wide uppercase transition">
-                Check Status
-              </Link>
-            </div>
-            <span className={`text-[10px] block mt-1.5 font-black uppercase tracking-wider ${
-              vettingStatus === 'VERIFIED' ? 'text-pine' : 'text-marigold-dark'
-            }`}>
-              {vettingStatus.replace('_', ' ')}
-            </span>
-          </div>
-
-          <div className="bg-paper border border-ink/10 rounded-2xl p-5 flex flex-col justify-between min-h-[110px] shadow-sm">
-            <span className="text-[9px] uppercase tracking-wider block font-black text-ink-soft/75">Discovery Matches</span>
-            <h3 className="text-2xl mt-2 font-black font-mono text-ink">{matchCount}</h3>
-            <span className="text-[9px] block mt-1.5 font-bold text-ink-soft/70">Compatible Peers</span>
-          </div>
-
-          <div className="bg-paper border border-ink/10 rounded-2xl p-5 flex flex-col justify-between min-h-[110px] shadow-sm">
-            <span className="text-[9px] uppercase tracking-wider block font-black text-ink-soft/75">Relocation Status</span>
-            <div className="flex items-center gap-1 mt-2 text-marigold-dark font-black text-xs leading-none">
-              <Flame size={14} className="text-marigold stroke-[2.5]" /> {checklistPercentage === 100 ? "Settled & Done" : "Searching for a Room"}
-            </div>
-            <span className="text-[9px] block mt-1.5 font-bold text-ink-soft/70 leading-normal">
-              {checklistPercentage === 100 ? "Congratulations, you are moved in!" : "Keep going! You're doing great."}
-            </span>
           </div>
         </section>
 
@@ -697,31 +437,12 @@ const Dashboard: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {recommendedRooms.map(room => (
-                  <div key={room.id} className="dashboard-card overflow-hidden flex flex-col justify-between bg-paper hover:shadow-md transition">
-                    <div className="h-32 bg-clay relative overflow-hidden">
-                      <img src={room.images?.[0]?.imageUrl} alt={room.title} className="w-full h-full object-cover" />
-                      <span className="absolute top-2 left-2 text-[8px] bg-paper/95 text-ink px-2 py-0.5 rounded-full font-bold">
-                        {room.compatibility}% Match
-                      </span>
-                    </div>
-                    <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                      <div>
-                        <h4 className="text-xs font-bold text-ink truncate">{room.title}</h4>
-                        <span className="text-[9px] text-marigold font-bold flex items-center gap-0.5 mt-1">
-                          <MapPin size={9} /> {(room.distanceFromCollegeText?.split('from') || [])[0] || 'Near college'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between pt-2 border-t border-ink/5">
-                        <span className="text-xs font-bold text-ink font-mono">NPR {room.rentAmount}</span>
-                        <button 
-                          onClick={() => navigate(`/rooms/${room.id}`)}
-                          className="bg-marigold hover:bg-marigold-dark text-paper text-[8px] font-black px-2.5 py-1.5 rounded-lg transition uppercase tracking-wider"
-                        >
-                          View Room
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                  <RoomCard 
+                    key={room.id}
+                    room={room}
+                    compatibility={room.compatibility}
+                    variant="dashboard"
+                  />
                 ))}
               </div>
             </section>

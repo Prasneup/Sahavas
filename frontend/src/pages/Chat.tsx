@@ -4,40 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Send, ArrowLeft, Paperclip, CheckCheck, Home, User, MessageCircle, Compass, MessageSquare, ShieldCheck } from 'lucide-react';
 import { NivaroLogo } from '../components/NivaroLogo';
-interface PeerProfile {
-  id: string;
-  fullName: string;
-  collegeName: string;
-  majorCourse: string;
-  avatarUrl: string;
-  completenessPercentage: number;
-  role?: string;
-}
-
-interface Conversation {
-  conversationId: string;
-  peerProfile: PeerProfile;
-  lastMessage: string;
-  lastMessageTime: string;
-  unreadCount: number;
-  listing?: {
-    id: string;
-    title: string;
-    rentAmount: number;
-    distanceFromCollegeText?: string;
-  };
-}
-
-interface Message {
-  id: string;
-  conversationId: string;
-  senderId: string;
-  content: string;
-  messageType: 'TEXT' | 'IMAGE' | 'ROOM_SHARE' | 'PROFILE_SHARE';
-  sharedResourceId?: string;
-  isRead: boolean;
-  createdAt: string;
-}
+import { Conversation, Message } from '../types/chat';
+import { getAvatarUrl, formatLastMessageTime } from '../utils/formatting';
 
 const Chat: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -52,20 +20,6 @@ const Chat: React.FC = () => {
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<WebSocket | null>(null);
-
-  const getAvatarUrl = (profile?: any) => {
-    if (profile?.avatarUrl && profile.avatarUrl.trim().length > 0) {
-      return profile.avatarUrl;
-    }
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.fullName || 'User')}&background=FAF3E8&color=D9A25A&bold=true&size=128`;
-  };
-
-  const formatLastMessageTime = (timeStr?: string) => {
-    if (!timeStr) return "No messages yet";
-    const date = new Date(timeStr);
-    if (isNaN(date.getTime())) return "No messages yet";
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
 
   useEffect(() => {
     loadConversations();

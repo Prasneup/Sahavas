@@ -1,80 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Shield, CheckCircle, AlertTriangle, Users, Home, TrendingUp, FileText, Check, X } from 'lucide-react';
-import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { 
+  VerificationRequest, 
+  ListingItem, 
+  TrustReportItem, 
+  AuditLogItem, 
+  AnalyticsStats, 
+  UserItem 
+} from '../types/admin';
+import { adminService } from '../services/adminService';
 
-interface VerificationRequest {
-  id: string;
-  userId: string;
-  fullName: string;
-  role: string;
-  phoneNumber: string;
-  email: string;
-  collegeName: string;
-  collegeRegistrationNumber: string;
-  documentType: string;
-  registrationNumber: string;
-  documentImageUrl: string;
-  status: string;
-  ocrName?: string;
-  ocrSimilarity?: string;
-  submittedAt: string;
-}
-
-interface ListingItem {
-  id: string;
-  title: string;
-  description: string;
-  rentAmount: number;
-  depositAmount: number;
-  roomType: string;
-  genderPreference: string;
-  distanceFromCollegeText: string;
-  isVerified: boolean;
-  isAvailable: boolean;
-  verificationStatus: string;
-  rejectionReason?: string;
-  images?: any[];
-  owner?: {
-    id: string;
-    phoneNumber: string;
-    email: string;
-  };
-}
-
-interface TrustReportItem {
-  id: string;
-  reporterId: string;
-  reportedUserId: string;
-  reason: string;
-  description: string;
-  status: string;
-  createdAt: string;
-}
-
-interface AuditLogItem {
-  id: string;
-  adminId: string;
-  adminName: string;
-  affectedUserId?: string;
-  affectedUserName?: string;
-  affectedListingId?: string;
-  affectedListingTitle?: string;
-  action: string;
-  reason?: string;
-  previousStatus?: string;
-  newStatus?: string;
-  createdAt: string;
-}
-
-interface AnalyticsStats {
-  totalUsers: number;
-  verifiedUsers: number;
-  totalListings: number;
-  activeReports: number;
-  suspiciousListings: number;
-}
+// Extracted sub-components
+import { AdminOverview } from '../components/admin/AdminOverview';
+import { AdminVerifications } from '../components/admin/AdminVerifications';
+import { AdminListings } from '../components/admin/AdminListings';
+import { AdminReports } from '../components/admin/AdminReports';
+import { AdminAuditLogs } from '../components/admin/AdminAuditLogs';
+import { AdminUsers } from '../components/admin/AdminUsers';
 
 const AdminPortal: React.FC = () => {
   const navigate = useNavigate();
@@ -84,7 +28,7 @@ const AdminPortal: React.FC = () => {
   const [listings, setListings] = useState<ListingItem[]>([]);
   const [reports, setReports] = useState<TrustReportItem[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<UserItem[]>([]);
   const [stats, setStats] = useState<AnalyticsStats>({
     totalUsers: 0,
     verifiedUsers: 0,
@@ -113,23 +57,23 @@ const AdminPortal: React.FC = () => {
     setError(null);
     try {
       if (activeTab === 'OVERVIEW') {
-        const res = await api.get('/admin/analytics');
-        setStats(res.data);
+        const data = await adminService.getAnalytics();
+        if (data) setStats(data);
       } else if (activeTab === 'VERIFICATIONS') {
-        const res = await api.get('/admin/verifications');
-        setVerifications(res.data || []);
+        const data = await adminService.getVerifications();
+        setVerifications(data || []);
       } else if (activeTab === 'LISTINGS') {
-        const res = await api.get('/admin/listings');
-        setListings(res.data || []);
+        const data = await adminService.getListings();
+        setListings(data || []);
       } else if (activeTab === 'REPORTS') {
-        const res = await api.get('/admin/reports');
-        setReports(res.data || []);
+        const data = await adminService.getReports();
+        setReports(data || []);
       } else if (activeTab === 'AUDIT_LOGS') {
-        const res = await api.get('/admin/audit-logs');
-        setAuditLogs(res.data || []);
+        const data = await adminService.getAuditLogs();
+        setAuditLogs(data || []);
       } else if (activeTab === 'USERS') {
-        const res = await api.get('/admin/users');
-        setUsers(res.data || []);
+        const data = await adminService.getUsers();
+        setUsers(data || []);
       }
     } catch (err: any) {
       console.error(err);
@@ -148,10 +92,7 @@ const AdminPortal: React.FC = () => {
     }
 
     try {
-      await api.post(`/admin/verifications/${selectedVerification.id}/review`, { 
-        status, 
-        reason: rejectionReason 
-      });
+      await adminService.reviewVerification(selectedVerification.id, status, rejectionReason);
       alert(`User verification status marked as ${status} successfully.`);
       setSelectedVerification(null);
       setRejectionReason('');
@@ -170,10 +111,7 @@ const AdminPortal: React.FC = () => {
     }
 
     try {
-      await api.post(`/admin/listings/${selectedListing.id}/review`, { 
-        status, 
-        reason: listingReviewReason 
-      });
+      await adminService.reviewListing(selectedListing.id, status, listingReviewReason);
       alert(`Listing verification status marked as ${status} successfully.`);
       setSelectedListing(null);
       setListingReviewReason('');
@@ -185,7 +123,7 @@ const AdminPortal: React.FC = () => {
 
   const handleResolveReport = async (id: string) => {
     try {
-      await api.post(`/admin/reports/${id}/resolve`);
+      await adminService.resolveReport(id);
       alert('Report marked as resolved successfully.');
       loadData();
     } catch (err) {
@@ -196,7 +134,7 @@ const AdminPortal: React.FC = () => {
   const handleManualUserStatus = async (userId: string, currentStatus: string) => {
     const nextStatus = currentStatus.toUpperCase() === 'SUSPENDED' ? 'VERIFIED' : 'SUSPENDED';
     try {
-      await api.post(`/admin/users/${userId}/status`, { status: nextStatus });
+      await adminService.updateUserStatus(userId, nextStatus);
       alert(`User status updated to ${nextStatus.toLowerCase()}.`);
       loadData();
     } catch (err) {
@@ -238,31 +176,30 @@ const AdminPortal: React.FC = () => {
           { key: 'LISTINGS', label: 'Listings Moderation', icon: Home },
           { key: 'REPORTS', label: 'Fraud Reports', icon: AlertTriangle },
           { key: 'AUDIT_LOGS', label: 'Admin Audit Logs', icon: FileText },
-          { key: 'USERS', label: 'User Accounts', icon: Users }
+          { key: 'USERS', label: 'User Accounts', icon: Users },
         ].map(tab => {
           const Icon = tab.icon;
+          const isActive = activeTab === tab.key;
           return (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key as any)}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition ${
-                activeTab === tab.key 
-                  ? 'bg-marigold text-paper shadow-sm' 
-                  : 'hover:bg-ink/5 text-ink-soft'
+              className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm ${
+                isActive 
+                  ? 'bg-marigold text-paper' 
+                  : 'bg-paper hover:bg-[#FAF3E8] border border-ink/10 text-ink-soft'
               }`}
             >
-              <Icon size={14} />
-              {tab.label}
+              <Icon size={14} /> {tab.label}
             </button>
           );
         })}
       </nav>
 
-      {/* Main Admin Workspace Container */}
-      <main className="flex-1 max-w-6xl mx-auto w-full p-6 space-y-6">
-        
+      {/* Main Content Space */}
+      <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
         {error && (
-          <div className="bg-rose-50 border border-rose-100 text-rose-600 rounded-xl p-4 text-xs font-bold">
+          <div className="bg-rose-50 border border-rose-200 text-rose-600 text-xs font-semibold p-4 rounded-xl mb-6 shadow-sm">
             {error}
           </div>
         )}
@@ -273,327 +210,26 @@ const AdminPortal: React.FC = () => {
           </div>
         ) : (
           <>
-            {/* OVERVIEW MODULE */}
-            {activeTab === 'OVERVIEW' && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <div className="dashboard-card p-5 bg-paper flex flex-col justify-between min-h-[110px]">
-                    <span className="text-[10px] uppercase tracking-wider block font-bold text-ink-soft">Total Accounts</span>
-                    <h3 className="text-3xl font-black font-mono text-ink mt-2">{stats.totalUsers}</h3>
-                    <span className="text-[10px] block mt-1 text-ink-soft/75 font-semibold">Registered Students & Landlords</span>
-                  </div>
-
-                  <div className="dashboard-card p-5 bg-paper flex flex-col justify-between min-h-[110px]">
-                    <span className="text-[10px] uppercase tracking-wider block font-bold text-ink-soft">Verified Users</span>
-                    <h3 className="text-3xl font-black font-mono text-pine mt-2">{stats.verifiedUsers}</h3>
-                    <span className="text-[10px] block mt-1 text-pine font-bold">Cleared Tiers</span>
-                  </div>
-
-                  <div className="dashboard-card p-5 bg-paper flex flex-col justify-between min-h-[110px]">
-                    <span className="text-[10px] uppercase tracking-wider block font-bold text-ink-soft">Total Listings</span>
-                    <h3 className="text-3xl font-black font-mono text-ink mt-2">{stats.totalListings}</h3>
-                    <span className="text-[10px] block mt-1 text-ink-soft/75 font-semibold">Host Housing Places</span>
-                  </div>
-
-                  <div className="dashboard-card p-5 bg-paper flex flex-col justify-between min-h-[110px]">
-                    <span className="text-[10px] uppercase tracking-wider block font-bold text-ink-soft">Active Fraud Reports</span>
-                    <h3 className="text-3xl font-black font-mono text-rose-500 mt-2">{stats.activeReports}</h3>
-                    <span className="text-[10px] block mt-1 text-rose-500 font-bold">Pending Review</span>
-                  </div>
-                </div>
-
-                {/* AI / Automated Moderation Indicators card */}
-                <div className="dashboard-card p-6 bg-paper border border-ink/5 space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Shield className="text-marigold" size={18} />
-                    <h3 className="text-base font-black text-ink font-display">AI Moderation Status</h3>
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-clay/50 rounded-xl">
-                    <div>
-                      <span className="text-xs font-bold text-ink">Rent Scams Flagged</span>
-                      <p className="text-[10px] text-ink-soft font-medium mt-0.5">Listings with outlier rent rates below market average (NPR 4,000).</p>
-                    </div>
-                    <span className="text-sm font-black font-mono bg-marigold/10 border border-marigold/20 text-marigold-dark px-3 py-1 rounded-full">
-                      {stats.suspiciousListings} flagged
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* VERIFICATIONS QUEUE MODULE */}
+            {activeTab === 'OVERVIEW' && <AdminOverview stats={stats} />}
             {activeTab === 'VERIFICATIONS' && (
-              <div className="bg-paper border border-ink/5 rounded-[24px] overflow-hidden shadow-sm">
-                <div className="px-6 py-4 border-b border-ink/5">
-                  <h3 className="text-sm font-bold text-ink">Pending Credentials Verification Queue</h3>
-                </div>
-                {verifications.length === 0 ? (
-                  <div className="text-center py-12 text-xs font-bold text-ink-soft">
-                    No pending verification requests in the queue.
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="bg-clay/35 text-[10px] uppercase font-bold text-ink-soft border-b border-ink/5">
-                          <th className="p-4">Full Name</th>
-                          <th className="p-4">Role</th>
-                          <th className="p-4">College</th>
-                          <th className="p-4">Reg Number</th>
-                          <th className="p-4">Document Type</th>
-                          <th className="p-4 text-right">Review</th>
-                        </tr>
-                      </thead>
-                      <tbody className="text-xs">
-                        {verifications.map(req => (
-                          <tr key={req.id} className="border-b border-ink/5 hover:bg-clay/10 transition">
-                            <td className="p-4 font-black">{req.fullName}</td>
-                            <td className="p-4 uppercase font-bold text-[9px] text-marigold-dark">{req.role}</td>
-                            <td className="p-4 text-ink-soft">{req.collegeName}</td>
-                            <td className="p-4 font-mono font-bold">{req.registrationNumber}</td>
-                            <td className="p-4 text-ink-soft font-semibold">{req.documentType}</td>
-                            <td className="p-4 text-right">
-                              <button
-                                onClick={() => setSelectedVerification(req)}
-                                className="bg-marigold text-paper font-bold px-3.5 py-1.5 rounded-lg text-[10px] hover:bg-marigold-dark transition shadow-sm"
-                              >
-                                Review Submission
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
+              <AdminVerifications verifications={verifications} onReview={setSelectedVerification} />
             )}
-
-            {/* LISTINGS MODERATION MODULE */}
             {activeTab === 'LISTINGS' && (
-              <div className="bg-paper border border-ink/5 rounded-[24px] overflow-hidden shadow-sm">
-                <div className="px-6 py-4 border-b border-ink/5">
-                  <h3 className="text-sm font-bold text-ink">Room Listings Moderation</h3>
-                </div>
-                {listings.length === 0 ? (
-                  <div className="text-center py-12 text-xs font-bold text-ink-soft">
-                    No room listings posted in the system yet.
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="bg-clay/35 text-[10px] uppercase font-bold text-ink-soft border-b border-ink/5">
-                          <th className="p-4">Room Title</th>
-                          <th className="p-4">Rent</th>
-                          <th className="p-4">Type</th>
-                          <th className="p-4">Moderation Status</th>
-                          <th className="p-4">Owner Info</th>
-                          <th className="p-4 text-right">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody className="text-xs">
-                        {listings.map(item => (
-                          <tr key={item.id} className="border-b border-ink/5 hover:bg-clay/10 transition">
-                            <td className="p-4 font-black">{item.title}</td>
-                            <td className="p-4 font-mono font-bold text-pine">NPR {item.rentAmount}</td>
-                            <td className="p-4 uppercase text-[10px] font-semibold text-ink-soft">{item.roomType.replace('_', ' ')}</td>
-                            <td className="p-4">
-                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                                item.verificationStatus === 'APPROVED' ? 'bg-pine-light text-pine' : 
-                                item.verificationStatus === 'PENDING' ? 'bg-marigold/10 text-marigold-dark' : 'bg-rose-50 text-rose-600'
-                              }`}>
-                                {item.verificationStatus}
-                              </span>
-                            </td>
-                            <td className="p-4 font-mono text-[10px] text-ink-soft">{item.owner?.phoneNumber || 'N/A'}</td>
-                            <td className="p-4 text-right">
-                              <button
-                                onClick={() => setSelectedListing(item)}
-                                className="bg-marigold text-paper font-bold px-3 py-1.5 rounded-lg text-[10px] hover:bg-marigold-dark transition shadow-sm"
-                              >
-                                Moderate
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
+              <AdminListings listings={listings} onModerate={setSelectedListing} />
             )}
-
-            {/* FRAUD REPORTS MODULE */}
             {activeTab === 'REPORTS' && (
-              <div className="bg-paper border border-ink/5 rounded-[24px] overflow-hidden shadow-sm">
-                <div className="px-6 py-4 border-b border-ink/5">
-                  <h3 className="text-sm font-bold text-ink">Platform Trust & Fraud Reports</h3>
-                </div>
-                {reports.length === 0 ? (
-                  <div className="text-center py-12 text-xs font-bold text-ink-soft">
-                    No trust reports filed yet.
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="bg-clay/35 text-[10px] uppercase font-bold text-ink-soft border-b border-ink/5">
-                          <th className="p-4">Reporter ID</th>
-                          <th className="p-4">Reported User ID</th>
-                          <th className="p-4">Violation Type</th>
-                          <th className="p-4">Description</th>
-                          <th className="p-4">Status</th>
-                          <th className="p-4 text-right">Resolve</th>
-                        </tr>
-                      </thead>
-                      <tbody className="text-xs">
-                        {reports.map(rep => (
-                          <tr key={rep.id} className="border-b border-ink/5 hover:bg-clay/10 transition">
-                            <td className="p-4 font-mono text-[10px] text-ink-soft">{rep.reporterId}</td>
-                            <td className="p-4 font-mono text-[10px] text-brick">{rep.reportedUserId}</td>
-                            <td className="p-4 font-black">{rep.reason}</td>
-                            <td className="p-4 text-ink-soft max-w-xs truncate">{rep.description}</td>
-                            <td className="p-4">
-                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                                rep.status === 'RESOLVED' ? 'bg-pine-light text-pine' : 'bg-rose-50 text-rose-600'
-                              }`}>
-                                {rep.status}
-                              </span>
-                            </td>
-                            <td className="p-4 text-right">
-                              {rep.status !== 'RESOLVED' && (
-                                <button
-                                  onClick={() => handleResolveReport(rep.id)}
-                                  className="bg-pine text-paper font-bold px-3 py-1.5 rounded-lg text-[10px] hover:bg-pine/90 transition shadow-sm"
-                                >
-                                  Mark Resolved
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
+              <AdminReports reports={reports} onResolve={handleResolveReport} />
             )}
-
-            {/* AUDIT LOGS MODULE */}
-            {activeTab === 'AUDIT_LOGS' && (
-              <div className="bg-paper border border-ink/5 rounded-[24px] overflow-hidden shadow-sm">
-                <div className="px-6 py-4 border-b border-ink/5">
-                  <h3 className="text-sm font-bold text-ink">Administrative Action Logs</h3>
-                </div>
-                {auditLogs.length === 0 ? (
-                  <div className="text-center py-12 text-xs font-bold text-ink-soft">
-                    No administrative audit actions recorded yet.
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="bg-clay/35 text-[10px] uppercase font-bold text-ink-soft border-b border-ink/5">
-                          <th className="p-4">Timestamp</th>
-                          <th className="p-4">Admin Name</th>
-                          <th className="p-4">Action Type</th>
-                          <th className="p-4">Affected Resource</th>
-                          <th className="p-4">Reason / Notes</th>
-                          <th className="p-4">Status Transition</th>
-                        </tr>
-                      </thead>
-                      <tbody className="text-xs font-mono">
-                        {auditLogs.map(log => (
-                          <tr key={log.id} className="border-b border-ink/5 hover:bg-clay/10 transition">
-                            <td className="p-4 text-ink-soft text-[10px]">{new Date(log.createdAt).toLocaleString()}</td>
-                            <td className="p-4 font-black font-sans">{log.adminName}</td>
-                            <td className="p-4 font-bold text-[10px] text-marigold-dark">{log.action}</td>
-                            <td className="p-4 font-sans text-xs">
-                              {log.affectedUserName && (
-                                <span className="block text-[11px]">👤 User: <strong>{log.affectedUserName}</strong></span>
-                              )}
-                              {log.affectedListingTitle && (
-                                <span className="block text-[11px]">🏠 Room: <strong>{log.affectedListingTitle}</strong></span>
-                              )}
-                            </td>
-                            <td className="p-4 font-sans text-xs text-ink-soft max-w-xs">{log.reason || 'N/A'}</td>
-                            <td className="p-4 text-[10px] font-bold text-ink-soft/90">
-                              {log.previousStatus} → <span className="text-pine font-black">{log.newStatus}</span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* USER ACCOUNTS MODULE */}
+            {activeTab === 'AUDIT_LOGS' && <AdminAuditLogs auditLogs={auditLogs} />}
             {activeTab === 'USERS' && (
-              <div className="bg-paper border border-ink/5 rounded-[24px] overflow-hidden shadow-sm">
-                <div className="px-6 py-4 border-b border-ink/5">
-                  <h3 className="text-sm font-bold text-ink">Student & Landlord User Accounts</h3>
-                </div>
-                {users.length === 0 ? (
-                  <div className="text-center py-12 text-xs font-bold text-ink-soft">
-                    No user accounts found in database.
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="bg-clay/35 text-[10px] uppercase font-bold text-ink-soft border-b border-ink/5">
-                          <th className="p-4">Full Name</th>
-                          <th className="p-4">Role</th>
-                          <th className="p-4">City</th>
-                          <th className="p-4">Origin District</th>
-                          <th className="p-4">Vetting Status</th>
-                          <th className="p-4 text-right">Status Action</th>
-                        </tr>
-                      </thead>
-                      <tbody className="text-xs">
-                        {users.map(u => (
-                          <tr key={u.id} className="border-b border-ink/5 hover:bg-clay/10 transition">
-                            <td className="p-4 font-black">{u.fullName}</td>
-                            <td className="p-4 uppercase text-[10px] font-bold text-ink-soft">{u.majorCourse === 'Landlord' ? 'Landlord' : 'Student'}</td>
-                            <td className="p-4 text-ink-soft">{u.currentCity}</td>
-                            <td className="p-4 text-ink-soft">{u.hometownDistrict}</td>
-                            <td className="p-4">
-                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                                u.verificationStatus === 'VERIFIED' ? 'bg-pine-light text-pine' : 
-                                u.verificationStatus === 'SUSPENDED' ? 'bg-rose-50 text-rose-600' : 'bg-marigold/10 text-marigold-dark'
-                              }`}>
-                                {u.verificationStatus || 'PENDING'}
-                              </span>
-                            </td>
-                            <td className="p-4 text-right">
-                              <button
-                                onClick={() => handleManualUserStatus(u.id, u.verificationStatus || '')}
-                                className={`font-bold px-3 py-1.5 rounded-lg text-[10px] transition shadow-sm ${
-                                  u.verificationStatus === 'SUSPENDED' 
-                                    ? 'bg-pine text-paper hover:bg-pine/90' 
-                                    : 'bg-rose-500 text-paper hover:bg-rose-600'
-                                }`}
-                              >
-                                {u.verificationStatus === 'SUSPENDED' ? 'Unsuspend' : 'Suspend User'}
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
+              <AdminUsers users={users} onChangeStatus={handleManualUserStatus} />
             )}
           </>
         )}
       </main>
 
       {/* ------------------------------------------------------------- */}
-      {/* 7. VERIFICATION DETAILED MODAL SCREEN */}
+      {/* VERIFICATION DETAILED MODAL SCREEN */}
       {/* ------------------------------------------------------------- */}
       {selectedVerification && (
         <div className="fixed inset-0 bg-ink/40 backdrop-blur-sm flex items-center justify-center p-6 z-50 overflow-y-auto">
@@ -723,7 +359,7 @@ const AdminPortal: React.FC = () => {
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* 8. LISTING MODERATION MODAL */}
+      {/* LISTING MODERATION MODAL */}
       {/* ------------------------------------------------------------- */}
       {selectedListing && (
         <div className="fixed inset-0 bg-ink/40 backdrop-blur-sm flex items-center justify-center p-6 z-50 overflow-y-auto">

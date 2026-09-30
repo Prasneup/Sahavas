@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, MessageSquare, Heart, Navigation, ShieldCheck, Star } from 'lucide-react';
-import { Listing } from '../services/listingsData';
-import api from '../services/api';
+import { Listing } from '../types/room';
+import { roomService } from '../services/roomService';
 import Footer from '../components/Footer';
 
 const RoomDetails: React.FC = () => {
@@ -15,14 +15,11 @@ const RoomDetails: React.FC = () => {
 
   useEffect(() => {
     const fetchListing = async () => {
+      if (!id) return;
       setLoading(true);
       try {
-        const res = await api.get(`/listings/${id}`);
-        if (res.data) {
-          setListing(res.data);
-        } else {
-          setListing(null);
-        }
+        const data = await roomService.getListingDetails(id);
+        setListing(data || null);
       } catch (err) {
         console.error("Failed to fetch listing details", err);
         setListing(null);
@@ -32,10 +29,11 @@ const RoomDetails: React.FC = () => {
     };
 
     const checkSaveStatus = async () => {
+      if (!id) return;
       try {
-        const res = await api.get('/listings/saved');
-        if (res.data) {
-          const savedIds = res.data.map((item: any) => item.id);
+        const res = await roomService.getSavedListings();
+        if (res) {
+          const savedIds = res.map((item: any) => item.id);
           setIsSaved(savedIds.includes(id));
         }
       } catch (err) {
@@ -48,12 +46,13 @@ const RoomDetails: React.FC = () => {
   }, [id]);
 
   const handleToggleSave = async () => {
+    if (!id) return;
     try {
       if (isSaved) {
-        await api.delete(`/listings/${id}/save`);
+        await roomService.unsaveListing(id);
         setIsSaved(false);
       } else {
-        await api.post(`/listings/${id}/save`);
+        await roomService.saveListing(id);
         setIsSaved(true);
       }
     } catch (err) {
@@ -103,9 +102,12 @@ const RoomDetails: React.FC = () => {
 
   const galleryImages = Array.from(new Map(rawImages.map((img: any) => [img.imageUrl, img])).values());
 
+  const distanceKm = listing.distanceKm || 1.2;
+  const walkingTime = listing.walkingTime || '15 min';
+
   // Calculate realistic travel metrics dynamically
-  const bikeTime = `${Math.max(1, Math.round(listing.distanceKm * 2.5))} min`;
-  const transitTime = `${Math.max(3, Math.round(listing.distanceKm * 4.5 + 2))} min`;
+  const bikeTime = `${Math.max(1, Math.round(distanceKm * 2.5))} min`;
+  const transitTime = `${Math.max(3, Math.round(distanceKm * 4.5 + 2))} min`;
 
   return (
     <div className="min-h-screen bg-clay text-ink flex flex-col font-sans">
@@ -161,9 +163,9 @@ const RoomDetails: React.FC = () => {
             {/* Gallery Thumbnails List */}
             {galleryImages.length > 1 && (
               <div className="flex gap-2 mt-4 overflow-x-auto pb-1">
-                {galleryImages.map((img, idx) => (
+                {galleryImages.map((img: any, idx) => (
                   <button
-                    key={img.id}
+                    key={img.id || idx}
                     onClick={() => setActiveImageIndex(idx)}
                     className={`w-20 h-16 rounded-xl overflow-hidden border-2 shrink-0 transition ${
                       activeImageIndex === idx ? 'border-marigold' : 'border-transparent opacity-70 hover:opacity-100'
@@ -188,10 +190,10 @@ const RoomDetails: React.FC = () => {
             <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-ink-soft border-t border-b border-ink/5 py-3">
               <div className="flex items-center gap-1">
                 <Star size={14} className="fill-marigold stroke-none animate-pulse" />
-                <span>{listing.rating} Rating</span>
+                <span>{listing.rating || '4.5'} Rating</span>
               </div>
               <div className="border-l border-ink/10 h-3"></div>
-              <span>{listing.reviewCount} Student Reviews</span>
+              <span>{listing.reviewCount || 0} Student Reviews</span>
               <div className="border-l border-ink/10 h-3"></div>
               <span className="text-pine">Available Now</span>
             </div>
@@ -204,17 +206,19 @@ const RoomDetails: React.FC = () => {
             </div>
 
             {/* Amenities Grid */}
-            <div className="space-y-3 pt-4 border-t border-ink/5">
-              <h3 className="text-xs font-bold text-ink-soft uppercase tracking-wider">Room Amenities</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {listing.amenities.map((amenity) => (
-                  <div key={amenity} className="flex items-center gap-2 text-xs font-semibold text-ink-soft bg-[#FAF8F5] border border-ink/5 px-3 py-2 rounded-xl">
-                    <span className="text-marigold">✓</span>
-                    <span>{amenity.replace('_', ' ')}</span>
-                  </div>
-                ))}
+            {listing.amenities && listing.amenities.length > 0 && (
+              <div className="space-y-3 pt-4 border-t border-ink/5">
+                <h3 className="text-xs font-bold text-ink-soft uppercase tracking-wider">Room Amenities</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {listing.amenities.map((amenity) => (
+                    <div key={amenity} className="flex items-center gap-2 text-xs font-semibold text-ink-soft bg-[#FAF8F5] border border-ink/5 px-3 py-2 rounded-xl">
+                      <span className="text-marigold">✓</span>
+                      <span>{amenity.replace('_', ' ')}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
         </div>
@@ -235,7 +239,7 @@ const RoomDetails: React.FC = () => {
               <div className="text-right">
                 <span className="text-[9px] text-ink-soft font-bold uppercase tracking-wider block">Security Deposit</span>
                 <div className="text-xs font-bold text-ink-soft font-mono mt-0.5">
-                  NPR {listing.depositAmount}
+                  NPR {listing.depositAmount || listing.rentAmount}
                 </div>
               </div>
             </div>
@@ -249,7 +253,7 @@ const RoomDetails: React.FC = () => {
               <div className="grid grid-cols-2 gap-y-2.5 gap-x-2 text-xs font-semibold text-ink-soft font-mono">
                 <div className="flex items-center gap-1.5">
                   <span>🚶</span>
-                  <span>{listing.walkingTime}</span>
+                  <span>{walkingTime}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span>🚴</span>
@@ -261,11 +265,11 @@ const RoomDetails: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span>📍</span>
-                  <span>{listing.distanceKm} km</span>
+                  <span>{distanceKm} km</span>
                 </div>
               </div>
               <div className="text-[9px] text-ink-soft/75 mt-1 block font-sans">
-                Calculated to nearest campus: **{listing.collegeName}**
+                Calculated to nearest campus: **{listing.collegeName || 'Campuses'}**
               </div>
             </div>
 
@@ -282,14 +286,14 @@ const RoomDetails: React.FC = () => {
           <div className="bg-paper border border-ink/10 rounded-[32px] p-6 shadow-sm space-y-4">
             <div className="flex items-center gap-3">
               <img 
-                src={listing.hostAvatarUrl} 
+                src={listing.hostAvatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100'} 
                 alt="Host Avatar" 
                 className="w-10 h-10 rounded-full object-cover border border-ink/10"
               />
               <div>
                 <span className="text-[8px] text-ink-soft font-bold uppercase tracking-wider block">Property Owner</span>
                 <h4 className="text-xs font-bold text-ink">
-                  {listing.hostName}
+                  {listing.hostName || 'Sahavas Owner'}
                 </h4>
                 <span className="text-[9px] text-pine font-bold uppercase tracking-wide block">✓ Verified Landlord</span>
               </div>
@@ -303,7 +307,7 @@ const RoomDetails: React.FC = () => {
             </button>
 
             <button 
-              onClick={() => setIsSaved(!isSaved)}
+              onClick={handleToggleSave}
               className={`w-full py-3 rounded-xl border border-ink/10 text-xs font-black transition ${
                 isSaved 
                   ? 'bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100' 

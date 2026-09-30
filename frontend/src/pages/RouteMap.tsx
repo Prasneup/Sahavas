@@ -1,16 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Navigation, Info } from 'lucide-react';
-import { Listing } from '../services/listingsData';
-import api from '../services/api';
+import { Listing } from '../types/room';
+import { roomService } from '../services/roomService';
+import { isValidCoordinate } from '../utils/validation';
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-
-// Kathmandu Valley bounds for validation
-const MIN_LAT = 27.65;
-const MAX_LAT = 27.71;
-const MIN_LNG = 85.27;
-const MAX_LNG = 85.36;
 
 const COLLEGE_COORDINATES: Record<string, { lat: number; lng: number }> = {
   "IOE Pulchowk Campus": { lat: 27.6812, lng: 85.3184 },
@@ -30,18 +25,11 @@ const COLLEGE_COORDINATES: Record<string, { lat: number; lng: number }> = {
   "KEC": { lat: 27.6970, lng: 85.2970 },
 };
 
-const isValidCoordinate = (lat: any, lng: any) => {
-  const latNum = parseFloat(lat);
-  const lngNum = parseFloat(lng);
-  return (
-    !isNaN(latNum) &&
-    !isNaN(lngNum) &&
-    latNum >= -90 &&
-    latNum <= 90 &&
-    lngNum >= -180 &&
-    lngNum <= 180
-  );
-};
+// Kathmandu Valley bounds for validation
+const MIN_LAT = 27.65;
+const MAX_LAT = 27.71;
+const MIN_LNG = 85.27;
+const MAX_LNG = 85.36;
 
 const fetchOSRMRoute = async (profile: 'driving' | 'foot' | 'bike', start: { lat: number; lng: number }, end: { lat: number; lng: number }) => {
   let subPath = '';
@@ -207,16 +195,13 @@ const RouteMap: React.FC = () => {
   useEffect(() => {
     console.log("RouteMap - Room ID:", id);
     const fetchListing = async () => {
+      if (!id) return;
       setLoading(true);
       try {
         console.log("RouteMap - Route API request sent for listing:", id);
-        const res = await api.get(`/listings/${id}`);
-        console.log("RouteMap - Fetched room data:", res.data);
-        if (res.data) {
-          setListing(res.data);
-        } else {
-          setListing(null);
-        }
+        const data = await roomService.getListingDetails(id);
+        console.log("RouteMap - Fetched room data:", data);
+        setListing(data || null);
       } catch (err) {
         console.error("RouteMap - Fetched room data error:", err);
         setListing(null);
